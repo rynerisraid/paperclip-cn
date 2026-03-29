@@ -152,12 +152,18 @@ export function NewAgent() {
   function handleSubmit() {
     if (!selectedCompanyId || !name.trim()) return;
     setFormError(null);
-    if (configValues.adapterType === "opencode_local") {
-      const selectedModel = configValues.model.trim();
+    const selectedModel = configValues.model.trim();
+    if (configValues.adapterType === "opencode_local" || configValues.adapterType === "hermes_local") {
       if (!selectedModel) {
-        setFormError(t("OpenCode requires an explicit model in provider/model format."));
+        setFormError(
+          configValues.adapterType === "opencode_local"
+            ? t("OpenCode requires an explicit model in provider/model format.")
+            : t("Hermes requires an explicit model in provider/model format."),
+        );
         return;
       }
+    }
+    if (configValues.adapterType === "opencode_local") {
       if (adapterModelsError) {
         setFormError(
           adapterModelsError instanceof Error

@@ -449,14 +449,18 @@ export function OnboardingWizard() {
     setLoading(true);
     setError(null);
     try {
-      if (adapterType === "opencode_local") {
-        const selectedModelId = model.trim();
+      const selectedModelId = model.trim();
+      if (adapterType === "opencode_local" || adapterType === "hermes_local") {
         if (!selectedModelId) {
           setError(
-            t("OpenCode requires an explicit model in provider/model format.")
+            adapterType === "opencode_local"
+              ? t("OpenCode requires an explicit model in provider/model format.")
+              : t("Hermes requires an explicit model in provider/model format.")
           );
           return;
         }
+      }
+      if (adapterType === "opencode_local") {
         if (adapterModelsError) {
           setError(
             adapterModelsError instanceof Error

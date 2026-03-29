@@ -1026,6 +1026,7 @@
   "Adapter environment test failed": "适配器环境测试失败",
   "Failed to create company": "创建公司失败",
   "OpenCode requires an explicit model in provider/model format.": "OpenCode 需要显式填写 provider/model 格式的模型。",
+  "Hermes requires an explicit model in provider/model format.": "Hermes 需要显式填写 provider/model 格式的模型。",
   "Failed to load OpenCode models.": "加载 OpenCode 模型失败。",
   "OpenCode models are still loading. Please wait and try again.": "OpenCode 模型仍在加载，请稍后重试。",
   "No OpenCode models discovered. Run `opencode models` and authenticate providers.": "未发现 OpenCode 模型。请运行 `opencode models` 并完成提供方认证。",

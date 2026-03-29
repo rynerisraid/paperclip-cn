@@ -673,7 +673,7 @@ export function agentRoutes(db: Db) {
 
   router.get("/companies/:companyId/adapters/:type/detect-model", async (req, res) => {
     const companyId = req.params.companyId as string;
-    assertCompanyAccess(req, companyId);
+    await assertCanReadConfigurations(req, companyId);
     const type = req.params.type as string;
 
     const detected = await detectAdapterModel(type);

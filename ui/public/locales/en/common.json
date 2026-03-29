@@ -738,6 +738,7 @@
   "Adapter environment test failed": "Adapter environment test failed",
   "Failed to create company": "Failed to create company",
   "OpenCode requires an explicit model in provider/model format.": "OpenCode requires an explicit model in provider/model format.",
+  "Hermes requires an explicit model in provider/model format.": "Hermes requires an explicit model in provider/model format.",
   "Failed to load OpenCode models.": "Failed to load OpenCode models.",
   "OpenCode models are still loading. Please wait and try again.": "OpenCode models are still loading. Please wait and try again.",
   "No OpenCode models discovered. Run `opencode models` and authenticate providers.": "No OpenCode models discovered. Run `opencode models` and authenticate providers.",

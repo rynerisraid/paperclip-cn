@@ -56,6 +56,7 @@ const mockAdapter = vi.hoisted(() => ({
   listSkills: vi.fn(),
   syncSkills: vi.fn(),
 }));
+const mockDetectAdapterModel = vi.hoisted(() => vi.fn());
 
 vi.mock("../services/index.js", () => ({
   agentService: () => mockAgentService,
@@ -75,6 +76,7 @@ vi.mock("../services/index.js", () => ({
 
 vi.mock("../adapters/index.js", () => ({
   findServerAdapter: vi.fn(() => mockAdapter),
+  detectAdapterModel: mockDetectAdapterModel,
   listAdapterModels: vi.fn(),
 }));
 
@@ -93,17 +95,20 @@ function createDb(requireBoardApprovalForNewAgents = false) {
   };
 }
 
-function createApp(db: Record<string, unknown> = createDb()) {
+function createApp(
+  db: Record<string, unknown> = createDb(),
+  actor: Record<string, unknown> = {
+    type: "board",
+    userId: "local-board",
+    companyIds: ["company-1"],
+    source: "local_implicit",
+    isInstanceAdmin: false,
+  },
+) {
   const app = express();
   app.use(express.json());
   app.use((req, _res, next) => {
-    (req as any).actor = {
-      type: "board",
-      userId: "local-board",
-      companyIds: ["company-1"],
-      source: "local_implicit",
-      isInstanceAdmin: false,
-    };
+    (req as any).actor = actor;
     next();
   });
   app.use("/api", agentRoutes(db as any));
@@ -132,6 +137,11 @@ function makeAgent(adapterType: string) {
 describe("agent skill routes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockDetectAdapterModel.mockResolvedValue({
+      model: "openai/gpt-5.4",
+      provider: "openai",
+      source: "/tmp/hermes/config.json",
+    });
     mockAgentService.resolveByReference.mockResolvedValue({
       ambiguous: false,
       agent: makeAgent("claude_local"),
@@ -458,5 +468,33 @@ describe("agent skill routes", () => {
       | { payload?: { adapterConfig?: Record<string, unknown> } }
       | undefined;
     expect(approvalInput?.payload?.adapterConfig?.promptTemplate).toBeUndefined();
+  });
+
+  it("requires configuration read permission before detecting Hermes models", async () => {
+    mockAccessService.canUser.mockResolvedValue(false);
+
+    const res = await request(createApp(createDb(), {
+      type: "board",
+      userId: "remote-board",
+      companyIds: ["company-1"],
+      source: "api_key",
+      isInstanceAdmin: false,
+    }))
+      .get("/api/companies/company-1/adapters/hermes_local/detect-model");
+
+    expect(res.status, JSON.stringify(res.body)).toBe(403);
+    expect(mockDetectAdapterModel).not.toHaveBeenCalled();
+  });
+
+  it("returns detected Hermes model details for authorized board users", async () => {
+    const res = await request(createApp())
+      .get("/api/companies/company-1/adapters/hermes_local/detect-model");
+
+    expect(res.status, JSON.stringify(res.body)).toBe(200);
+    expect(res.body).toEqual({
+      model: "openai/gpt-5.4",
+      provider: "openai",
+      source: "/tmp/hermes/config.json",
+    });
   });
 });
