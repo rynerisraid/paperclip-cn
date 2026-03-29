@@ -260,6 +260,13 @@ export function OnboardingWizard() {
   }, [step, adapterType, model, command, args, url]);
 
   const selectedModel = (adapterModels ?? []).find((m) => m.id === model);
+  const allowsDefaultModel = adapterType !== "opencode_local" && adapterType !== "hermes_local";
+  const manualModel = modelSearch.trim();
+  const canUseManualModel = Boolean(
+    adapterType === "hermes_local" &&
+      manualModel &&
+      !(adapterModels ?? []).some((entry) => entry.id.toLowerCase() === manualModel.toLowerCase()),
+  );
   const hasAnthropicApiKeyOverrideCheck =
     adapterEnvResult?.checks.some(
       (check) =>
@@ -977,7 +984,7 @@ export function OnboardingWizard() {
                                 {selectedModel
                                   ? selectedModel.label
                                   : model ||
-                                    (adapterType === "opencode_local"
+                                    (adapterType === "opencode_local" || adapterType === "hermes_local"
                                       ? t("Select model (required)")
                                       : t("Default"))}
                               </span>
@@ -990,12 +997,14 @@ export function OnboardingWizard() {
                           >
                             <input
                               className="w-full px-2 py-1.5 text-xs bg-transparent outline-none border-b border-border mb-1 placeholder:text-muted-foreground/50"
-                              placeholder={t("Search models...")}
+                              placeholder={adapterType === "hermes_local"
+                                ? t("agentConfig.searchModelsCreateHint")
+                                : t("Search models...")}
                               value={modelSearch}
                               onChange={(e) => setModelSearch(e.target.value)}
                               autoFocus
                             />
-                            {adapterType !== "opencode_local" && (
+                            {allowsDefaultModel && (
                               <button
                                 className={cn(
                                   "flex items-center gap-2 w-full px-2 py-1.5 text-sm rounded hover:bg-accent/50",
@@ -1007,6 +1016,19 @@ export function OnboardingWizard() {
                                 }}
                               >
                                 {t("Default")}
+                              </button>
+                            )}
+                            {canUseManualModel && (
+                              <button
+                                className="flex items-center justify-between gap-2 w-full px-2 py-1.5 text-sm rounded hover:bg-accent/50"
+                                onClick={() => {
+                                  setModel(manualModel);
+                                  setModelOpen(false);
+                                  setModelSearch("");
+                                }}
+                              >
+                                <span>{t("agentConfig.useManualModel")}</span>
+                                <span className="text-xs font-mono text-muted-foreground">{manualModel}</span>
                               </button>
                             )}
                             <div className="max-h-[240px] overflow-y-auto">
@@ -1045,9 +1067,11 @@ export function OnboardingWizard() {
                                 </div>
                               ))}
                             </div>
-                            {filteredModels.length === 0 && (
+                            {filteredModels.length === 0 && !canUseManualModel && (
                               <p className="px-2 py-1.5 text-xs text-muted-foreground">
-                                {t("No models discovered.")}
+                                {adapterType === "hermes_local"
+                                  ? t("agentConfig.noHermesModelsDetected")
+                                  : t("No models discovered.")}
                               </p>
                             )}
                           </PopoverContent>
