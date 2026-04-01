@@ -92,6 +92,8 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
+          registry-url: https://registry.npmjs.org
+          always-auth: true
 
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
@@ -103,6 +105,17 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Verify npm auth
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          cat <<EOF > "$HOME/.npmrc"
+          registry=https://registry.npmjs.org/
+          //registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}
+          always-auth=true
+          EOF
+          npm whoami
 
       - name: Publish canary
         env:
@@ -298,6 +311,8 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
+          registry-url: https://registry.npmjs.org
+          always-auth: true
 
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
@@ -309,6 +324,17 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Verify npm auth
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          cat <<EOF > "$HOME/.npmrc"
+          registry=https://registry.npmjs.org/
+          //registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}
+          always-auth=true
+          EOF
+          npm whoami
 
       - name: Capture previous stable
         id: previous_stable
