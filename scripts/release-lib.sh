@@ -305,16 +305,17 @@ wait_for_npm_package_version() {
 
 current_git_status_porcelain() {
   local status
+  local normalized_status
 
   status="$(git -C "$REPO_ROOT" status --porcelain)"
   if [ -n "$status" ]; then
-    case "$(uname -s 2>/dev/null || echo unknown)" in
-      MINGW*|MSYS*|CYGWIN*)
-        # Git Bash on Windows can report the entire repo as modified when the
-        # shell-local autocrlf defaults disagree with the Windows checkout.
-        status="$(git -c core.autocrlf=input -C "$REPO_ROOT" status --porcelain)"
-        ;;
-    esac
+    # Some local Windows-flavored shells report the whole repository as dirty
+    # when their autocrlf defaults disagree with the checkout. Prefer the
+    # normalized result when it removes that false-positive drift.
+    normalized_status="$(git -c core.autocrlf=input -C "$REPO_ROOT" status --porcelain)"
+    if [ -z "$normalized_status" ]; then
+      status=""
+    fi
   fi
 
   printf '%s' "$status"
