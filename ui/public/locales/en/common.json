@@ -2009,6 +2009,8 @@
   "{{label}} copied": "{{label}} copied",
   "{{minutes}}m {{seconds}}s": "{{minutes}}m {{seconds}}s",
   "{{percent}}% of monthly budget consumed in this range.": "{{percent}}% of monthly budget consumed in this range.",
+  "{{percent}}% of provider cost": "{{percent}}% of provider cost",
+  "{{percent}}% of provider tokens": "{{percent}}% of provider tokens",
   "{{start}} to {{end}}": "{{start}} to {{end}}",
   "{{tokens}} tokens across request-scoped events": "{{tokens}} tokens across request-scoped events",
   "Current": "Current",
