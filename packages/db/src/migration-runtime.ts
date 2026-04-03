@@ -3,7 +3,11 @@ import { createServer } from "node:net";
 import path from "node:path";
 import { ensurePostgresDatabase, getPostgresDataDirectory } from "./client.js";
 import { createEmbeddedPostgresLogBuffer, formatEmbeddedPostgresError } from "./embedded-postgres-error.js";
-import { recoverEmbeddedPostgresStart, shouldRetryEmbeddedPostgresStart } from "./embedded-postgres-recovery.js";
+import {
+  recoverEmbeddedPostgresStart,
+  resetIncompleteEmbeddedPostgresDataDir,
+  shouldRetryEmbeddedPostgresStart,
+} from "./embedded-postgres-recovery.js";
 import { loadEmbeddedPostgresCtor } from "./embedded-postgres-runtime-installer.js";
 import { resolveDatabaseTarget } from "./runtime-config.js";
 
@@ -84,6 +88,12 @@ async function ensureEmbeddedPostgresConnection(
       onLog: logBuffer.append,
       onError: logBuffer.append,
     });
+
+  if (!runningPid && resetIncompleteEmbeddedPostgresDataDir(dataDir)) {
+    process.emitWarning(
+      `Embedded PostgreSQL data dir ${dataDir} was left half-initialized; resetting it before retrying startup.`,
+    );
+  }
 
   if (!runningPid && existsSync(pgVersionFile)) {
     try {
