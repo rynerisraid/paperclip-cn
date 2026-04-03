@@ -4,24 +4,8 @@ import path from "node:path";
 import { ensurePostgresDatabase, getPostgresDataDirectory } from "./client.js";
 import { createEmbeddedPostgresLogBuffer, formatEmbeddedPostgresError } from "./embedded-postgres-error.js";
 import { recoverEmbeddedPostgresStart, shouldRetryEmbeddedPostgresStart } from "./embedded-postgres-recovery.js";
+import { loadEmbeddedPostgresCtor } from "./embedded-postgres-runtime-installer.js";
 import { resolveDatabaseTarget } from "./runtime-config.js";
-
-type EmbeddedPostgresInstance = {
-  initialise(): Promise<void>;
-  start(): Promise<void>;
-  stop(): Promise<void>;
-};
-
-type EmbeddedPostgresCtor = new (opts: {
-  databaseDir: string;
-  user: string;
-  password: string;
-  port: number;
-  persistent: boolean;
-  initdbFlags?: string[];
-  onLog?: (message: unknown) => void;
-  onError?: (message: unknown) => void;
-}) => EmbeddedPostgresInstance;
 
 export type MigrationConnection = {
   connectionString: string;
@@ -75,17 +59,6 @@ async function findAvailablePort(startPort: number): Promise<number> {
   throw new Error(
     `Embedded PostgreSQL could not find a free port from ${startPort} to ${startPort + maxLookahead - 1}`,
   );
-}
-
-async function loadEmbeddedPostgresCtor(): Promise<EmbeddedPostgresCtor> {
-  try {
-    const mod = await import("embedded-postgres");
-    return mod.default as EmbeddedPostgresCtor;
-  } catch {
-    throw new Error(
-      "Embedded PostgreSQL support requires dependency `embedded-postgres`. Reinstall dependencies and try again.",
-    );
-  }
 }
 
 async function ensureEmbeddedPostgresConnection(
