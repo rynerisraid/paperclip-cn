@@ -219,13 +219,43 @@ pnpm -r typecheck
 pnpm test:run server/src/__tests__/ui-locale.test.ts server/src/__tests__/i18n.test.ts
 ```
 
-### 7.6 测试重量
+### 7.6 upstream merge harness
+
+每次 upstream merge 完成冲突处理后，先跑一遍轻量 harness，再跑完整门禁：
+
+```sh
+pnpm test:upstream-merge-harness
+```
+
+这个 harness 的目标不是替代 `pnpm test:run`，而是优先拦住“手工合并最容易引入、但完整门禁里不够显眼”的 merge-sensitive invariants。
+
+设计原则：
+
+- 只收跨多次 upstream merge 容易回归、或手工冲突处理时容易破坏的不变量
+- 只收基础设施或契约级行为，不收单个业务功能细节
+- 只收轻量、稳定、无外部依赖的测试，保证它能作为完整门禁前的快速闸门
+
+维护规则：
+
+- 具体测试文件清单属于实现细节，放在 `scripts/upstream-merge-harness.mjs`，不要把长期文档写成事故清单
+- 本次同步暴露新回归时，先判断它是否符合上面三条；符合再纳入 harness，不符合就留在常规测试集
+- 优先补纯函数、helper、middleware、route/service 级测试；不要直接把更重的 e2e 或 CLI 链路塞进 harness
+
+### 7.7 测试重量
 
 如果这次同步后 `pnpm test:run` 变慢或开始随机 timeout，先找最重的 suite，再区分它来自 upstream 已有覆盖、Paperclip CN 既有覆盖、还是本次分支新增覆盖。优先收敛“本次分支新增”的重型测试；不要为了提速直接删 upstream 覆盖。能通过抽 helper、降低测试层级、去掉重复 CLI/probe 白耗时解决的，优先修这些，不要先改全局 `maxWorkers` / `testTimeout`。
 
 ## 8. 验证与交付
 
 ### 8.1 质量门禁
+
+先跑轻量 harness，尽早发现 merge 手工补丁引入的基础设施回归：
+
+```sh
+pnpm test:upstream-merge-harness
+```
+
+再跑完整门禁：
 
 ```sh
 pnpm -r typecheck
@@ -312,6 +342,7 @@ git merge <fork remote>/master
 git log --oneline --decorate --stat HEAD..<upstream remote>/master
 git diff --name-only HEAD..<upstream remote>/master
 git merge <upstream remote>/master
+pnpm test:upstream-merge-harness
 pnpm -r typecheck
 pnpm test:run
 pnpm build

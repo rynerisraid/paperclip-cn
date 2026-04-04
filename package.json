@@ -18,6 +18,7 @@
     "typecheck": "pnpm -r typecheck",
     "test": "vitest",
     "test:run": "vitest run",
+    "test:upstream-merge-harness": "node scripts/upstream-merge-harness.mjs",
     "db:generate": "pnpm --filter @penclipai/db generate",
     "db:migrate": "pnpm --filter @penclipai/db migrate",
     "secrets:migrate-inline-env": "tsx scripts/migrate-inline-env-secrets.ts",
