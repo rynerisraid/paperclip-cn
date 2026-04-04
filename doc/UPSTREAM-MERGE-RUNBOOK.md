@@ -227,12 +227,11 @@ pnpm test:run server/src/__tests__/ui-locale.test.ts server/src/__tests__/i18n.t
 pnpm test:upstream-merge-harness
 ```
 
-这个 harness 的目标不是替代 `pnpm test:run`，而是优先拦住“手工合并最容易引入、但完整门禁里不够显眼”的回归。当前至少锁住：
+这个 harness 的目标不是替代 `pnpm test:run`，而是优先拦住“手工合并最容易引入、但完整门禁里不够显眼”的基础设施回归。当前按三个维度覆盖：
 
-- error handler 不得在响应已经提交后再次写 header / body
-- error handler 不得重复发送 500 JSON
-- locale helper / locale middleware / i18n 基础设施
-- Windows worktree `.env` 渲染
+- 响应生命周期与错误处理基础设施
+- locale / i18n 基础设施
+- Windows worktree / 环境文件兼容层
 
 如果本次同步暴露了新的 merge 回归类型，优先补一个纯函数、helper、middleware 或 route 级轻量测试，并把它纳入这个 harness；不要只把经验写进 PR 评论，也不要直接上更重的 e2e。
 
