@@ -41,9 +41,9 @@ import {
   projects,
   runDatabaseBackup,
   runDatabaseRestore,
-  createEmbeddedPostgresLogBuffer,
   formatEmbeddedPostgresError,
 } from "@penclipai/db";
+import { startManagedEmbeddedPostgres } from "@penclipai/db/embedded-postgres-manager";
 import type { Command } from "commander";
 import { ensureAgentJwtSecret, loadPaperclipEnvFile, mergePaperclipEnvEntries, readPaperclipEnvEntries, resolvePaperclipEnvFile } from "../config/env.js";
 import { expandHomePrefix } from "../config/home.js";
@@ -115,23 +115,6 @@ type WorktreeMergeHistoryOptions = {
   dry?: boolean;
   yes?: boolean;
 };
-
-type EmbeddedPostgresInstance = {
-  initialise(): Promise<void>;
-  start(): Promise<void>;
-  stop(): Promise<void>;
-};
-
-type EmbeddedPostgresCtor = new (opts: {
-  databaseDir: string;
-  user: string;
-  password: string;
-  port: number;
-  persistent: boolean;
-  initdbFlags?: string[];
-  onLog?: (message: unknown) => void;
-  onError?: (message: unknown) => void;
-}) => EmbeddedPostgresInstance;
 
 type EmbeddedPostgresHandle = {
   port: number;
@@ -423,29 +406,6 @@ export function resolveGitWorktreeAddArgs(input: {
   }
   const commitish = input.startPoint ?? "HEAD";
   return ["worktree", "add", "-b", input.branchName, input.targetPath, commitish];
-}
-
-function readPidFilePort(postmasterPidFile: string): number | null {
-  if (!existsSync(postmasterPidFile)) return null;
-  try {
-    const lines = readFileSync(postmasterPidFile, "utf8").split("\n");
-    const port = Number(lines[3]?.trim());
-    return Number.isInteger(port) && port > 0 ? port : null;
-  } catch {
-    return null;
-  }
-}
-
-function readRunningPostmasterPid(postmasterPidFile: string): number | null {
-  if (!existsSync(postmasterPidFile)) return null;
-  try {
-    const pid = Number(readFileSync(postmasterPidFile, "utf8").split("\n")[0]?.trim());
-    if (!Number.isInteger(pid) || pid <= 0) return null;
-    process.kill(pid, 0);
-    return pid;
-  } catch {
-    return null;
-  }
 }
 
 async function isPortAvailable(port: number): Promise<boolean> {
@@ -786,68 +746,22 @@ export function copySeededSecretsKey(input: {
 }
 
 async function ensureEmbeddedPostgres(dataDir: string, preferredPort: number): Promise<EmbeddedPostgresHandle> {
-  const moduleName = "embedded-postgres";
-  let EmbeddedPostgres: EmbeddedPostgresCtor;
-  try {
-    const mod = await import(moduleName);
-    EmbeddedPostgres = mod.default as EmbeddedPostgresCtor;
-  } catch {
-    throw new Error(
-      "Embedded PostgreSQL support requires dependency `embedded-postgres`. Reinstall dependencies and try again.",
-    );
-  }
-
-  const postmasterPidFile = path.resolve(dataDir, "postmaster.pid");
-  const runningPid = readRunningPostmasterPid(postmasterPidFile);
-  if (runningPid) {
-    return {
-      port: readPidFilePort(postmasterPidFile) ?? preferredPort,
-      startedByThisProcess: false,
-      stop: async () => {},
-    };
-  }
-
-  const port = await findAvailablePort(preferredPort);
-  const logBuffer = createEmbeddedPostgresLogBuffer();
-  const instance = new EmbeddedPostgres({
-    databaseDir: dataDir,
-    user: "paperclip",
-    password: "paperclip",
-    port,
-    persistent: true,
-    initdbFlags: ["--encoding=UTF8", "--locale=C", "--lc-messages=C"],
-    onLog: logBuffer.append,
-    onError: logBuffer.append,
+  const handle = await startManagedEmbeddedPostgres({
+    dataDir,
+    formatStartupError: ({ dataDir: currentDataDir, error, phase, port, recentLogs }) =>
+      formatEmbeddedPostgresError(error, {
+        fallbackMessage:
+          phase === "initialise"
+            ? `Failed to initialize embedded PostgreSQL cluster in ${currentDataDir} on port ${port}`
+            : `Failed to start embedded PostgreSQL on port ${port}`,
+        recentLogs,
+      }),
+    preferredPort,
   });
-
-  if (!existsSync(path.resolve(dataDir, "PG_VERSION"))) {
-    try {
-      await instance.initialise();
-    } catch (error) {
-      throw formatEmbeddedPostgresError(error, {
-        fallbackMessage: `Failed to initialize embedded PostgreSQL cluster in ${dataDir} on port ${port}`,
-        recentLogs: logBuffer.getRecentLogs(),
-      });
-    }
-  }
-  if (existsSync(postmasterPidFile)) {
-    rmSync(postmasterPidFile, { force: true });
-  }
-  try {
-    await instance.start();
-  } catch (error) {
-    throw formatEmbeddedPostgresError(error, {
-      fallbackMessage: `Failed to start embedded PostgreSQL on port ${port}`,
-      recentLogs: logBuffer.getRecentLogs(),
-    });
-  }
-
   return {
-    port,
-    startedByThisProcess: true,
-    stop: async () => {
-      await instance.stop();
-    },
+    port: handle.port,
+    startedByThisProcess: handle.startedByThisProcess,
+    stop: handle.stop,
   };
 }
 

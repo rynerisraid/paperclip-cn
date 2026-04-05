@@ -1,62 +1,27 @@
-import fs from "node:fs";
-import net from "node:net";
+import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { applyPendingMigrations, ensurePostgresDatabase } from "./client.js";
-
-type EmbeddedPostgresInstance = {
-  initialise(): Promise<void>;
-  start(): Promise<void>;
-  stop(): Promise<void>;
-};
-
-type EmbeddedPostgresCtor = new (opts: {
-  databaseDir: string;
-  user: string;
-  password: string;
-  port: number;
-  persistent: boolean;
-  initdbFlags?: string[];
-  onLog?: (message: unknown) => void;
-  onError?: (message: unknown) => void;
-}) => EmbeddedPostgresInstance;
-
-export type EmbeddedPostgresTestSupport = {
-  supported: boolean;
-  reason?: string;
-};
+import {
+  applyPendingMigrations,
+  ensurePostgresDatabase,
+} from "./client.js";
+import {
+  getAvailablePort,
+  prepareEmbeddedPostgresTestSupport,
+  readCachedEmbeddedPostgresTestSupport,
+  removeDataDirWithRetries,
+  startManagedEmbeddedPostgres,
+  type EmbeddedPostgresTestSupport,
+} from "./embedded-postgres-manager.js";
 
 export type EmbeddedPostgresTestDatabase = {
   connectionString: string;
   cleanup(): Promise<void>;
 };
 
+export type { EmbeddedPostgresTestSupport } from "./embedded-postgres-manager.js";
+
 let embeddedPostgresSupportPromise: Promise<EmbeddedPostgresTestSupport> | null = null;
-
-async function getEmbeddedPostgresCtor(): Promise<EmbeddedPostgresCtor> {
-  const mod = await import("embedded-postgres");
-  return mod.default as EmbeddedPostgresCtor;
-}
-
-async function getAvailablePort(): Promise<number> {
-  return await new Promise((resolve, reject) => {
-    const server = net.createServer();
-    server.unref();
-    server.on("error", reject);
-    server.listen(0, "127.0.0.1", () => {
-      const address = server.address();
-      if (!address || typeof address === "string") {
-        server.close(() => reject(new Error("Failed to allocate test port")));
-        return;
-      }
-      const { port } = address;
-      server.close((error) => {
-        if (error) reject(error);
-        else resolve(port);
-      });
-    });
-  });
-}
 
 function formatEmbeddedPostgresError(error: unknown): string {
   if (error instanceof Error && error.message.length > 0) return error.message;
@@ -64,61 +29,12 @@ function formatEmbeddedPostgresError(error: unknown): string {
   return "embedded Postgres startup failed";
 }
 
-async function removeDataDirWithRetries(dataDir: string): Promise<void> {
-  const maxAttempts = process.platform === "win32" ? 12 : 3;
-  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-    try {
-      await fs.promises.rm(dataDir, {
-        recursive: true,
-        force: true,
-        maxRetries: process.platform === "win32" ? 5 : 0,
-        retryDelay: 100,
-      });
-      return;
-    } catch (error) {
-      const code = (error as NodeJS.ErrnoException).code;
-      const retryable = code === "EPERM" || code === "EBUSY" || code === "ENOTEMPTY";
-      if (!retryable || attempt === maxAttempts) {
-        throw error;
-      }
-      await new Promise((resolve) => setTimeout(resolve, attempt * 100));
-    }
-  }
-}
-
-async function probeEmbeddedPostgresSupport(): Promise<EmbeddedPostgresTestSupport> {
-  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "paperclip-embedded-postgres-probe-"));
-  const port = await getAvailablePort();
-  const EmbeddedPostgres = await getEmbeddedPostgresCtor();
-  const instance = new EmbeddedPostgres({
-    databaseDir: dataDir,
-    user: "paperclip",
-    password: "paperclip",
-    port,
-    persistent: true,
-    initdbFlags: ["--encoding=UTF8", "--locale=C", "--lc-messages=C"],
-    onLog: () => {},
-    onError: () => {},
-  });
-
-  try {
-    await instance.initialise();
-    await instance.start();
-    return { supported: true };
-  } catch (error) {
-    return {
-      supported: false,
-      reason: formatEmbeddedPostgresError(error),
-    };
-  } finally {
-    await instance.stop().catch(() => {});
-    await removeDataDirWithRetries(dataDir).catch(() => {});
-  }
-}
-
 export async function getEmbeddedPostgresTestSupport(): Promise<EmbeddedPostgresTestSupport> {
   if (!embeddedPostgresSupportPromise) {
-    embeddedPostgresSupportPromise = probeEmbeddedPostgresSupport();
+    embeddedPostgresSupportPromise = (async () => {
+      const cached = await readCachedEmbeddedPostgresTestSupport();
+      return cached?.supported ? cached : await prepareEmbeddedPostgresTestSupport();
+    })();
   }
   return await embeddedPostgresSupportPromise;
 }
@@ -126,39 +42,29 @@ export async function getEmbeddedPostgresTestSupport(): Promise<EmbeddedPostgres
 export async function startEmbeddedPostgresTestDatabase(
   tempDirPrefix: string,
 ): Promise<EmbeddedPostgresTestDatabase> {
-  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), tempDirPrefix));
-  const port = await getAvailablePort();
-  const EmbeddedPostgres = await getEmbeddedPostgresCtor();
-  const instance = new EmbeddedPostgres({
-    databaseDir: dataDir,
-    user: "paperclip",
-    password: "paperclip",
-    port,
-    persistent: true,
-    initdbFlags: ["--encoding=UTF8", "--locale=C", "--lc-messages=C"],
-    onLog: () => {},
-    onError: () => {},
-  });
+  const dataDir = await fs.mkdtemp(path.join(os.tmpdir(), tempDirPrefix));
+  const preferredPort = await getAvailablePort();
 
   try {
-    await instance.initialise();
-    await instance.start();
+    const handle = await startManagedEmbeddedPostgres({
+      dataDir,
+      preferredPort,
+      registerTestInstance: true,
+    });
 
-    const adminConnectionString = `postgres://paperclip:paperclip@127.0.0.1:${port}/postgres`;
-    await ensurePostgresDatabase(adminConnectionString, "paperclip");
-    const connectionString = `postgres://paperclip:paperclip@127.0.0.1:${port}/paperclip`;
+    await ensurePostgresDatabase(handle.adminConnectionString, "paperclip");
+    const connectionString = handle.connectionStringFor("paperclip");
     await applyPendingMigrations(connectionString);
 
     return {
       connectionString,
       cleanup: async () => {
-        await instance.stop().catch(() => {});
+        await handle.stop().catch(() => undefined);
         await removeDataDirWithRetries(dataDir);
       },
     };
   } catch (error) {
-    await instance.stop().catch(() => {});
-    await removeDataDirWithRetries(dataDir).catch(() => {});
+    await removeDataDirWithRetries(dataDir).catch(() => undefined);
     throw new Error(
       `Failed to start embedded PostgreSQL test database: ${formatEmbeddedPostgresError(error)}`,
     );
