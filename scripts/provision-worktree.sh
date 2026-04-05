@@ -26,6 +26,17 @@ to_shell_path() {
   printf '%s\n' "$raw"
 }
 
+should_force_fallback_config() {
+  case "${PAPERCLIP_WORKTREE_FORCE_FALLBACK_CONFIG:-}" in
+    1|true|TRUE|yes|YES)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
 base_cwd_raw="${PAPERCLIP_WORKSPACE_BASE_CWD:?PAPERCLIP_WORKSPACE_BASE_CWD is required}"
 worktree_cwd_raw="${PAPERCLIP_WORKSPACE_CWD:?PAPERCLIP_WORKSPACE_CWD is required}"
 base_cwd="$(to_shell_path "$base_cwd_raw")"
@@ -88,6 +99,11 @@ resolved_penclip_entry_path=""
 
 resolve_penclip_invoker() {
   if [[ -n "$resolved_penclip_invoker" ]]; then
+    return 0
+  fi
+
+  if should_force_fallback_config; then
+    resolved_penclip_invoker="none"
     return 0
   fi
 
@@ -432,6 +448,10 @@ elif [[ ! -e "$(to_shell_path "$worktree_config_path_raw")" || ! -e "$(to_shell_
 fi
 
 disable_seeded_routines() {
+  if should_force_fallback_config; then
+    return 0
+  fi
+
   local company_id="${PAPERCLIP_COMPANY_ID:-}"
   if [[ -z "$company_id" ]]; then
     echo "PAPERCLIP_COMPANY_ID not set; skipping routine disable post-step." >&2

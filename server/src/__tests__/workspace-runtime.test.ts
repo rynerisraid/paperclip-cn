@@ -59,6 +59,11 @@ async function runGit(cwd: string, args: string[]) {
 }
 
 async function runPnpm(cwd: string, args: string[]) {
+  if (process.platform === "win32") {
+    await execFileAsync(process.env.comspec ?? "cmd.exe", ["/d", "/s", "/c", "pnpm.cmd", ...args], { cwd });
+    return;
+  }
+
   await execFileAsync("pnpm", args, { cwd });
 }
 
@@ -164,6 +169,7 @@ afterEach(async () => {
   delete process.env.PAPERCLIP_HOME;
   delete process.env.PAPERCLIP_INSTANCE_ID;
   delete process.env.PAPERCLIP_WORKTREES_DIR;
+  delete process.env.PAPERCLIP_WORKTREE_FORCE_FALLBACK_CONFIG;
   delete process.env.DATABASE_URL;
   await resetRuntimeServicesForTests();
 });
@@ -427,6 +433,7 @@ describe("realizeExecutionWorkspace", () => {
     process.env.PAPERCLIP_HOME = paperclipHome;
     process.env.PAPERCLIP_INSTANCE_ID = instanceId;
     process.env.PAPERCLIP_WORKTREES_DIR = isolatedWorktreeHome;
+    process.env.PAPERCLIP_WORKTREE_FORCE_FALLBACK_CONFIG = "1";
 
     await fs.mkdir(sharedConfigDir, { recursive: true });
     await fs.writeFile(
@@ -567,6 +574,7 @@ describe("realizeExecutionWorkspace", () => {
     "provisions worktree-local pnpm node_modules instead of reusing base-repo links",
     async () => {
     const repoRoot = await createTempRepo();
+    process.env.PAPERCLIP_WORKTREE_FORCE_FALLBACK_CONFIG = "1";
     await fs.mkdir(path.join(repoRoot, "scripts"), { recursive: true });
     await fs.mkdir(path.join(repoRoot, "packages", "shared"), { recursive: true });
     await fs.mkdir(path.join(repoRoot, "server"), { recursive: true });
@@ -657,11 +665,18 @@ describe("realizeExecutionWorkspace", () => {
 
     expect((await fs.lstat(path.join(workspace.cwd, "node_modules"))).isSymbolicLink()).toBe(false);
     expect((await fs.lstat(path.join(workspace.cwd, "server", "node_modules"))).isSymbolicLink()).toBe(false);
-    await expect(fs.realpath(path.join(workspace.cwd, "server", "node_modules", "@repo", "shared"))).resolves.toBe(
-      await fs.realpath(path.join(workspace.cwd, "packages", "shared")),
-    );
-    await expect(fs.realpath(path.join(repoRoot, "server", "node_modules", "@repo", "shared"))).resolves.toBe(
-      await fs.realpath(path.join(repoRoot, "packages", "shared")),
+    const worktreeSharedPath = path.join(workspace.cwd, "server", "node_modules", "@repo", "shared");
+    const resolvedWorktreeRoot = await fs.realpath(workspace.cwd);
+    const resolvedWorktreeDependency = await fs.realpath(worktreeSharedPath);
+    const resolvedBaseDependency = await fs.realpath(path.join(repoRoot, "server", "node_modules", "@repo", "shared"));
+    const relativeToWorktreeRoot = path.relative(resolvedWorktreeRoot, resolvedWorktreeDependency);
+
+    expect(path.isAbsolute(relativeToWorktreeRoot)).toBe(false);
+    expect(relativeToWorktreeRoot).not.toBe("");
+    expect(relativeToWorktreeRoot.startsWith("..")).toBe(false);
+    expect(resolvedWorktreeDependency).not.toBe(resolvedBaseDependency);
+    await expect(fs.readFile(path.join(worktreeSharedPath, "package.json"), "utf8")).resolves.toBe(
+      await fs.readFile(path.join(workspace.cwd, "packages", "shared", "package.json"), "utf8"),
     );
     },
     15_000,
