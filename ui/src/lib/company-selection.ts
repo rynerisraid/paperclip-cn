@@ -5,6 +5,13 @@ interface AutoSelectableCompany {
   status?: string;
 }
 
+type AutoSelectedCompanyParams = {
+  companies: readonly AutoSelectableCompany[];
+  selectedCompanyId: string | null;
+  storedCompanyId: string | null;
+  isFetching: boolean;
+};
+
 export function shouldSyncCompanySelectionFromRoute(params: {
   selectionSource: CompanySelectionSource;
   selectedCompanyId: string | null;
@@ -51,4 +58,11 @@ export function resolveAutoSelectedCompanyId(params: {
   }
 
   return selectableCompanies[0]!.id;
+}
+
+export function shouldClearSelectedCompanyId(params: AutoSelectedCompanyParams): boolean {
+  const { companies, selectedCompanyId, storedCompanyId, isFetching } = params;
+
+  if (isFetching || companies.length > 0) return false;
+  return Boolean(selectedCompanyId || storedCompanyId);
 }

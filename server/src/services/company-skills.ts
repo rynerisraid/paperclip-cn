@@ -4,7 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { and, asc, eq } from "drizzle-orm";
 import type { Db } from "@penclipai/db";
-import { companySkills } from "@penclipai/db";
+import { companies, companySkills } from "@penclipai/db";
 import { readPaperclipSkillSyncPreference, writePaperclipSkillSyncPreference } from "@penclipai/adapter-utils/server-utils";
 import type { PaperclipSkillEntry } from "@penclipai/adapter-utils/server-utils";
 import type {
@@ -1482,6 +1482,17 @@ export function companySkillService(db: Db) {
   const projects = projectService(db);
   const secretsSvc = secretService(db);
 
+  async function assertCompanyExists(companyId: string) {
+    const company = await db
+      .select({ id: companies.id })
+      .from(companies)
+      .where(eq(companies.id, companyId))
+      .then((rows) => rows[0] ?? null);
+    if (!company) {
+      throw notFound("Company not found");
+    }
+  }
+
   async function ensureBundledSkills(companyId: string) {
     for (const skillsRoot of resolveBundledSkillsRoot()) {
       const stats = await fs.stat(skillsRoot).catch(() => null);
@@ -1534,6 +1545,7 @@ export function companySkillService(db: Db) {
     }
 
     const refreshPromise = (async () => {
+      await assertCompanyExists(companyId);
       await ensureBundledSkills(companyId);
       await pruneMissingLocalPathSkills(companyId);
     })();
@@ -1746,6 +1758,7 @@ export function companySkillService(db: Db) {
   }
 
   async function createLocalSkill(companyId: string, input: CompanySkillCreateRequest): Promise<CompanySkill> {
+    await assertCompanyExists(companyId);
     const slug = normalizeSkillSlug(input.slug ?? input.name) ?? "skill";
     const managedRoot = resolveManagedSkillsRoot(companyId);
     const skillDir = path.resolve(managedRoot, slug);

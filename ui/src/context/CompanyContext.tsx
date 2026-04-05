@@ -14,6 +14,7 @@ import { ApiError } from "../api/client";
 import { queryKeys } from "../lib/queryKeys";
 import {
   resolveAutoSelectedCompanyId,
+  shouldClearSelectedCompanyId,
   type CompanySelectionSource,
 } from "../lib/company-selection";
 type CompanySelectionOptions = { source?: CompanySelectionSource };
@@ -65,12 +66,19 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
   // Auto-select first company when list loads
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
-    const next = resolveAutoSelectedCompanyId({
+    const selectionParams = {
       companies,
       selectedCompanyId,
       storedCompanyId: stored,
       isFetching,
-    });
+    };
+    if (shouldClearSelectedCompanyId(selectionParams)) {
+      setSelectedCompanyIdState(null);
+      setSelectionSource("bootstrap");
+      localStorage.removeItem(STORAGE_KEY);
+      return;
+    }
+    const next = resolveAutoSelectedCompanyId(selectionParams);
     if (!next) return;
 
     setSelectedCompanyIdState(next);
@@ -116,11 +124,15 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
     () => companies.find((company) => company.id === selectedCompanyId) ?? null,
     [companies, selectedCompanyId],
   );
+  const effectiveSelectedCompanyId = useMemo(
+    () => selectedCompany?.id ?? (isFetching ? selectedCompanyId : null),
+    [isFetching, selectedCompany, selectedCompanyId],
+  );
 
   const value = useMemo(
     () => ({
       companies,
-      selectedCompanyId,
+      selectedCompanyId: effectiveSelectedCompanyId,
       selectedCompany,
       selectionSource,
       loading: isLoading,
@@ -131,7 +143,7 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
     }),
     [
       companies,
-      selectedCompanyId,
+      effectiveSelectedCompanyId,
       selectedCompany,
       selectionSource,
       isLoading,
