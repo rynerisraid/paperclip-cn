@@ -20,20 +20,7 @@ import { Tabs } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Bot, Plus, List, GitBranch, SlidersHorizontal } from "lucide-react";
 import { AGENT_ROLE_LABELS, type Agent } from "@penclipai/shared";
-
-const adapterLabels: Record<string, string> = {
-  claude_local: "Claude",
-  codex_local: "Codex",
-  codebuddy_local: "CodeBuddy",
-  gemini_local: "Gemini",
-  opencode_local: "OpenCode",
-  qwen_local: "Qwen",
-  cursor: "Cursor",
-  hermes_local: "Hermes",
-  openclaw_gateway: "OpenClaw Gateway",
-  process: "Process",
-  http: "HTTP",
-};
+import { getAdapterLabel } from "../adapters/adapter-display-registry";
 
 const roleLabels = AGENT_ROLE_LABELS as Record<string, string>;
 
@@ -272,8 +259,8 @@ export function Agents() {
                         />
                       )}
                       <span className="text-xs text-muted-foreground font-mono w-14 text-right">
-                        {t(adapterLabels[agent.adapterType] ?? agent.adapterType, {
-                          defaultValue: adapterLabels[agent.adapterType] ?? agent.adapterType,
+                        {t(getAdapterLabel(agent.adapterType), {
+                          defaultValue: getAdapterLabel(agent.adapterType),
                         })}
                       </span>
                       <span className="text-xs text-muted-foreground w-16 text-right">
@@ -375,9 +362,9 @@ function OrgTreeNode({
             )}
             {agent && (
               <>
-                <span className="text-xs text-muted-foreground font-mono w-14 text-right">
-                  {t(adapterLabels[agent.adapterType] ?? agent.adapterType, {
-                    defaultValue: adapterLabels[agent.adapterType] ?? agent.adapterType,
+              <span className="text-xs text-muted-foreground font-mono w-14 text-right">
+                  {t(getAdapterLabel(agent.adapterType), {
+                    defaultValue: getAdapterLabel(agent.adapterType),
                   })}
                 </span>
                 <span className="text-xs text-muted-foreground w-16 text-right">

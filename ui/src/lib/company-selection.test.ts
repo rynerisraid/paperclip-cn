@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   resolveAutoSelectedCompanyId,
+  shouldClearSelectedCompanyId,
   shouldSyncCompanySelectionFromRoute,
 } from "./company-selection";
 
@@ -77,5 +78,40 @@ describe("resolveAutoSelectedCompanyId", () => {
         isFetching: false,
       }),
     ).toBeNull();
+  });
+});
+
+describe("shouldClearSelectedCompanyId", () => {
+  it("clears a remembered selection after the company list settles empty", () => {
+    expect(
+      shouldClearSelectedCompanyId({
+        companies: [],
+        selectedCompanyId: "missing-company",
+        storedCompanyId: "missing-company",
+        isFetching: false,
+      }),
+    ).toBe(true);
+  });
+
+  it("keeps a remembered selection while the company list is still loading", () => {
+    expect(
+      shouldClearSelectedCompanyId({
+        companies: [],
+        selectedCompanyId: "missing-company",
+        storedCompanyId: "missing-company",
+        isFetching: true,
+      }),
+    ).toBe(false);
+  });
+
+  it("does not clear when there is nothing remembered", () => {
+    expect(
+      shouldClearSelectedCompanyId({
+        companies: [],
+        selectedCompanyId: null,
+        storedCompanyId: null,
+        isFetching: false,
+      }),
+    ).toBe(false);
   });
 });

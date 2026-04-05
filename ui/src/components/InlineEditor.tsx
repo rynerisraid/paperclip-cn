@@ -20,6 +20,23 @@ const pad = "px-1 -mx-1";
 const markdownPad = "px-1";
 const AUTOSAVE_DEBOUNCE_MS = 900;
 
+export function queueContainedBlurCommit(container: HTMLDivElement, onCommit: () => void) {
+  let frameId = requestAnimationFrame(() => {
+    frameId = requestAnimationFrame(() => {
+      frameId = 0;
+      const active = document.activeElement;
+      if (active instanceof Node && container.contains(active)) return;
+      onCommit();
+    });
+  });
+
+  return () => {
+    if (frameId === 0) return;
+    cancelAnimationFrame(frameId);
+    frameId = 0;
+  };
+}
+
 export function InlineEditor({
   value,
   onSave,
@@ -37,6 +54,7 @@ export function InlineEditor({
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const markdownRef = useRef<MarkdownEditorRef>(null);
   const autosaveDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const blurCommitFrameRef = useRef<(() => void) | null>(null);
   const {
     state: autosaveState,
     markDirty,
@@ -53,6 +71,10 @@ export function InlineEditor({
     return () => {
       if (autosaveDebounceRef.current) {
         clearTimeout(autosaveDebounceRef.current);
+      }
+      if (blurCommitFrameRef.current !== null) {
+        blurCommitFrameRef.current();
+        blurCommitFrameRef.current = null;
       }
     };
   }, []);
@@ -92,6 +114,30 @@ export function InlineEditor({
       setEditing(false);
     }
   }, [draft, multiline, onSave, value]);
+
+  const cancelPendingBlurCommit = useCallback(() => {
+    if (blurCommitFrameRef.current === null) return;
+    blurCommitFrameRef.current();
+    blurCommitFrameRef.current = null;
+  }, []);
+
+  const scheduleBlurCommit = useCallback((container: HTMLDivElement) => {
+    cancelPendingBlurCommit();
+    blurCommitFrameRef.current = queueContainedBlurCommit(container, () => {
+      blurCommitFrameRef.current = null;
+      if (autosaveDebounceRef.current) {
+        clearTimeout(autosaveDebounceRef.current);
+      }
+      setMultilineFocused(false);
+      const trimmed = draft.trim();
+      if (!trimmed || trimmed === value) {
+        reset();
+        void commit();
+        return;
+      }
+      void runSave(() => commit());
+    });
+  }, [cancelPendingBlurCommit, commit, draft, reset, runSave, value]);
 
   function handleKeyDown(e: React.KeyboardEvent) {
     if (e.key === "Enter" && !multiline) {
@@ -148,20 +194,13 @@ export function InlineEditor({
           "rounded transition-colors",
           multilineFocused ? "bg-transparent" : "hover:bg-accent/20",
         )}
-        onFocusCapture={() => setMultilineFocused(true)}
+        onFocusCapture={() => {
+          cancelPendingBlurCommit();
+          setMultilineFocused(true);
+        }}
         onBlurCapture={(event) => {
           if (event.currentTarget.contains(event.relatedTarget as Node | null)) return;
-          if (autosaveDebounceRef.current) {
-            clearTimeout(autosaveDebounceRef.current);
-          }
-          setMultilineFocused(false);
-          const trimmed = draft.trim();
-          if (!trimmed || trimmed === value) {
-            reset();
-            void commit();
-            return;
-          }
-          void runSave(() => commit());
+          scheduleBlurCommit(event.currentTarget);
         }}
         onKeyDown={handleKeyDown}
       >

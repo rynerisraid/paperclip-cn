@@ -3,6 +3,7 @@ import { access, constants, readFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import os from "node:os";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 
 type ModuleResolver = (specifier: string) => string;
 type ScopedModuleResolver = (fromPath: string, specifier: string) => string;
@@ -46,6 +47,12 @@ export type EmbeddedPostgresConstructorOptions = {
 };
 
 export type EmbeddedPostgresCtor = new (opts: EmbeddedPostgresConstructorOptions) => EmbeddedPostgresInstance;
+
+export type EmbeddedPostgresBinaryPaths = {
+  initdb: string;
+  pgCtl: string | null;
+  postgres: string;
+};
 
 export type EmbeddedPostgresRuntimeIssue = {
   packageName: string;
@@ -217,6 +224,14 @@ function formatPackageLabel(issue: Pick<EmbeddedPostgresRuntimeIssue, "packageNa
   return issue.packageVersion ? `${issue.packageName}@${issue.packageVersion}` : issue.packageName;
 }
 
+function resolveEmbeddedPostgresPackageJsonPath(resolveModule: ModuleResolver): string {
+  try {
+    return resolveModule("embedded-postgres/package.json");
+  } catch {
+    return path.resolve(resolveModule("embedded-postgres"), "..", "package.json");
+  }
+}
+
 export class EmbeddedPostgresRuntimeInstaller {
   private readonly arch: string;
   private readonly env: NodeJS.ProcessEnv;
@@ -253,7 +268,7 @@ export class EmbeddedPostgresRuntimeInstaller {
 
     let embeddedPostgresPackageJsonPath: string;
     try {
-      embeddedPostgresPackageJsonPath = this.resolveModule("embedded-postgres/package.json");
+      embeddedPostgresPackageJsonPath = resolveEmbeddedPostgresPackageJsonPath(this.resolveModule);
     } catch {
       return null;
     }
@@ -453,6 +468,50 @@ export async function loadEmbeddedPostgresCtor(
     throw new Error(
       options.missingDependencyMessage
         ?? "Embedded PostgreSQL support requires dependency `embedded-postgres`. Reinstall dependencies and try again.",
+    );
+  }
+}
+
+export async function loadEmbeddedPostgresBinaryPaths(
+  options: {
+    arch?: string;
+    logger?: EmbeddedPostgresRuntimeLogger;
+    platform?: NodeJS.Platform;
+    successMessage?: string;
+  } = {},
+): Promise<EmbeddedPostgresBinaryPaths> {
+  const platform = options.platform ?? process.platform;
+  const arch = options.arch ?? os.arch();
+  const packageName = getExpectedPlatformPackageName(platform, arch);
+  if (!packageName) {
+    throw new Error(`Unsupported embedded PostgreSQL platform "${platform}" with arch "${arch}".`);
+  }
+
+  await ensureEmbeddedPostgresPlatformPackageReady({
+    logger: options.logger,
+    successMessage: options.successMessage,
+  });
+
+  try {
+    const embeddedPostgresPackageJsonPath = resolveEmbeddedPostgresPackageJsonPath(defaultResolveModule);
+    const resolvedPlatformEntry = defaultResolveModuleFrom(embeddedPostgresPackageJsonPath, packageName);
+    const mod = await import(pathToFileURL(resolvedPlatformEntry).href) as {
+      initdb?: unknown;
+      pg_ctl?: unknown;
+      postgres?: unknown;
+    };
+    if (typeof mod.postgres !== "string" || typeof mod.initdb !== "string") {
+      throw new Error(`Embedded PostgreSQL platform package ${packageName} did not expose binary paths.`);
+    }
+    return {
+      initdb: mod.initdb,
+      pgCtl: typeof mod.pg_ctl === "string" ? mod.pg_ctl : null,
+      postgres: mod.postgres,
+    };
+  } catch (error) {
+    throw new Error(
+      (error as Error)?.message
+        ?? `Embedded PostgreSQL support requires platform package ${packageName}. Reinstall dependencies and try again.`,
     );
   }
 }
