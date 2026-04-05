@@ -17,7 +17,7 @@
     "build": "pnpm -r build",
     "typecheck": "pnpm -r typecheck",
     "test": "vitest",
-    "test:run": "vitest run",
+    "test:run": "vitest run --reporter=dot --silent=passed-only",
     "test:upstream-merge-harness": "node scripts/upstream-merge-harness.mjs",
     "db:generate": "pnpm --filter @penclipai/db generate",
     "db:migrate": "pnpm --filter @penclipai/db migrate",

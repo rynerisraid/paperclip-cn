@@ -116,6 +116,23 @@ type WorktreeMergeHistoryOptions = {
   yes?: boolean;
 };
 
+const PNPM_COMMAND = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
+
+function execPnpmSync(args: string[], cwd: string) {
+  if (process.platform === "win32") {
+    execFileSync(process.env.comspec ?? "cmd.exe", ["/d", "/s", "/c", PNPM_COMMAND, ...args], {
+      cwd,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    return;
+  }
+
+  execFileSync(PNPM_COMMAND, args, {
+    cwd,
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+}
+
 type EmbeddedPostgresHandle = {
   port: number;
   startedByThisProcess: boolean;
@@ -1016,10 +1033,7 @@ export async function worktreeMakeCommand(nameArg: string, opts: WorktreeMakeOpt
   const installSpinner = p.spinner();
   installSpinner.start("Installing dependencies...");
   try {
-    execFileSync("pnpm", ["install"], {
-      cwd: targetPath,
-      stdio: ["ignore", "pipe", "pipe"],
-    });
+    execPnpmSync(["install"], targetPath);
     installSpinner.stop("Installed dependencies.");
   } catch (error) {
     installSpinner.stop(pc.yellow("Failed to install dependencies (continuing anyway)."));

@@ -679,7 +679,7 @@ describe("realizeExecutionWorkspace", () => {
       await fs.readFile(path.join(workspace.cwd, "packages", "shared", "package.json"), "utf8"),
     );
     },
-    15_000,
+    WORKTREE_PROVISION_TEST_TIMEOUT,
   );
 
   it("records worktree setup and provision operations when a recorder is provided", async () => {

@@ -1,9 +1,15 @@
 import path from "node:path";
 import fs from "node:fs";
+import { devNull } from "node:os";
 import pino from "pino";
 import { pinoHttp } from "pino-http";
 import { readConfigFile } from "../config-file.js";
 import { resolveDefaultLogsDir, resolveHomeAwarePath } from "../home-paths.js";
+
+function isVitestRuntime(): boolean {
+  if (process.env.VITEST === "true") return true;
+  return process.argv.some((arg) => arg.toLowerCase().includes("vitest"));
+}
 
 function resolveServerLogDir(): string {
   const envOverride = process.env.PAPERCLIP_LOG_DIR?.trim();
@@ -26,22 +32,26 @@ const sharedOpts = {
   singleLine: true,
 };
 
+const isTestRuntime = isVitestRuntime();
+
 export const logger = pino({
   level: "debug",
-}, pino.transport({
-  targets: [
-    {
-      target: "pino-pretty",
-      options: { ...sharedOpts, ignore: "pid,hostname,req,res,responseTime", colorize: true, destination: 1 },
-      level: "info",
-    },
-    {
-      target: "pino-pretty",
-      options: { ...sharedOpts, colorize: false, destination: logFile, mkdir: true },
-      level: "debug",
-    },
-  ],
-}));
+}, isTestRuntime
+  ? pino.destination({ dest: devNull, sync: false })
+  : pino.transport({
+      targets: [
+        {
+          target: "pino-pretty",
+          options: { ...sharedOpts, ignore: "pid,hostname,req,res,responseTime", colorize: true, destination: 1 },
+          level: "info",
+        },
+        {
+          target: "pino-pretty",
+          options: { ...sharedOpts, colorize: false, destination: logFile, mkdir: true },
+          level: "debug",
+        },
+      ],
+    }));
 
 export const httpLogger = pinoHttp({
   logger,

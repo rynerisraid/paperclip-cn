@@ -11,7 +11,27 @@ const PAPERCLIP_ART = [
 
 const TAGLINE = "Open-source orchestration for zero-human companies";
 
+function shouldPrintPaperclipCliBanner(): boolean {
+  if (process.env.PAPERCLIP_NO_CLI_BANNER === "1") {
+    return false;
+  }
+
+  if (process.env.VITEST === "true") {
+    return false;
+  }
+
+  if (process.argv.some((arg) => arg.toLowerCase().includes("vitest"))) {
+    return false;
+  }
+
+  return true;
+}
+
 export function printPaperclipCliBanner(): void {
+  if (!shouldPrintPaperclipCliBanner()) {
+    return;
+  }
+
   const lines = [
     "",
     ...PAPERCLIP_ART.map((line) => pc.cyan(line)),
