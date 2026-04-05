@@ -9,25 +9,11 @@ import { queryKeys } from "../lib/queryKeys";
 import { Button } from "@/components/ui/button";
 import { AGENT_ADAPTER_TYPES } from "@penclipai/shared";
 import type { AgentAdapterType, JoinRequest } from "@penclipai/shared";
+import { getAdapterLabel } from "../adapters/adapter-display-registry";
 import { formatDateTime } from "../lib/utils";
 
 type JoinType = "human" | "agent";
 const joinAdapterOptions: AgentAdapterType[] = [...AGENT_ADAPTER_TYPES];
-
-const adapterLabels: Record<string, string> = {
-  claude_local: "Claude (local)",
-  codex_local: "Codex (local)",
-  codebuddy_local: "CodeBuddy (local)",
-  gemini_local: "Gemini CLI (local)",
-  opencode_local: "OpenCode (local)",
-  pi_local: "Pi (local)",
-  qwen_local: "Qwen (local)",
-  openclaw_gateway: "OpenClaw Gateway",
-  cursor: "Cursor (local)",
-  hermes_local: "Hermes Agent",
-  process: "Process",
-  http: "HTTP",
-};
 
 const ENABLED_INVITE_ADAPTERS = new Set(["claude_local", "codex_local", "codebuddy_local", "gemini_local", "opencode_local", "pi_local", "qwen_local", "cursor", "hermes_local"]);
 
@@ -79,7 +65,7 @@ export function InviteLandingPage() {
   const joinTypeLabel = (type: JoinType) =>
     t(type === "human" ? "invite.joinType.human" : "invite.joinType.agent");
   const adapterLabel = (type: AgentAdapterType) =>
-    t(adapterLabels[type], { defaultValue: adapterLabels[type] });
+    t(getAdapterLabel(type), { defaultValue: getAdapterLabel(type) });
   const availableJoinTypes = useMemo(() => {
     if (invite?.inviteType === "bootstrap_ceo") return ["human"] as JoinType[];
     if (allowedJoinTypes === "both") return ["human", "agent"] as JoinType[];

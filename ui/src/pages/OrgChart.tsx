@@ -13,6 +13,7 @@ import { PageSkeleton } from "../components/PageSkeleton";
 import { AgentIcon } from "../components/AgentIconPicker";
 import { Download, Network, Upload } from "lucide-react";
 import { AGENT_ROLE_LABELS, type Agent } from "@penclipai/shared";
+import { getAdapterLabel } from "../adapters/adapter-display-registry";
 
 // Layout constants
 const CARD_W = 200;
@@ -116,20 +117,6 @@ function collectEdges(nodes: LayoutNode[]): Array<{ parent: LayoutNode; child: L
 }
 
 // ── Status dot colors (raw hex for SVG) ─────────────────────────────────
-
-const adapterLabels: Record<string, string> = {
-  claude_local: "Claude",
-  codex_local: "Codex",
-  codebuddy_local: "CodeBuddy",
-  gemini_local: "Gemini",
-  opencode_local: "OpenCode",
-  qwen_local: "Qwen",
-  cursor: "Cursor",
-  hermes_local: "Hermes",
-  openclaw_gateway: "OpenClaw Gateway",
-  process: "Process",
-  http: "HTTP",
-};
 
 const statusDotColor: Record<string, string> = {
   running: "#22d3ee",
@@ -443,9 +430,9 @@ export function OrgChart() {
                     {agent?.title ?? roleLabel(node.role)}
                   </span>
                   {agent && (
-                    <span className="text-[10px] text-muted-foreground/60 font-mono leading-tight mt-1">
-                      {t(adapterLabels[agent.adapterType] ?? agent.adapterType, {
-                        defaultValue: adapterLabels[agent.adapterType] ?? agent.adapterType,
+                  <span className="text-[10px] text-muted-foreground/60 font-mono leading-tight mt-1">
+                      {t(getAdapterLabel(agent.adapterType), {
+                        defaultValue: getAdapterLabel(agent.adapterType),
                       })}
                     </span>
                   )}

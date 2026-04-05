@@ -1,11 +1,12 @@
-import { useState, type ComponentType } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "@/lib/router";
 import { useDialog } from "../context/DialogContext";
 import { useCompany } from "../context/CompanyContext";
 import { agentsApi } from "../api/agents";
-import { queryKeys } from "../lib/queryKeys";
+import { adaptersApi } from "../api/adapters";
+import { queryKeys } from "@/lib/queryKeys";
 import {
   Dialog,
   DialogContent,
@@ -15,100 +16,21 @@ import { Button } from "@/components/ui/button";
 import {
   ArrowLeft,
   Bot,
-  Code,
-  Gem,
-  MousePointer2,
-  Sparkles,
-  Terminal,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { CodeBuddyLogoIcon } from "./CodeBuddyLogoIcon";
-import { OpenCodeLogoIcon } from "./OpenCodeLogoIcon";
-import { QwenLogoIcon } from "./QwenLogoIcon";
-import { HermesIcon } from "./HermesIcon";
+import { listUIAdapters } from "../adapters";
+import { getAdapterDisplay } from "../adapters/adapter-display-registry";
+import { useDisabledAdaptersSync } from "../adapters/use-disabled-adapters";
 
-type AdvancedAdapterType =
-  | "claude_local"
-  | "codex_local"
-  | "codebuddy_local"
-  | "gemini_local"
-  | "opencode_local"
-  | "pi_local"
-  | "qwen_local"
-  | "cursor"
-  | "openclaw_gateway"
-  | "hermes_local";
+/**
+ * Adapter types that are suitable for agent creation (excludes internal
+ * system adapters like "process" and "http").
+ */
+const SYSTEM_ADAPTER_TYPES = new Set(["process", "http"]);
 
-const ADVANCED_ADAPTER_OPTIONS: Array<{
-  value: AdvancedAdapterType;
-  label: string;
-  descKey: string;
-  icon: ComponentType<{ className?: string }>;
-  recommended?: boolean;
-}> = [
-  {
-    value: "claude_local",
-    label: "Claude Code",
-    icon: Sparkles,
-    descKey: "newAgent.option.claudeLocal",
-    recommended: true,
-  },
-  {
-    value: "codex_local",
-    label: "Codex",
-    icon: Code,
-    descKey: "newAgent.option.codexLocal",
-    recommended: true,
-  },
-  {
-    value: "codebuddy_local",
-    label: "CodeBuddy",
-    icon: CodeBuddyLogoIcon,
-    descKey: "newAgent.option.codebuddyLocal",
-  },
-  {
-    value: "qwen_local",
-    label: "Qwen",
-    icon: QwenLogoIcon,
-    descKey: "newAgent.option.qwenLocal",
-  },
-  {
-    value: "gemini_local",
-    label: "Gemini CLI",
-    icon: Gem,
-    descKey: "newAgent.option.geminiLocal",
-  },
-  {
-    value: "opencode_local",
-    label: "OpenCode",
-    icon: OpenCodeLogoIcon,
-    descKey: "newAgent.option.opencodeLocal",
-  },
-  {
-    value: "hermes_local",
-    label: "Hermes Agent",
-    icon: HermesIcon,
-    descKey: "newAgent.option.hermesLocal",
-  },
-  {
-    value: "pi_local",
-    label: "Pi",
-    icon: Terminal,
-    descKey: "newAgent.option.piLocal",
-  },
-  {
-    value: "cursor",
-    label: "Cursor",
-    icon: MousePointer2,
-    descKey: "newAgent.option.cursor",
-  },
-  {
-    value: "openclaw_gateway",
-    label: "OpenClaw Gateway",
-    icon: Bot,
-    descKey: "newAgent.option.openclawGateway",
-  },
-];
+function isAgentAdapterType(type: string): boolean {
+  return !SYSTEM_ADAPTER_TYPES.has(type);
+}
 
 export function NewAgentDialog() {
   const { t } = useTranslation();
@@ -116,7 +38,16 @@ export function NewAgentDialog() {
   const { selectedCompanyId } = useCompany();
   const navigate = useNavigate();
   const [showAdvancedCards, setShowAdvancedCards] = useState(false);
+  const disabledTypes = useDisabledAdaptersSync();
 
+  // Fetch registered adapters from server (syncs disabled store + provides data)
+  const { data: serverAdapters } = useQuery({
+    queryKey: queryKeys.adapters.all,
+    queryFn: () => adaptersApi.list(),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Fetch existing agents for the "Ask CEO" flow
   const { data: agents } = useQuery({
     queryKey: queryKeys.agents.list(selectedCompanyId!),
     queryFn: () => agentsApi.list(selectedCompanyId!),
@@ -124,6 +55,33 @@ export function NewAgentDialog() {
   });
 
   const ceoAgent = (agents ?? []).find((a) => a.role === "ceo");
+
+  // Build the adapter grid from the UI registry merged with display metadata.
+  // This automatically includes external/plugin adapters.
+  const adapterGrid = useMemo(() => {
+    const registered = listUIAdapters()
+      .filter((a) => isAgentAdapterType(a.type) && !disabledTypes.has(a.type));
+
+    // Sort: recommended first, then alphabetical
+    return registered
+      .map((a) => {
+        const display = getAdapterDisplay(a.type);
+        return {
+          value: a.type,
+          label: display.label,
+          desc: display.description,
+          icon: display.icon,
+          recommended: display.recommended,
+          comingSoon: display.comingSoon,
+          disabledLabel: display.disabledLabel,
+        };
+      })
+      .sort((a, b) => {
+        if (a.recommended && !b.recommended) return -1;
+        if (!a.recommended && b.recommended) return 1;
+        return a.label.localeCompare(b.label);
+      });
+  }, [disabledTypes, serverAdapters]);
 
   function handleAskCeo() {
     closeNewAgent();
@@ -139,7 +97,7 @@ export function NewAgentDialog() {
     setShowAdvancedCards(true);
   }
 
-  function handleAdvancedAdapterPick(adapterType: AdvancedAdapterType) {
+  function handleAdvancedAdapterPick(adapterType: string) {
     closeNewAgent();
     setShowAdvancedCards(false);
     navigate(`/agents/new?adapterType=${encodeURIComponent(adapterType)}`);
@@ -185,7 +143,7 @@ export function NewAgentDialog() {
               {/* Recommendation */}
               <div className="text-center space-y-3">
                 <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-accent">
-                  <Sparkles className="h-6 w-6 text-foreground" />
+                  <Bot className="h-6 w-6 text-foreground" />
                 </div>
                 <p className="text-sm text-muted-foreground">
                   {t("newAgent.recommendation")}
@@ -223,13 +181,18 @@ export function NewAgentDialog() {
               </div>
 
               <div className="grid grid-cols-2 gap-2">
-                {ADVANCED_ADAPTER_OPTIONS.map((opt) => (
+                {adapterGrid.map((opt) => (
                   <button
                     key={opt.value}
                     className={cn(
-                      "flex flex-col items-center gap-1.5 rounded-md border border-border p-3 text-xs transition-colors hover:bg-accent/50 relative"
+                      "flex flex-col items-center gap-1.5 rounded-md border border-border p-3 text-xs transition-colors hover:bg-accent/50 relative",
+                      opt.comingSoon && "opacity-40 cursor-not-allowed",
                     )}
-                    onClick={() => handleAdvancedAdapterPick(opt.value)}
+                    disabled={!!opt.comingSoon}
+                    title={opt.comingSoon ? opt.disabledLabel : undefined}
+                    onClick={() => {
+                      if (!opt.comingSoon) handleAdvancedAdapterPick(opt.value);
+                    }}
                   >
                     {opt.recommended && (
                       <span className="absolute -top-1.5 right-1.5 bg-green-500 text-white text-[9px] font-semibold px-1.5 py-0.5 rounded-full leading-none">
@@ -241,7 +204,7 @@ export function NewAgentDialog() {
                       {t(opt.label, { defaultValue: opt.label })}
                     </span>
                     <span className="text-muted-foreground text-[10px]">
-                      {t(opt.descKey)}
+                      {t(opt.desc, { defaultValue: opt.desc })}
                     </span>
                   </button>
                 ))}

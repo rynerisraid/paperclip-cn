@@ -24,6 +24,9 @@ import {
   extractProviderIdWithFallback
 } from "../lib/model-utils";
 import { getUIAdapter } from "../adapters";
+import { listUIAdapters } from "../adapters";
+import { useDisabledAdaptersSync } from "../adapters/use-disabled-adapters";
+import { getAdapterDisplay } from "../adapters/adapter-display-registry";
 import { defaultCreateValues } from "./agent-config-defaults";
 import {
   createLocalizedDefaultDraftUpdater,
@@ -45,41 +48,20 @@ import { DEFAULT_GEMINI_LOCAL_MODEL } from "@penclipai/adapter-gemini-local";
 import { DEFAULT_QWEN_LOCAL_MODEL } from "@penclipai/adapter-qwen-local";
 import { resolveRouteOnboardingOptions } from "../lib/onboarding-route";
 import { AsciiArtAnimation } from "./AsciiArtAnimation";
-import { CodeBuddyLogoIcon } from "./CodeBuddyLogoIcon";
-import { OpenCodeLogoIcon } from "./OpenCodeLogoIcon";
 import {
   Building2,
   Bot,
-  Code,
-  Gem,
   ListTodo,
   Rocket,
   ArrowLeft,
   ArrowRight,
-  Terminal,
-  Sparkles,
-  MousePointer2,
   Check,
   Loader2,
   ChevronDown,
   X
 } from "lucide-react";
-import { HermesIcon } from "./HermesIcon";
-import { QwenLogoIcon } from "./QwenLogoIcon";
-
 type Step = 1 | 2 | 3 | 4;
-type AdapterType =
-  | "claude_local"
-  | "codex_local"
-  | "codebuddy_local"
-  | "gemini_local"
-  | "hermes_local"
-  | "opencode_local"
-  | "pi_local"
-  | "qwen_local"
-  | "cursor"
-  | "http"
-  | "openclaw_gateway";
+type AdapterType = string;
 
 export function OnboardingWizard() {
   const { t } = useTranslation();
@@ -92,6 +74,9 @@ export function OnboardingWizard() {
   const [routeDismissed, setRouteDismissed] = useState(false);
   const defaultTaskTitle = t("onboarding.defaultTaskTitle");
   const defaultTaskDescription = t("onboarding.defaultTaskDescription");
+
+  // Sync disabled adapter types from server so adapter grid filters them out
+  const disabledTypes = useDisabledAdaptersSync();
 
   const routeOnboardingOptions =
     companyPrefix && companiesLoading
@@ -235,35 +220,36 @@ export function OnboardingWizard() {
     queryFn: () => agentsApi.adapterModels(createdCompanyId!, adapterType),
     enabled: Boolean(createdCompanyId) && effectiveOnboardingOpen && step === 2
   });
-  const isLocalAdapter =
-    adapterType === "claude_local" ||
-    adapterType === "codex_local" ||
-    adapterType === "codebuddy_local" ||
-    adapterType === "gemini_local" ||
-    adapterType === "hermes_local" ||
-    adapterType === "opencode_local" ||
-    adapterType === "pi_local" ||
-    adapterType === "qwen_local" ||
-    adapterType === "cursor";
+  const NONLOCAL_TYPES = new Set(["process", "http", "openclaw_gateway"]);
+  const isLocalAdapter = !NONLOCAL_TYPES.has(adapterType);
+
+  // Build adapter grids dynamically from the UI registry + display metadata.
+  // External/plugin adapters automatically appear with generic defaults.
+  const { recommendedAdapters, moreAdapters } = useMemo(() => {
+    const SYSTEM_ADAPTER_TYPES = new Set(["process", "http"]);
+    const all = listUIAdapters()
+      .filter((a) => !SYSTEM_ADAPTER_TYPES.has(a.type) && !disabledTypes.has(a.type))
+      .map((a) => ({ ...getAdapterDisplay(a.type), type: a.type }));
+
+    return {
+      recommendedAdapters: all.filter((a) => a.recommended),
+      moreAdapters: all.filter((a) => !a.recommended),
+    };
+  }, [disabledTypes]);
+  const COMMAND_PLACEHOLDERS: Record<string, string> = {
+    claude_local: "claude",
+    codebuddy_local: "codebuddy",
+    codex_local: "codex",
+    gemini_local: "gemini",
+    hermes_local: "hermes",
+    pi_local: "pi",
+    qwen_local: "qwen",
+    cursor: "agent",
+    opencode_local: "opencode",
+  };
   const effectiveAdapterCommand =
     command.trim() ||
-    (adapterType === "codex_local"
-      ? "codex"
-      : adapterType === "codebuddy_local"
-        ? "codebuddy"
-      : adapterType === "gemini_local"
-        ? "gemini"
-      : adapterType === "hermes_local"
-        ? "hermes"
-      : adapterType === "pi_local"
-      ? "pi"
-      : adapterType === "qwen_local"
-      ? "qwen"
-      : adapterType === "cursor"
-      ? "agent"
-      : adapterType === "opencode_local"
-      ? "opencode"
-      : "claude");
+    (COMMAND_PLACEHOLDERS[adapterType] ?? adapterType.replace(/_local$/, ""));
 
   useEffect(() => {
     if (step !== 2) return;
@@ -819,44 +805,17 @@ export function OnboardingWizard() {
                       {t("Adapter type")}
                     </label>
                     <div className="grid grid-cols-2 gap-2">
-                      {[
-                        {
-                          value: "claude_local" as const,
-                          label: "Claude Code",
-                          icon: Sparkles,
-                          desc: t("Local Claude agent"),
-                          recommended: true
-                        },
-                        {
-                          value: "codex_local" as const,
-                          label: "Codex",
-                          icon: Code,
-                          desc: t("Local Codex agent"),
-                          recommended: true
-                        },
-                        {
-                          value: "codebuddy_local" as const,
-                          label: "CodeBuddy",
-                          icon: CodeBuddyLogoIcon,
-                          desc: t("newAgent.option.codebuddyLocal")
-                        },
-                        {
-                          value: "qwen_local" as const,
-                          label: "Qwen",
-                          icon: QwenLogoIcon,
-                          desc: t("newAgent.option.qwenLocal")
-                        }
-                      ].map((opt) => (
+                      {recommendedAdapters.map((opt) => (
                         <button
-                          key={opt.value}
+                          key={opt.type}
                           className={cn(
                             "flex flex-col items-center gap-1.5 rounded-md border p-3 text-xs transition-colors relative",
-                            adapterType === opt.value
+                            adapterType === opt.type
                               ? "border-foreground bg-accent"
                               : "border-border hover:bg-accent/50"
                           )}
                           onClick={() => {
-                            const nextType = opt.value as AdapterType;
+                            const nextType = opt.type;
                             setAdapterType(nextType);
                             if (nextType === "codex_local" && !model) {
                               setModel(DEFAULT_CODEX_LOCAL_MODEL);
@@ -889,7 +848,7 @@ export function OnboardingWizard() {
                             {t(opt.label, { defaultValue: opt.label })}
                           </span>
                           <span className="text-muted-foreground text-[10px]">
-                            {opt.desc}
+                            {opt.description}
                           </span>
                         </button>
                       ))}
@@ -910,60 +869,21 @@ export function OnboardingWizard() {
 
                     {showMoreAdapters && (
                       <div className="grid grid-cols-2 gap-2 mt-2">
-                        {[
-                          {
-                            value: "gemini_local" as const,
-                            label: "Gemini CLI",
-                            icon: Gem,
-                            desc: t("Local Gemini agent")
-                          },
-                          {
-                            value: "opencode_local" as const,
-                            label: "OpenCode",
-                            icon: OpenCodeLogoIcon,
-                            desc: t("Local multi-provider agent")
-                          },
-                          {
-                            value: "pi_local" as const,
-                            label: "Pi",
-                            icon: Terminal,
-                            desc: t("Local Pi agent")
-                          },
-                          {
-                            value: "cursor" as const,
-                            label: "Cursor",
-                            icon: MousePointer2,
-                            desc: t("Local Cursor agent")
-                          },
-                          {
-                            value: "hermes_local" as const,
-                            label: "Hermes Agent",
-                            icon: HermesIcon,
-                            desc: t("Local multi-provider agent")
-                          },
-                          {
-                            value: "openclaw_gateway" as const,
-                            label: "OpenClaw Gateway",
-                            icon: Bot,
-                            desc: t("Invoke OpenClaw via gateway protocol"),
-                            comingSoon: true,
-                            disabledLabel: t("Configure OpenClaw within the App")
-                          }
-                        ].map((opt) => (
-                          <button
-                            key={opt.value}
-                            disabled={!!opt.comingSoon}
-                            className={cn(
-                              "flex flex-col items-center gap-1.5 rounded-md border p-3 text-xs transition-colors relative",
-                              opt.comingSoon
-                                ? "border-border opacity-40 cursor-not-allowed"
-                                : adapterType === opt.value
-                                ? "border-foreground bg-accent"
-                                : "border-border hover:bg-accent/50"
-                            )}
-                            onClick={() => {
-                              if (opt.comingSoon) return;
-                              const nextType = opt.value as AdapterType;
+                        {moreAdapters.map((opt) => (
+                           <button
+                             key={opt.type}
+                             disabled={!!opt.comingSoon}
+                             className={cn(
+                               "flex flex-col items-center gap-1.5 rounded-md border p-3 text-xs transition-colors relative",
+                               opt.comingSoon
+                                 ? "border-border opacity-40 cursor-not-allowed"
+                                 : adapterType === opt.type
+                                 ? "border-foreground bg-accent"
+                                 : "border-border hover:bg-accent/50"
+                             )}
+                              onClick={() => {
+                                if (opt.comingSoon) return;
+                                const nextType = opt.type;
                               setAdapterType(nextType);
                               if (nextType === "gemini_local" && !model) {
                                 setModel(DEFAULT_GEMINI_LOCAL_MODEL);
@@ -988,9 +908,8 @@ export function OnboardingWizard() {
                             </span>
                             <span className="text-muted-foreground text-[10px]">
                               {opt.comingSoon
-                                ? (opt as { disabledLabel?: string })
-                                    .disabledLabel ?? t("Coming soon")
-                                : opt.desc}
+                                ? opt.disabledLabel ?? "Coming soon"
+                                : opt.description}
                             </span>
                           </button>
                         ))}
@@ -999,15 +918,7 @@ export function OnboardingWizard() {
                   </div>
 
                   {/* Conditional adapter fields */}
-                  {(adapterType === "claude_local" ||
-                    adapterType === "codex_local" ||
-                    adapterType === "codebuddy_local" ||
-                    adapterType === "gemini_local" ||
-                    adapterType === "hermes_local" ||
-                    adapterType === "opencode_local" ||
-                    adapterType === "pi_local" ||
-                    adapterType === "qwen_local" ||
-                    adapterType === "cursor") && (
+                  {isLocalAdapter && (
                     <div className="space-y-3">
                       <div>
                         <label className="text-xs text-muted-foreground mb-1 block">

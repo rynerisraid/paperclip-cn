@@ -4,6 +4,7 @@ import { AGENT_ROLE_LABELS, type Agent, type AgentRuntimeState } from "@penclipa
 import { useTranslation } from "react-i18next";
 import { agentsApi } from "../api/agents";
 import { useCompany } from "../context/CompanyContext";
+import { getAdapterLabel } from "../adapters/adapter-display-registry";
 import { queryKeys } from "../lib/queryKeys";
 import { translateRuntimeErrorMessage } from "../lib/error-i18n";
 import { displaySeededName } from "../lib/seeded-display";
@@ -16,20 +17,6 @@ interface AgentPropertiesProps {
   agent: Agent;
   runtimeState?: AgentRuntimeState;
 }
-
-const adapterLabels: Record<string, string> = {
-  claude_local: "Claude (local)",
-  codex_local: "Codex (local)",
-  codebuddy_local: "CodeBuddy (local)",
-  gemini_local: "Gemini CLI (local)",
-  opencode_local: "OpenCode (local)",
-  qwen_local: "Qwen (local)",
-  openclaw_gateway: "OpenClaw Gateway",
-  cursor: "Cursor (local)",
-  hermes_local: "Hermes Agent",
-  process: "Process",
-  http: "HTTP",
-};
 
 const roleLabels = AGENT_ROLE_LABELS as Record<string, string>;
 
@@ -69,11 +56,7 @@ export function AgentProperties({ agent, runtimeState }: AgentPropertiesProps) {
           </PropertyRow>
         )}
         <PropertyRow label={t("Adapter", { defaultValue: "Adapter" })}>
-          <span className="text-sm font-mono">
-            {t(adapterLabels[agent.adapterType] ?? agent.adapterType, {
-              defaultValue: adapterLabels[agent.adapterType] ?? agent.adapterType,
-            })}
-          </span>
+          <span className="text-sm font-mono">{getAdapterLabel(agent.adapterType)}</span>
         </PropertyRow>
       </div>
 

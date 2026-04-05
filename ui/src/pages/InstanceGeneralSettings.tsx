@@ -1,11 +1,14 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { PatchInstanceGeneralSettings } from "@penclipai/shared";
-import { SlidersHorizontal } from "lucide-react";
+import { LogOut, SlidersHorizontal } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { authApi } from "@/api/auth";
 import { instanceSettingsApi } from "@/api/instanceSettings";
+import { Button } from "../components/ui/button";
 import { useBreadcrumbs } from "../context/BreadcrumbContext";
 import { queryKeys } from "../lib/queryKeys";
+import { ToggleSwitch } from "@/components/ui/toggle-switch";
 import { cn } from "../lib/utils";
 
 const FEEDBACK_TERMS_URL = import.meta.env.VITE_FEEDBACK_TERMS_URL?.trim() || "https://paperclip.ing/tos";
@@ -15,6 +18,16 @@ export function InstanceGeneralSettings() {
   const { setBreadcrumbs } = useBreadcrumbs();
   const queryClient = useQueryClient();
   const [actionError, setActionError] = useState<string | null>(null);
+
+  const signOutMutation = useMutation({
+    mutationFn: () => authApi.signOut(),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.auth.session });
+    },
+    onError: (error) => {
+      setActionError(error instanceof Error ? error.message : "Failed to sign out.");
+    },
+  });
 
   useEffect(() => {
     setBreadcrumbs([
@@ -113,28 +126,12 @@ export function InstanceGeneralSettings() {
               )}
             </p>
           </div>
-          <button
-            type="button"
-            data-slot="toggle"
-            aria-label={t("Toggle username log censoring", { defaultValue: "Toggle username log censoring" })}
+          <ToggleSwitch
+            checked={censorUsernameInLogs}
+            onCheckedChange={() => updateGeneralMutation.mutate({ censorUsernameInLogs: !censorUsernameInLogs })}
             disabled={updateGeneralMutation.isPending}
-            className={cn(
-              "relative inline-flex h-5 w-9 items-center rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-60",
-              censorUsernameInLogs ? "bg-green-600" : "bg-muted",
-            )}
-            onClick={() =>
-              updateGeneralMutation.mutate({
-                censorUsernameInLogs: !censorUsernameInLogs,
-              })
-            }
-          >
-            <span
-              className={cn(
-                "inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform",
-                censorUsernameInLogs ? "translate-x-4.5" : "translate-x-0.5",
-              )}
-            />
-          </button>
+            aria-label={t("Toggle username log censoring", { defaultValue: "Toggle username log censoring" })}
+          />
         </div>
       </section>
 
@@ -148,24 +145,12 @@ export function InstanceGeneralSettings() {
               {t("instanceGeneralSettings.keyboardShortcutsDescription")}
             </p>
           </div>
-          <button
-            type="button"
-            data-slot="toggle"
-            aria-label={t("instanceGeneralSettings.keyboardShortcutsToggle")}
+          <ToggleSwitch
+            checked={keyboardShortcuts}
+            onCheckedChange={() => updateGeneralMutation.mutate({ keyboardShortcuts: !keyboardShortcuts })}
             disabled={updateGeneralMutation.isPending}
-            className={cn(
-              "relative inline-flex h-5 w-9 items-center rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-60",
-              keyboardShortcuts ? "bg-green-600" : "bg-muted",
-            )}
-            onClick={() => updateGeneralMutation.mutate({ keyboardShortcuts: !keyboardShortcuts })}
-          >
-            <span
-              className={cn(
-                "inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform",
-                keyboardShortcuts ? "translate-x-4.5" : "translate-x-0.5",
-              )}
-            />
-          </button>
+            aria-label={t("instanceGeneralSettings.keyboardShortcutsToggle", { defaultValue: "Toggle keyboard shortcuts" })}
+          />
         </div>
       </section>
 
@@ -280,6 +265,36 @@ export function InstanceGeneralSettings() {
             {t("instanceGeneralSettings.feedbackSharingRetestSuffix")} <code>"prompt"</code>.{" "}
             {t("instanceGeneralSettings.feedbackSharingRetestExplanation")}
           </p>
+        </div>
+      </section>
+
+      <section className="rounded-xl border border-border bg-card p-5">
+        <div className="flex items-start justify-between gap-4">
+          <div className="space-y-1.5">
+            <h2 className="text-sm font-semibold">
+              {t("Sign out", { defaultValue: "Sign out" })}
+            </h2>
+            <p className="max-w-2xl text-sm text-muted-foreground">
+              {t(
+                "Sign out of this Paperclip instance. You will be redirected to the login page.",
+                {
+                  defaultValue:
+                    "Sign out of this Paperclip instance. You will be redirected to the login page.",
+                },
+              )}
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={signOutMutation.isPending}
+            onClick={() => signOutMutation.mutate()}
+          >
+            <LogOut className="size-4" />
+            {signOutMutation.isPending
+              ? t("Signing out...", { defaultValue: "Signing out..." })
+              : t("Sign out", { defaultValue: "Sign out" })}
+          </Button>
         </div>
       </section>
     </div>
