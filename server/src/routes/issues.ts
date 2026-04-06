@@ -2,6 +2,7 @@ import { Router, type Request, type Response } from "express";
 import multer from "multer";
 import { z } from "zod";
 import type { Db } from "@penclipai/db";
+import { issueExecutionDecisions } from "@penclipai/db";
 import {
   addIssueCommentSchema,
   createIssueAttachmentMetadataSchema,
@@ -55,6 +56,7 @@ import {
 } from "../attachment-types.js";
 import { queueIssueAssignmentWakeup } from "../services/issue-assignment-wakeup.js";
 import { resolveExplicitRequestUiLocale } from "../ui-locale.js";
+import { applyIssueExecutionPolicyTransition, normalizeIssueExecutionPolicy } from "../services/issue-execution-policy.js";
 
 const MAX_ISSUE_COMMENT_LIMIT = 500;
 const updateIssueRouteSchema = updateIssueSchema.extend({
@@ -1086,6 +1088,7 @@ export function issueRoutes(
     const requestedUiLocale = resolveExplicitRequestUiLocale(req);
     const issue = await svc.create(companyId, {
       ...req.body,
+      executionPolicy: normalizeIssueExecutionPolicy(req.body.executionPolicy),
       createdByAgentId: actor.agentId,
       createdByUserId: actor.actorType === "user" ? actor.actorId : null,
     });
@@ -1207,6 +1210,31 @@ export function issueRoutes(
     if (commentBody && reopenRequested === true && isClosed && updateFields.status === undefined) {
       updateFields.status = "todo";
     }
+    if (req.body.executionPolicy !== undefined) {
+      updateFields.executionPolicy = normalizeIssueExecutionPolicy(req.body.executionPolicy);
+    }
+
+    const transition = applyIssueExecutionPolicyTransition({
+      issue: existing,
+      policy:
+        updateFields.executionPolicy !== undefined
+          ? (updateFields.executionPolicy as NonNullable<typeof updateFields.executionPolicy> | null)
+          : normalizeIssueExecutionPolicy(existing.executionPolicy ?? null),
+      requestedStatus: typeof updateFields.status === "string" ? updateFields.status : undefined,
+      requestedAssigneePatch: {
+        assigneeAgentId:
+          req.body.assigneeAgentId === undefined ? undefined : (req.body.assigneeAgentId as string | null),
+        assigneeUserId:
+          req.body.assigneeUserId === undefined ? undefined : (req.body.assigneeUserId as string | null),
+      },
+      actor: {
+        agentId: actor.agentId ?? null,
+        userId: actor.actorType === "user" ? actor.actorId : null,
+      },
+      commentBody,
+    });
+    Object.assign(updateFields, transition.patch);
+
     let issue;
     try {
       issue = await svc.update(id, {
@@ -1361,7 +1389,22 @@ export function issueRoutes(
 
     }
 
-    const assigneeChanged = assigneeWillChange;
+    if (transition.decision) {
+      await db.insert(issueExecutionDecisions).values({
+        companyId: issue.companyId,
+        issueId: issue.id,
+        stageId: transition.decision.stageId,
+        stageType: transition.decision.stageType,
+        actorAgentId: actor.agentId ?? null,
+        actorUserId: actor.actorType === "user" ? actor.actorId : null,
+        outcome: transition.decision.outcome,
+        body: transition.decision.body,
+        createdByRunId: actor.runId ?? null,
+      });
+    }
+
+    const assigneeChanged =
+      issue.assigneeAgentId !== existing.assigneeAgentId || issue.assigneeUserId !== existing.assigneeUserId;
     const statusChangedFromBacklog =
       existing.status === "backlog" &&
       issue.status !== "backlog" &&
