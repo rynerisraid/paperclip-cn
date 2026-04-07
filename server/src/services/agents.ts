@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from "node:crypto";
-import { and, desc, eq, gte, inArray, lt, ne, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, lt, ne, or, sql } from "drizzle-orm";
 import type { Db } from "@penclipai/db";
 import {
   agents,
@@ -9,6 +9,7 @@ import {
   agentTaskSessions,
   agentWakeupRequests,
   costEvents,
+  activityLog,
   heartbeatRunEvents,
   heartbeatRuns,
 } from "@penclipai/db";
@@ -474,6 +475,20 @@ export function agentService(db: Db) {
 
       return db.transaction(async (tx) => {
         await tx.update(agents).set({ reportsTo: null }).where(eq(agents.reportsTo, id));
+        await tx
+          .delete(activityLog)
+          .where(
+            or(
+              eq(activityLog.agentId, id),
+              inArray(
+                activityLog.runId,
+                tx
+                  .select({ runId: heartbeatRuns.id })
+                  .from(heartbeatRuns)
+                  .where(eq(heartbeatRuns.agentId, id)),
+              ),
+            ),
+          );
         await tx.delete(heartbeatRunEvents).where(eq(heartbeatRunEvents.agentId, id));
         await tx.delete(agentTaskSessions).where(eq(agentTaskSessions.agentId, id));
         await tx.delete(heartbeatRuns).where(eq(heartbeatRuns.agentId, id));
