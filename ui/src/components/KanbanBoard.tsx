@@ -21,8 +21,8 @@ import {
 import { StatusIcon } from "./StatusIcon";
 import { PriorityIcon } from "./PriorityIcon";
 import { Identity } from "./Identity";
-import { translateStatusLabel } from "../lib/i18n-labels";
 import type { Issue } from "@penclipai/shared";
+import { translateStatusLabel } from "../lib/i18n-labels";
 
 const boardStatuses = [
   "backlog",
@@ -33,8 +33,6 @@ const boardStatuses = [
   "done",
   "cancelled",
 ];
-
-// statusLabel is now handled by translateStatusLabel from i18n-labels
 
 interface Agent {
   id: string;
@@ -64,16 +62,22 @@ function KanbanColumn({
   const { t } = useTranslation();
   const { setNodeRef, isOver } = useDroppable({ id: status });
 
+  const isEmpty = issues.length === 0;
+
   return (
-    <div className="flex flex-col min-w-[260px] w-[260px] shrink-0">
-      <div className="flex items-center gap-2 px-2 py-2 mb-1">
+    <div className={`flex flex-col shrink-0 transition-[width,min-width] ${isEmpty && !isOver ? "min-w-[48px] w-[48px]" : "min-w-[260px] w-[260px]"}`}>
+      <div className={`flex items-center gap-2 px-2 py-2 mb-1 ${isEmpty && !isOver ? "justify-center" : ""}`}>
         <StatusIcon status={status} />
-        <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          {translateStatusLabel(t, status)}
-        </span>
-        <span className="text-xs text-muted-foreground/60 ml-auto tabular-nums">
-          {issues.length}
-        </span>
+        {(!isEmpty || isOver) && (
+          <>
+            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              {translateStatusLabel(t, status)}
+            </span>
+            <span className="text-xs text-muted-foreground/60 ml-auto tabular-nums">
+              {issues.length}
+            </span>
+          </>
+        )}
       </div>
       <div
         ref={setNodeRef}

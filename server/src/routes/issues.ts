@@ -47,7 +47,12 @@ import { logger } from "../middleware/logger.js";
 import { forbidden, HttpError, unauthorized } from "../errors.js";
 import { assertCompanyAccess, getActorInfo } from "./authz.js";
 import { shouldWakeAssigneeOnCheckout } from "./issues-checkout-wakeup.js";
-import { isAllowedContentType, MAX_ATTACHMENT_BYTES } from "../attachment-types.js";
+import {
+  isInlineAttachmentContentType,
+  MAX_ATTACHMENT_BYTES,
+  normalizeContentType,
+  SVG_CONTENT_TYPE,
+} from "../attachment-types.js";
 import { queueIssueAssignmentWakeup } from "../services/issue-assignment-wakeup.js";
 import { resolveExplicitRequestUiLocale } from "../ui-locale.js";
 
@@ -361,6 +366,9 @@ export function issueRoutes(
       unreadForUserFilterRaw === "me" && req.actor.type === "board"
         ? req.actor.userId
         : unreadForUserFilterRaw;
+    const rawLimit = req.query.limit as string | undefined;
+    const parsedLimit = rawLimit ? Number.parseInt(rawLimit, 10) : null;
+    const limit = parsedLimit ?? undefined;
 
     if (assigneeUserFilterRaw === "me" && (!assigneeUserId || req.actor.type !== "board")) {
       res.status(403).json({ error: "assigneeUserId=me requires board authentication" });
@@ -376,6 +384,10 @@ export function issueRoutes(
     }
     if (unreadForUserFilterRaw === "me" && (!unreadForUserId || req.actor.type !== "board")) {
       res.status(403).json({ error: "unreadForUserId=me requires board authentication" });
+      return;
+    }
+    if (rawLimit !== undefined && (parsedLimit === null || !Number.isInteger(parsedLimit) || parsedLimit <= 0)) {
+      res.status(400).json({ error: "limit must be a positive integer" });
       return;
     }
 
@@ -396,6 +408,7 @@ export function issueRoutes(
       includeRoutineExecutions:
         req.query.includeRoutineExecutions === "true" || req.query.includeRoutineExecutions === "1",
       q: req.query.q as string | undefined,
+      limit,
     });
     res.json(result);
   });
@@ -462,11 +475,12 @@ export function issueRoutes(
       return;
     }
     assertCompanyAccess(req, issue.companyId);
-    const [{ project, goal }, ancestors, mentionedProjectIds, documentPayload] = await Promise.all([
+    const [{ project, goal }, ancestors, mentionedProjectIds, documentPayload, relations] = await Promise.all([
       resolveIssueProjectAndGoal(issue),
       svc.getAncestors(issue.id),
       svc.findMentionedProjectIds(issue.id),
       documentsSvc.getIssueDocumentPayload(issue),
+      svc.getRelationSummaries(issue.id),
     ]);
     const mentionedProjects = mentionedProjectIds.length > 0
       ? await projectsSvc.listByIds(issue.companyId, mentionedProjectIds)
@@ -479,6 +493,8 @@ export function issueRoutes(
       ...issue,
       goalId: goal?.id ?? issue.goalId,
       ancestors,
+      blockedBy: relations.blockedBy,
+      blocks: relations.blocks,
       ...documentPayload,
       project: project ?? null,
       goal: goal ?? null,
@@ -502,11 +518,14 @@ export function issueRoutes(
         ? req.query.wakeCommentId.trim()
         : null;
 
-    const [{ project, goal }, ancestors, commentCursor, wakeComment] = await Promise.all([
+    const [{ project, goal }, ancestors, commentCursor, wakeComment, relations, attachments] =
+      await Promise.all([
       resolveIssueProjectAndGoal(issue),
       svc.getAncestors(issue.id),
       svc.getCommentCursor(issue.id),
       wakeCommentId ? svc.getComment(wakeCommentId) : null,
+      svc.getRelationSummaries(issue.id),
+      svc.listAttachments(issue.id),
     ]);
 
     res.json({
@@ -520,6 +539,8 @@ export function issueRoutes(
         projectId: issue.projectId,
         goalId: goal?.id ?? issue.goalId,
         parentId: issue.parentId,
+        blockedBy: relations.blockedBy,
+        blocks: relations.blocks,
         assigneeAgentId: issue.assigneeAgentId,
         assigneeUserId: issue.assigneeUserId,
         updatedAt: issue.updatedAt,
@@ -553,6 +574,14 @@ export function issueRoutes(
         wakeComment && wakeComment.issueId === issue.id
           ? wakeComment
           : null,
+      attachments: attachments.map((a) => ({
+        id: a.id,
+        filename: a.originalFilename,
+        contentType: a.contentType,
+        byteSize: a.byteSize,
+        contentPath: withContentPath(a).contentPath,
+        createdAt: a.createdAt,
+      })),
     });
   });
 
@@ -1070,7 +1099,11 @@ export function issueRoutes(
       action: "issue.created",
       entityType: "issue",
       entityId: issue.id,
-      details: { title: issue.title, identifier: issue.identifier },
+      details: {
+        title: issue.title,
+        identifier: issue.identifier,
+        ...(Array.isArray(req.body.blockedByIssueIds) ? { blockedByIssueIds: req.body.blockedByIssueIds } : {}),
+      },
     });
 
     void queueIssueAssignmentWakeup({
@@ -1118,6 +1151,10 @@ export function issueRoutes(
     const actor = getActorInfo(req);
     const requestedUiLocale = resolveExplicitRequestUiLocale(req);
     const isClosed = existing.status === "done" || existing.status === "cancelled";
+    const existingRelations =
+      Array.isArray(req.body.blockedByIssueIds)
+        ? await svc.getRelationSummaries(existing.id)
+        : null;
     const {
       comment: commentBody,
       reopen: reopenRequested,
@@ -1172,7 +1209,11 @@ export function issueRoutes(
     }
     let issue;
     try {
-      issue = await svc.update(id, updateFields);
+      issue = await svc.update(id, {
+        ...updateFields,
+        actorAgentId: actor.agentId ?? null,
+        actorUserId: actor.actorType === "user" ? actor.actorId : null,
+      });
     } catch (err) {
       if (err instanceof HttpError && err.status === 422) {
         logger.warn(
@@ -1201,6 +1242,15 @@ export function issueRoutes(
       res.status(404).json({ error: "Issue not found" });
       return;
     }
+    let issueResponse: typeof issue & { blockedBy?: unknown; blocks?: unknown } = issue;
+    if (issue && Array.isArray(req.body.blockedByIssueIds)) {
+      const updatedRelations = await svc.getRelationSummaries(issue.id);
+      issueResponse = {
+        ...issue,
+        blockedBy: updatedRelations.blockedBy,
+        blocks: updatedRelations.blocks,
+      };
+    }
     await routinesSvc.syncRunStatusForIssue(issue.id);
 
     if (actor.runId) {
@@ -1214,6 +1264,9 @@ export function issueRoutes(
       if (key in existing && (existing as Record<string, unknown>)[key] !== (updateFields as Record<string, unknown>)[key]) {
         previous[key] = (existing as Record<string, unknown>)[key];
       }
+    }
+    if (Array.isArray(req.body.blockedByIssueIds)) {
+      previous.blockedByIssueIds = existingRelations?.blockedBy.map((relation) => relation.id) ?? [];
     }
 
     const hasFieldChanges = Object.keys(previous).length > 0;
@@ -1242,6 +1295,31 @@ export function issueRoutes(
         _previous: hasFieldChanges ? previous : undefined,
       },
     });
+
+    if (Array.isArray(req.body.blockedByIssueIds)) {
+      const previousBlockedByIds = new Set((existingRelations?.blockedBy ?? []).map((relation) => relation.id));
+      const nextBlockedByIds = new Set(req.body.blockedByIssueIds as string[]);
+      const addedBlockedByIssueIds = [...nextBlockedByIds].filter((candidate) => !previousBlockedByIds.has(candidate));
+      const removedBlockedByIssueIds = [...previousBlockedByIds].filter((candidate) => !nextBlockedByIds.has(candidate));
+      if (addedBlockedByIssueIds.length > 0 || removedBlockedByIssueIds.length > 0) {
+        await logActivity(db, {
+          companyId: issue.companyId,
+          actorType: actor.actorType,
+          actorId: actor.actorId,
+          agentId: actor.agentId,
+          runId: actor.runId,
+          action: "issue.blockers_updated",
+          entityType: "issue",
+          entityId: issue.id,
+          details: {
+            identifier: issue.identifier,
+            blockedByIssueIds: req.body.blockedByIssueIds,
+            addedBlockedByIssueIds,
+            removedBlockedByIssueIds,
+          },
+        });
+      }
+    }
 
     if (issue.status === "done" && existing.status !== "done") {
       const tc = getTelemetryClient();
@@ -1291,10 +1369,18 @@ export function issueRoutes(
 
     // Merge all wakeups from this update into one enqueue per agent to avoid duplicate runs.
     void (async () => {
-      const wakeups = new Map<string, Parameters<typeof heartbeat.wakeup>[1]>();
+      type WakeupRequest = NonNullable<Parameters<typeof heartbeat.wakeup>[1]>;
+      const wakeups = new Map<string, { agentId: string; wakeup: WakeupRequest }>();
+      const addWakeup = (agentId: string, wakeup: WakeupRequest) => {
+        const wakeIssueId =
+          wakeup.payload && typeof wakeup.payload === "object" && typeof wakeup.payload.issueId === "string"
+            ? wakeup.payload.issueId
+            : issue.id;
+        wakeups.set(`${agentId}:${wakeIssueId}`, { agentId, wakeup });
+      };
 
       if (assigneeChanged && issue.assigneeAgentId && issue.status !== "backlog") {
-        wakeups.set(issue.assigneeAgentId, {
+        addWakeup(issue.assigneeAgentId, {
           source: "assignment",
           triggerDetail: "system",
           reason: "issue_assigned",
@@ -1315,7 +1401,7 @@ export function issueRoutes(
       }
 
       if (!assigneeChanged && statusChangedFromBacklog && issue.assigneeAgentId) {
-        wakeups.set(issue.assigneeAgentId, {
+        addWakeup(issue.assigneeAgentId, {
           source: "automation",
           triggerDetail: "system",
           reason: "issue_status_changed",
@@ -1344,9 +1430,8 @@ export function issueRoutes(
         }
 
         for (const mentionedId of mentionedIds) {
-          if (wakeups.has(mentionedId)) continue;
           if (actor.actorType === "agent" && actor.actorId === mentionedId) continue;
-          wakeups.set(mentionedId, {
+          addWakeup(mentionedId, {
             source: "automation",
             triggerDetail: "system",
             reason: "issue_comment_mentioned",
@@ -1366,14 +1451,69 @@ export function issueRoutes(
         }
       }
 
-      for (const [agentId, wakeup] of wakeups.entries()) {
+      const becameDone = existing.status !== "done" && issue.status === "done";
+      if (becameDone) {
+        const dependents = await svc.listWakeableBlockedDependents(issue.id);
+        for (const dependent of dependents) {
+          addWakeup(dependent.assigneeAgentId, {
+            source: "automation",
+            triggerDetail: "system",
+            reason: "issue_blockers_resolved",
+            payload: {
+              issueId: dependent.id,
+              resolvedBlockerIssueId: issue.id,
+              blockerIssueIds: dependent.blockerIssueIds,
+            },
+            requestedByActorType: actor.actorType,
+            requestedByActorId: actor.actorId,
+            contextSnapshot: {
+              issueId: dependent.id,
+              taskId: dependent.id,
+              wakeReason: "issue_blockers_resolved",
+              source: "issue.blockers_resolved",
+              resolvedBlockerIssueId: issue.id,
+              blockerIssueIds: dependent.blockerIssueIds,
+            },
+          });
+        }
+      }
+
+      const becameTerminal =
+        !["done", "cancelled"].includes(existing.status) && ["done", "cancelled"].includes(issue.status);
+      if (becameTerminal && issue.parentId) {
+        const parent = await svc.getWakeableParentAfterChildCompletion(issue.parentId);
+        if (parent) {
+          addWakeup(parent.assigneeAgentId, {
+            source: "automation",
+            triggerDetail: "system",
+            reason: "issue_children_completed",
+            payload: {
+              issueId: parent.id,
+              completedChildIssueId: issue.id,
+              childIssueIds: parent.childIssueIds,
+            },
+            requestedByActorType: actor.actorType,
+            requestedByActorId: actor.actorId,
+            contextSnapshot: {
+              issueId: parent.id,
+              taskId: parent.id,
+              wakeReason: "issue_children_completed",
+              source: "issue.children_completed",
+              completedChildIssueId: issue.id,
+              childIssueIds: parent.childIssueIds,
+            },
+          });
+        }
+      }
+
+      for (const { agentId, wakeup } of wakeups.values()) {
         heartbeat
           .wakeup(agentId, wakeup)
           .catch((err) => logger.warn({ err, issueId: issue.id, agentId }, "failed to wake agent on issue update"));
       }
     })();
 
-    res.json({ ...issue, comment });
+    res.json({ ...issueResponse, comment });
   });
 
   router.delete("/issues/:id", async (req, res) => {
@@ -1794,17 +1934,18 @@ export function issueRoutes(
             },
             requestedByActorType: actor.actorType,
             requestedByActorId: actor.actorId,
-              contextSnapshot: {
-                issueId: currentIssue.id,
-                taskId: currentIssue.id,
-                commentId: comment.id,
-                source: "issue.comment.reopen",
-                wakeReason: "issue_reopened_via_comment",
-                reopenedFrom: reopenFromStatus,
-                ...(requestedUiLocale ? { requestedUiLocale } : {}),
-                ...(interruptedRunId ? { interruptedRunId } : {}),
-              },
-            });
+            contextSnapshot: {
+              issueId: currentIssue.id,
+              taskId: currentIssue.id,
+              commentId: comment.id,
+              wakeCommentId: comment.id,
+              source: "issue.comment.reopen",
+              wakeReason: "issue_reopened_via_comment",
+              reopenedFrom: reopenFromStatus,
+              ...(requestedUiLocale ? { requestedUiLocale } : {}),
+              ...(interruptedRunId ? { interruptedRunId } : {}),
+            },
+          });
         } else {
           wakeups.set(assigneeId, {
             source: "automation",
@@ -1818,16 +1959,17 @@ export function issueRoutes(
             },
             requestedByActorType: actor.actorType,
             requestedByActorId: actor.actorId,
-              contextSnapshot: {
-                issueId: currentIssue.id,
-                taskId: currentIssue.id,
-                commentId: comment.id,
-                source: "issue.comment",
-                wakeReason: "issue_commented",
-                ...(requestedUiLocale ? { requestedUiLocale } : {}),
-                ...(interruptedRunId ? { interruptedRunId } : {}),
-              },
-            });
+            contextSnapshot: {
+              issueId: currentIssue.id,
+              taskId: currentIssue.id,
+              commentId: comment.id,
+              wakeCommentId: comment.id,
+              source: "issue.comment",
+              wakeReason: "issue_commented",
+              ...(requestedUiLocale ? { requestedUiLocale } : {}),
+              ...(interruptedRunId ? { interruptedRunId } : {}),
+            },
+          });
         }
       }
 
@@ -2014,11 +2156,7 @@ export function issueRoutes(
       res.status(400).json({ error: "Missing file field 'file'" });
       return;
     }
-    const contentType = (file.mimetype || "").toLowerCase();
-    if (!isAllowedContentType(contentType)) {
-      res.status(422).json({ error: `Unsupported attachment type: ${contentType || "unknown"}` });
-      return;
-    }
+    const contentType = normalizeContentType(file.mimetype);
     if (file.buffer.length <= 0) {
       res.status(422).json({ error: "Attachment is empty" });
       return;
@@ -2082,11 +2220,17 @@ export function issueRoutes(
     assertCompanyAccess(req, attachment.companyId);
 
     const object = await storage.getObject(attachment.companyId, attachment.objectKey);
-    res.setHeader("Content-Type", attachment.contentType || object.contentType || "application/octet-stream");
+    const responseContentType = normalizeContentType(attachment.contentType || object.contentType);
+    res.setHeader("Content-Type", responseContentType);
     res.setHeader("Content-Length", String(attachment.byteSize || object.contentLength || 0));
     res.setHeader("Cache-Control", "private, max-age=60");
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    if (responseContentType === SVG_CONTENT_TYPE) {
+      res.setHeader("Content-Security-Policy", "sandbox; default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'");
+    }
     const filename = attachment.originalFilename ?? "attachment";
-    res.setHeader("Content-Disposition", `inline; filename=\"${filename.replaceAll("\"", "")}\"`);
+    const disposition = isInlineAttachmentContentType(responseContentType) ? "inline" : "attachment";
+    res.setHeader("Content-Disposition", `${disposition}; filename=\"${filename.replaceAll("\"", "")}\"`);
 
     object.stream.on("error", (err) => {
       next(err);

@@ -4,7 +4,7 @@ import { act } from "react";
 import type { ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import { MemoryRouter } from "react-router-dom";
-import type { Agent } from "@penclipai/shared";
+import type { Agent, Approval } from "@penclipai/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CommentThread } from "./CommentThread";
 
@@ -48,15 +48,35 @@ vi.mock("react-i18next", async (importOriginal) => {
   };
   return {
     ...actual,
+    initReactI18next: { type: "3rdParty", init: () => {} },
     useTranslation: () => ({
       t: (key: string, options?: Record<string, unknown>) => {
         if (key in translations) return translations[key];
-        if (typeof options?.defaultValue === "string") return options.defaultValue;
-        return key.replace(/\{\{(\w+)\}\}/g, (_match, token) => String(options?.[token] ?? ""));
+        const template = typeof options?.defaultValue === "string" ? options.defaultValue : key;
+        return template.replace(/\{\{(\w+)\}\}/g, (_match, token) => String(options?.[token] ?? ""));
       },
     }),
   };
 });
+
+vi.mock("./ApprovalCard", () => ({
+  ApprovalCard: ({
+    approval,
+    onApprove,
+    onReject,
+  }: {
+    approval: Approval;
+    onApprove?: () => void;
+    onReject?: () => void;
+  }) => (
+    <div>
+      <div>{approval.type}</div>
+      <div>{String(approval.payload.title ?? "")}</div>
+      {onApprove ? <button type="button" onClick={onApprove}>Approve</button> : null}
+      {onReject ? <button type="button" onClick={onReject}>Reject</button> : null}
+    </div>
+  ),
+}));
 
 vi.mock("@/plugins/slots", () => ({
   PluginSlotOutlet: () => null,
@@ -133,7 +153,7 @@ describe("CommentThread", () => {
     expect(runRow?.className).toContain("items-center");
     expect(runRow?.className).not.toContain("border");
     expect(container.textContent).toContain("CodexCoder");
-    expect(container.textContent).toContain("Succeeded");
+    expect(container.textContent).toContain("succeeded");
     expect(container.textContent).toContain("2 hours ago");
     expect(container.textContent).not.toContain("4 hours ago");
     const runLink = container.querySelector('a[href="/agents/agent-1/runs/run-12345678abcd"]') as HTMLAnchorElement | null;
@@ -146,7 +166,31 @@ describe("CommentThread", () => {
     });
   });
 
-  it("localizes timeline events for status and assignee changes", () => {
+  it("replaces the composer with a warning when comments are disabled", () => {
+    const root = createRoot(container);
+
+    act(() => {
+      root.render(
+        <MemoryRouter>
+          <CommentThread
+            comments={[]}
+            composerDisabledReason="Workspace is closed."
+            onAdd={async () => {}}
+          />
+        </MemoryRouter>,
+      );
+    });
+
+    expect(container.textContent).toContain("Workspace is closed.");
+    expect(container.querySelector('textarea[aria-label="Comment editor"]')).toBeNull();
+    expect(container.textContent).not.toContain("Comment");
+
+    act(() => {
+      root.unmount();
+    });
+  });
+
+  it("renders linked approvals inline in the timeline", () => {
     const root = createRoot(container);
     const agent: Agent = {
       id: "agent-1",
@@ -172,65 +216,45 @@ describe("CommentThread", () => {
       createdAt: new Date("2026-03-11T00:00:00.000Z"),
       updatedAt: new Date("2026-03-11T00:00:00.000Z"),
     };
+    const approval: Approval = {
+      id: "approval-1",
+      companyId: "company-1",
+      type: "request_board_approval",
+      requestedByAgentId: "agent-1",
+      requestedByUserId: null,
+      status: "pending",
+      payload: {
+        title: "Approve hosting spend",
+        text: "Estimated monthly cost is $42.",
+      },
+      decisionNote: null,
+      decidedByUserId: null,
+      decidedAt: null,
+      createdAt: new Date("2026-03-11T09:00:00.000Z"),
+      updatedAt: new Date("2026-03-11T09:00:00.000Z"),
+    };
 
     act(() => {
       root.render(
         <MemoryRouter>
           <CommentThread
             comments={[]}
-            timelineEvents={[{
-              id: "event-1",
-              createdAt: "2026-03-11T11:00:00.000Z",
-              actorType: "system",
-              actorId: "system",
-              statusChange: {
-                from: "todo",
-                to: "done",
-              },
-              assigneeChange: {
-                from: { agentId: null, userId: null },
-                to: { agentId: "agent-1", userId: null },
-              },
-            }]}
+            linkedApprovals={[approval]}
             agentMap={new Map([["agent-1", agent]])}
             onAdd={async () => {}}
+            onApproveApproval={async () => {}}
+            onRejectApproval={async () => {}}
           />
         </MemoryRouter>,
       );
     });
 
-    expect(container.textContent).toContain("系统");
-    expect(container.textContent).toContain("更新了这个任务");
-    expect(container.textContent).toContain("状态");
-    expect(container.textContent).toContain("待办");
-    expect(container.textContent).toContain("已完成");
-    expect(container.textContent).toContain("负责人");
-    expect(container.textContent).toContain("未分配");
-    expect(container.textContent).toContain("CodexCoder");
-
-    act(() => {
-      root.unmount();
-    });
-  });
-
-  it("replaces the composer with a warning when comments are disabled", () => {
-    const root = createRoot(container);
-
-    act(() => {
-      root.render(
-        <MemoryRouter>
-          <CommentThread
-            comments={[]}
-            composerDisabledReason="Workspace is closed."
-            onAdd={async () => {}}
-          />
-        </MemoryRouter>,
-      );
-    });
-
-    expect(container.textContent).toContain("Workspace is closed.");
-    expect(container.querySelector('textarea[aria-label="Comment editor"]')).toBeNull();
-    expect(container.textContent).not.toContain("Comment");
+    const approvalRow = container.querySelector("#approval-approval-1") as HTMLDivElement | null;
+    expect(approvalRow).not.toBeNull();
+    expect(container.textContent).toContain("request_board_approval");
+    expect(container.textContent).toContain("Approve hosting spend");
+    expect(container.textContent).toContain("Approve");
+    expect(container.textContent).toContain("Reject");
 
     act(() => {
       root.unmount();

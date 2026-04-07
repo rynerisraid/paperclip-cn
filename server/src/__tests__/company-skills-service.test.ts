@@ -11,6 +11,7 @@ import { companySkillService } from "../services/company-skills.js";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
 const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const EMBEDDED_POSTGRES_TIMEOUT = process.platform === "win32" ? 60_000 : 20_000;
 
 if (!embeddedPostgresSupport.supported) {
   console.warn(
@@ -27,7 +28,7 @@ describeEmbeddedPostgres("companySkillService company guards", () => {
     tempDb = await startEmbeddedPostgresTestDatabase("paperclip-company-skills-service-");
     db = createDb(tempDb.connectionString);
     svc = companySkillService(db);
-  }, 20_000);
+  }, EMBEDDED_POSTGRES_TIMEOUT);
 
   afterEach(async () => {
     await db.delete(companySkills);

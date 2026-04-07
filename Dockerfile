@@ -29,6 +29,7 @@ COPY packages/shared/package.json packages/shared/
 COPY packages/db/package.json packages/db/
 COPY packages/desktop-electron/package.json packages/desktop-electron/
 COPY packages/adapter-utils/package.json packages/adapter-utils/
+COPY packages/mcp-server/package.json packages/mcp-server/
 COPY packages/adapters/claude-local/package.json packages/adapters/claude-local/
 COPY packages/adapters/codebuddy-local/package.json packages/adapters/codebuddy-local/
 COPY packages/adapters/codex-local/package.json packages/adapters/codex-local/

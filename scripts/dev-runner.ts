@@ -5,6 +5,7 @@ import path from "node:path";
 import { createInterface } from "node:readline/promises";
 import { setTimeout as delay } from "node:timers/promises";
 import { stdin, stdout } from "node:process";
+import { createCapturedOutputBuffer, parseJsonResponseWithLimit } from "./dev-runner-output.mjs";
 import { shouldTrackDevServerPath } from "./dev-runner-paths.mjs";
 import {
   createDevServiceIdentity,
@@ -330,27 +331,29 @@ async function runPnpm(args: string[], options: {
       shell: process.platform === "win32",
     });
 
-    let stdoutBuffer = "";
-    let stderrBuffer = "";
+    const stdoutBuffer = createCapturedOutputBuffer();
+    const stderrBuffer = createCapturedOutputBuffer();
 
     if (spawned.stdout) {
       spawned.stdout.on("data", (chunk) => {
-        stdoutBuffer += String(chunk);
+        stdoutBuffer.append(chunk);
       });
     }
     if (spawned.stderr) {
       spawned.stderr.on("data", (chunk) => {
-        stderrBuffer += String(chunk);
+        stderrBuffer.append(chunk);
       });
     }
 
     spawned.on("error", reject);
     spawned.on("exit", (code, signal) => {
+      const stdout = stdoutBuffer.finish();
+      const stderr = stderrBuffer.finish();
       resolve({
         code: code ?? 0,
         signal,
-        stdout: stdoutBuffer,
-        stderr: stderrBuffer,
+        stdout: stdout.text,
+        stderr: stderr.text,
       });
     });
   });
@@ -499,7 +502,7 @@ async function getDevHealthPayload() {
   if (!response.ok) {
     throw new Error(`Health request failed (${response.status})`);
   }
-  return await response.json();
+  return await parseJsonResponseWithLimit<{ devServer?: { enabled?: boolean; autoRestartEnabled?: boolean; activeRunCount?: number } }>(response);
 }
 
 async function waitForChildExit() {

@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import type { Issue } from "@penclipai/shared";
 import { Link } from "@/lib/router";
 import { X } from "lucide-react";
-import { createIssueDetailPath } from "../lib/issueDetailBreadcrumb";
+import { createIssueDetailPath, rememberIssueDetailLocationState } from "../lib/issueDetailBreadcrumb";
 import { cn } from "../lib/utils";
 import { StatusIcon } from "./StatusIcon";
 
@@ -19,6 +19,7 @@ interface IssueRowProps {
   mobileMeta?: ReactNode;
   desktopTrailing?: ReactNode;
   trailingMeta?: ReactNode;
+  titleSuffix?: ReactNode;
   unreadState?: UnreadState | null;
   onMarkRead?: () => void;
   onArchive?: () => void;
@@ -36,6 +37,7 @@ export function IssueRow({
   mobileMeta,
   desktopTrailing,
   trailingMeta,
+  titleSuffix,
   unreadState = null,
   onMarkRead,
   onArchive,
@@ -51,9 +53,10 @@ export function IssueRow({
 
   return (
     <Link
-      to={createIssueDetailPath(issuePathId, issueLinkState)}
+      to={createIssueDetailPath(issuePathId)}
       state={issueLinkState}
       data-inbox-issue-link
+      onClickCapture={() => rememberIssueDetailLocationState(issuePathId, issueLinkState)}
       className={cn(
         "group flex items-start gap-2 border-b border-border py-2.5 pl-2 pr-3 text-sm no-underline text-inherit transition-colors last:border-b-0 sm:items-center sm:py-2 sm:pl-1",
         selected ? "hover:bg-transparent" : "hover:bg-accent/50",
@@ -65,7 +68,7 @@ export function IssueRow({
       </span>
       <span className="flex min-w-0 flex-1 flex-col gap-1 sm:contents">
         <span className="line-clamp-2 text-sm sm:order-2 sm:min-w-0 sm:flex-1 sm:truncate sm:line-clamp-none">
-          {issue.title}
+          {issue.title}{titleSuffix}
         </span>
         <span className="flex items-center gap-2 sm:order-1 sm:shrink-0">
           {desktopLeadingSpacer ? (

@@ -218,6 +218,8 @@ describe("InboxIssueTrailingColumns", () => {
           workspaceName={null}
           assigneeName={null}
           currentUserId={null}
+          parentIdentifier={null}
+          parentTitle={null}
         />,
       );
     });
@@ -242,6 +244,8 @@ describe("InboxIssueTrailingColumns", () => {
           workspaceName={null}
           assigneeName={null}
           currentUserId={null}
+          parentIdentifier={null}
+          parentTitle={null}
         />,
       );
     });
