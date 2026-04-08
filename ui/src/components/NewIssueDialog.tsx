@@ -50,6 +50,8 @@ import {
   Loader2,
   ListTree,
   X,
+  Eye,
+  ShieldCheck,
 } from "lucide-react";
 import { cn } from "../lib/utils";
 import { extractProviderIdWithFallback } from "../lib/model-utils";
@@ -288,6 +290,9 @@ export function NewIssueDialog() {
   const [assigneeValue, setAssigneeValue] = useState("");
   const [reviewerValue, setReviewerValue] = useState("");
   const [approverValue, setApproverValue] = useState("");
+  const [showReviewerRow, setShowReviewerRow] = useState(false);
+  const [showApproverRow, setShowApproverRow] = useState(false);
+  const [participantMenuOpen, setParticipantMenuOpen] = useState(false);
   const [projectId, setProjectId] = useState("");
   const [projectWorkspaceId, setProjectWorkspaceId] = useState("");
   const [assigneeOptionsOpen, setAssigneeOptionsOpen] = useState(false);
@@ -560,6 +565,8 @@ export function NewIssueDialog() {
       setAssigneeValue(assigneeValueFromSelection(newIssueDefaults));
       setReviewerValue("");
       setApproverValue("");
+      setShowReviewerRow(false);
+      setShowApproverRow(false);
       setAssigneeModelOverride("");
       setAssigneeThinkingEffort("");
       setAssigneeChrome(false);
@@ -580,6 +587,8 @@ export function NewIssueDialog() {
       );
       setReviewerValue(draft.reviewerValue ?? "");
       setApproverValue(draft.approverValue ?? "");
+      setShowReviewerRow(!!(draft.reviewerValue));
+      setShowApproverRow(!!(draft.approverValue));
       setProjectId(restoredProjectId);
       setProjectWorkspaceId(draft.projectWorkspaceId ?? defaultProjectWorkspaceIdForProject(restoredProject));
       setAssigneeModelOverride(draft.assigneeModelOverride ?? "");
@@ -601,6 +610,8 @@ export function NewIssueDialog() {
       setAssigneeValue(assigneeValueFromSelection(newIssueDefaults));
       setReviewerValue("");
       setApproverValue("");
+      setShowReviewerRow(false);
+      setShowApproverRow(false);
       setAssigneeModelOverride("");
       setAssigneeThinkingEffort("");
       setAssigneeChrome(false);
@@ -645,6 +656,8 @@ export function NewIssueDialog() {
     setAssigneeValue("");
     setReviewerValue("");
     setApproverValue("");
+    setShowReviewerRow(false);
+    setShowApproverRow(false);
     setProjectId("");
     setProjectWorkspaceId("");
     setAssigneeOptionsOpen(false);
@@ -668,6 +681,8 @@ export function NewIssueDialog() {
     setAssigneeValue("");
     setReviewerValue("");
     setApproverValue("");
+    setShowReviewerRow(false);
+    setShowApproverRow(false);
     setProjectId("");
     setProjectWorkspaceId("");
     setAssigneeModelOverride("");
@@ -1091,7 +1106,7 @@ export function NewIssueDialog() {
         <div className="px-4 pb-2 shrink-0">
           <div className="overflow-x-auto overscroll-x-contain">
             <div className="inline-flex items-center gap-2 text-sm text-muted-foreground flex-wrap sm:flex-nowrap sm:min-w-max">
-              <span>For</span>
+              <span className="w-6 shrink-0 text-center">For</span>
               <InlineEntitySelector
                 ref={assigneeSelectorRef}
                 value={assigneeValue}
@@ -1183,6 +1198,55 @@ export function NewIssueDialog() {
                   );
                 }}
               />
+              {/* Three-dot menu to add Reviewer / Approver rows */}
+              <Popover open={participantMenuOpen} onOpenChange={setParticipantMenuOpen}>
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    className="inline-flex items-center justify-center rounded-md p-1 text-muted-foreground hover:bg-accent/50 transition-colors"
+                    title={t("Add reviewer or approver", { defaultValue: "Add reviewer or approver" })}
+                  >
+                    <MoreHorizontal className="h-4 w-4" />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-44 p-1" align="start">
+                  <button
+                    className={cn(
+                      "flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded hover:bg-accent/50",
+                      showReviewerRow && "bg-accent",
+                    )}
+                    onClick={() => {
+                      setShowReviewerRow((v) => !v);
+                      if (showReviewerRow) setReviewerValue("");
+                      setParticipantMenuOpen(false);
+                    }}
+                  >
+                    <Eye className="h-3 w-3" />
+                    {t("Reviewer", { defaultValue: "Reviewer" })}
+                  </button>
+                  <button
+                    className={cn(
+                      "flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded hover:bg-accent/50",
+                      showApproverRow && "bg-accent",
+                    )}
+                    onClick={() => {
+                      setShowApproverRow((v) => !v);
+                      if (showApproverRow) setApproverValue("");
+                      setParticipantMenuOpen(false);
+                    }}
+                  >
+                    <ShieldCheck className="h-3 w-3" />
+                    {t("Approver", { defaultValue: "Approver" })}
+                  </button>
+                </PopoverContent>
+              </Popover>
+            </div>
+          </div>
+
+          {/* Reviewer row */}
+          {showReviewerRow && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
+              <span className="w-6 shrink-0 flex items-center justify-center"><Eye className="h-3.5 w-3.5" /></span>
               <InlineEntitySelector
                 value={reviewerValue}
                 options={assigneeOptions}
@@ -1194,7 +1258,15 @@ export function NewIssueDialog() {
                 onChange={setReviewerValue}
                 renderTriggerValue={(option) =>
                   option ? (
-                    <span className="truncate">{`Reviewer: ${option.label}`}</span>
+                    <>
+                      {(() => {
+                        const reviewer = parseAssigneeValue(option.id).assigneeAgentId
+                          ? (agents ?? []).find((a) => a.id === parseAssigneeValue(option.id).assigneeAgentId)
+                          : null;
+                        return reviewer ? <AgentIcon icon={reviewer.icon} className="h-3.5 w-3.5 shrink-0 text-muted-foreground" /> : null;
+                      })()}
+                      <span className="truncate">{option.label}</span>
+                    </>
                   ) : (
                     <span className="text-muted-foreground">Reviewer</span>
                   )
@@ -1212,6 +1284,13 @@ export function NewIssueDialog() {
                   );
                 }}
               />
+            </div>
+          )}
+
+          {/* Approver row */}
+          {showApproverRow && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
+              <span className="w-6 shrink-0 flex items-center justify-center"><ShieldCheck className="h-3.5 w-3.5" /></span>
               <InlineEntitySelector
                 value={approverValue}
                 options={assigneeOptions}
@@ -1223,7 +1302,15 @@ export function NewIssueDialog() {
                 onChange={setApproverValue}
                 renderTriggerValue={(option) =>
                   option ? (
-                    <span className="truncate">{`Approver: ${option.label}`}</span>
+                    <>
+                      {(() => {
+                        const approver = parseAssigneeValue(option.id).assigneeAgentId
+                          ? (agents ?? []).find((a) => a.id === parseAssigneeValue(option.id).assigneeAgentId)
+                          : null;
+                        return approver ? <AgentIcon icon={approver.icon} className="h-3.5 w-3.5 shrink-0 text-muted-foreground" /> : null;
+                      })()}
+                      <span className="truncate">{option.label}</span>
+                    </>
                   ) : (
                     <span className="text-muted-foreground">Approver</span>
                   )
@@ -1242,7 +1329,7 @@ export function NewIssueDialog() {
                 }}
               />
             </div>
-          </div>
+          )}
         </div>
 
         {isSubIssueMode ? (
@@ -1529,11 +1616,11 @@ export function NewIssueDialog() {
             </PopoverContent>
           </Popover>
 
-          {/* Labels chip (placeholder) */}
-          <button className="inline-flex items-center gap-1.5 rounded-md border border-border px-2 py-1 text-xs hover:bg-accent/50 transition-colors text-muted-foreground">
+          {/* Labels chip — disabled, not wired up yet */}
+          {/* <button className="inline-flex items-center gap-1.5 rounded-md border border-border px-2 py-1 text-xs hover:bg-accent/50 transition-colors text-muted-foreground">
             <Tag className="h-3 w-3" />
             Labels
-          </button>
+          </button> */}
 
           <input
             ref={stageFileInputRef}
