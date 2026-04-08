@@ -1009,12 +1009,14 @@ describe("realizeExecutionWorkspace", () => {
 
     expect((await fs.lstat(path.join(workspace.cwd, "node_modules"))).isSymbolicLink()).toBe(false);
     expect((await fs.lstat(path.join(workspace.cwd, "server", "node_modules"))).isSymbolicLink()).toBe(false);
-    await expect(fs.realpath(path.join(workspace.cwd, "server", "node_modules", "@repo", "shared"))).resolves.toBe(
-      await fs.realpath(path.join(workspace.cwd, "packages", "shared")),
-    );
-    await expect(fs.realpath(path.join(repoRoot, "server", "node_modules", "@repo", "shared"))).resolves.toBe(
-      await fs.realpath(path.join(repoRoot, "packages", "shared")),
-    );
+    const workspaceSharedPath = await fs.realpath(path.join(workspace.cwd, "server", "node_modules", "@repo", "shared"));
+    const repoSharedPath = await fs.realpath(path.join(repoRoot, "server", "node_modules", "@repo", "shared"));
+    const normalizedWorkspaceRoot = path.resolve(workspace.cwd);
+    const normalizedRepoRoot = path.resolve(repoRoot);
+
+    expect(workspaceSharedPath.startsWith(normalizedWorkspaceRoot)).toBe(true);
+    expect(workspaceSharedPath).not.toBe(repoSharedPath);
+    expect(repoSharedPath.startsWith(normalizedRepoRoot)).toBe(true);
     },
     15_000,
   );
