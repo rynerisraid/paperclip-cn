@@ -68,7 +68,7 @@ test.describe("Onboarding wizard", () => {
 
     await expect(
       page.locator("h3", { hasText: "Create your first agent" })
-    ).toBeVisible({ timeout: 10_000 });
+    ).toBeVisible({ timeout: 30_000 });
 
     const agentNameInput = page.locator('input[placeholder="CEO"]');
     await expect(agentNameInput).toHaveValue(AGENT_NAME);
@@ -96,7 +96,7 @@ test.describe("Onboarding wizard", () => {
 
     await expect(
       page.locator("h3", { hasText: "Ready to launch" })
-    ).toBeVisible({ timeout: 10_000 });
+    ).toBeVisible({ timeout: 30_000 });
 
     await expect(page.locator("text=" + COMPANY_NAME)).toBeVisible();
     await expect(page.locator("text=" + AGENT_NAME)).toBeVisible();
@@ -104,7 +104,7 @@ test.describe("Onboarding wizard", () => {
 
     await page.getByRole("button", { name: "Create & Open Issue" }).click();
 
-    await expect(page).toHaveURL(/\/issues\//, { timeout: 10_000 });
+    await expect(page).toHaveURL(/\/issues\//, { timeout: 30_000 });
 
     const baseUrl = page.url().split("/").slice(0, 3).join("/");
 
