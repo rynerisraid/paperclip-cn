@@ -434,13 +434,14 @@ export function ExecutionWorkspaceDetail() {
                   </div>
                   <h1 className="text-2xl font-semibold">{workspace.name}</h1>
                   <p className="max-w-2xl text-sm text-muted-foreground">
-                    {t(
-                      "Configure the concrete runtime workspace that Paperclip CN reuses for this issue flow. These settings stay attached to the execution workspace so future runs can keep local paths, repo refs, provisioning, teardown, and runtime-service behavior in sync with the actual workspace being reused.",
-                      {
-                        defaultValue:
-                          "Configure the concrete runtime workspace that Paperclip CN reuses for this issue flow. These settings stay attached to the execution workspace so future runs can keep local paths, repo refs, provisioning, teardown, and runtime-service behavior in sync with the actual workspace being reused.",
-                      },
-                    )}
+                    {t("executionWorkspaceDetail.heroDescriptionLead", {
+                      defaultValue:
+                        "Configure the concrete runtime workspace that Paperclip CN reuses for this issue flow.",
+                    })}{" "}
+                    {t("executionWorkspaceDetail.heroDescriptionTail", {
+                      defaultValue:
+                        "These settings stay attached to the execution workspace so future runs can keep local paths, repo refs, provisioning, teardown, and runtime-service behavior in sync with the actual workspace being reused.",
+                    })}
                   </p>
                 </div>
                 <div className="flex w-full shrink-0 items-center gap-2 sm:w-auto">

@@ -172,5 +172,5 @@ describeEmbeddedPostgres("startManagedEmbeddedPostgres", () => {
       await handle.stop().catch(() => undefined);
       await removeDataDirWithRetries(dataDir).catch(() => undefined);
     }
-  }, 20_000);
+  }, process.platform === "win32" ? 60_000 : 20_000);
 });

@@ -44,6 +44,7 @@ async function removeDirBestEffort(dir: string) {
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
 const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const EMBEDDED_POSTGRES_TIMEOUT = process.platform === "win32" ? 60_000 : 20_000;
 
 if (!embeddedPostgresSupport.supported) {
   console.warn(
@@ -61,7 +62,7 @@ describeEmbeddedPostgres("feedbackService.saveIssueVote", () => {
     tempDb = await startEmbeddedPostgresTestDatabase("paperclip-feedback-service-");
     db = createDb(tempDb.connectionString);
     svc = feedbackService(db);
-  }, 20_000);
+  }, EMBEDDED_POSTGRES_TIMEOUT);
 
   afterEach(async () => {
     await db.delete(feedbackExports);

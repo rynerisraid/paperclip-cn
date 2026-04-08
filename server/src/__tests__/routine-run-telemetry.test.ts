@@ -40,6 +40,7 @@ import { routineService } from "../services/routines.ts";
 
 const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
 const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+const EMBEDDED_POSTGRES_TIMEOUT = process.platform === "win32" ? 60_000 : 20_000;
 
 describeEmbeddedPostgres("routine run telemetry", () => {
   let db!: ReturnType<typeof createDb>;
@@ -48,7 +49,7 @@ describeEmbeddedPostgres("routine run telemetry", () => {
   beforeAll(async () => {
     tempDb = await startEmbeddedPostgresTestDatabase("paperclip-routine-telemetry-");
     db = createDb(tempDb.connectionString);
-  }, 20_000);
+  }, EMBEDDED_POSTGRES_TIMEOUT);
 
   afterEach(async () => {
     vi.clearAllMocks();

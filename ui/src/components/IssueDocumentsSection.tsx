@@ -30,7 +30,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Check, ChevronDown, ChevronRight, Copy, Download, FilePenLine, FileText, MoreHorizontal, Plus, Trash2, X } from "lucide-react";
+import { Check, ChevronDown, ChevronRight, Copy, Diff, Download, FilePenLine, FileText, MoreHorizontal, Plus, Trash2, X } from "lucide-react";
+import { DocumentDiffModal } from "./DocumentDiffModal";
 
 type DraftState = {
   key: string;
@@ -158,6 +159,7 @@ export function IssueDocumentsSection({
   const [highlightDocumentKey, setHighlightDocumentKey] = useState<string | null>(null);
   const [revisionMenuOpenKey, setRevisionMenuOpenKey] = useState<string | null>(null);
   const [selectedRevisionIds, setSelectedRevisionIds] = useState<Record<string, string | null>>({});
+  const [diffViewKey, setDiffViewKey] = useState<string | null>(null);
   const autosaveDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const copiedDocumentTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasScrolledToHashRef = useRef(false);
@@ -944,6 +946,12 @@ export function IssueDocumentsSection({
                         <Download className="h-3.5 w-3.5" />
                         {t("Download document")}
                       </DropdownMenuItem>
+                      {doc.latestRevisionNumber > 1 ? (
+                        <DropdownMenuItem onClick={() => setDiffViewKey(doc.key)}>
+                          <Diff className="h-3.5 w-3.5" />
+                          View diff
+                        </DropdownMenuItem>
+                      ) : null}
                       {canDeleteDocuments ? <DropdownMenuSeparator /> : null}
                       {canDeleteDocuments ? (
                         <DropdownMenuItem
@@ -1202,6 +1210,20 @@ export function IssueDocumentsSection({
           );
         })}
       </div>
+
+      {diffViewKey && (() => {
+        const diffDoc = sortedDocuments.find((d) => d.key === diffViewKey);
+        if (!diffDoc) return null;
+        return (
+          <DocumentDiffModal
+            issueId={issue.id}
+            documentKey={diffDoc.key}
+            latestRevisionNumber={diffDoc.latestRevisionNumber}
+            open
+            onOpenChange={(open) => { if (!open) setDiffViewKey(null); }}
+          />
+        );
+      })()}
     </div>
   );
 }

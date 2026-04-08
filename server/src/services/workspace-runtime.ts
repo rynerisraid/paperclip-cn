@@ -1,4 +1,5 @@
 import { spawn, type ChildProcess } from "node:child_process";
+import { existsSync, readdirSync, readFileSync, realpathSync } from "node:fs";
 import fs from "node:fs/promises";
 import net from "node:net";
 import { createHash, randomUUID } from "node:crypto";
@@ -101,6 +102,18 @@ interface RuntimeServiceRecord extends RuntimeServiceRef {
 const runtimeServicesById = new Map<string, RuntimeServiceRecord>();
 const runtimeServicesByReuseKey = new Map<string, string>();
 const runtimeServiceLeasesByRun = new Map<string, string[]>();
+const DEFAULT_EXECUTE_PROCESS_OUTPUT_BYTES = 256 * 1024;
+
+type ProcessOutputCapture = {
+  text: string;
+  truncated: boolean;
+  totalBytes: number;
+};
+
+type ProcessOutputAccumulator = {
+  append(chunk: string): void;
+  finish(): ProcessOutputCapture;
+};
 
 export async function resetRuntimeServicesForTests() {
   for (const record of runtimeServicesById.values()) {
@@ -120,6 +133,136 @@ function stableStringify(value: unknown): string {
     return `{${Object.keys(rec).sort().map((key) => `${JSON.stringify(key)}:${stableStringify(rec[key])}`).join(",")}}`;
   }
   return JSON.stringify(value);
+}
+
+type WorkspaceLinkMismatch = {
+  packageName: string;
+  expectedPath: string;
+  actualPath: string | null;
+};
+
+function readJsonFile(filePath: string): Record<string, unknown> {
+  return JSON.parse(readFileSync(filePath, "utf8")) as Record<string, unknown>;
+}
+
+function findWorkspaceRoot(startCwd: string) {
+  let current = path.resolve(startCwd);
+  while (true) {
+    if (existsSync(path.join(current, "pnpm-workspace.yaml"))) {
+      return current;
+    }
+    const parent = path.dirname(current);
+    if (parent === current) return null;
+    current = parent;
+  }
+}
+
+function discoverWorkspacePackagePaths(rootDir: string): Map<string, string> {
+  const packagePaths = new Map<string, string>();
+  const ignoredDirNames = new Set([".git", ".paperclip", "dist", "node_modules"]);
+
+  function visit(dirPath: string) {
+    if (!existsSync(dirPath)) return;
+
+    const packageJsonPath = path.join(dirPath, "package.json");
+    if (existsSync(packageJsonPath)) {
+      const packageJson = readJsonFile(packageJsonPath);
+      if (typeof packageJson.name === "string" && packageJson.name.length > 0) {
+        packagePaths.set(packageJson.name, dirPath);
+      }
+    }
+
+    for (const entry of readdirSync(dirPath, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue;
+      if (ignoredDirNames.has(entry.name)) continue;
+      visit(path.join(dirPath, entry.name));
+    }
+  }
+
+  visit(path.join(rootDir, "packages"));
+  visit(path.join(rootDir, "server"));
+  visit(path.join(rootDir, "ui"));
+  visit(path.join(rootDir, "cli"));
+
+  return packagePaths;
+}
+
+function findServerWorkspaceLinkMismatches(rootDir: string): WorkspaceLinkMismatch[] {
+  const serverPackageJsonPath = path.join(rootDir, "server", "package.json");
+  if (!existsSync(serverPackageJsonPath)) return [];
+
+  const serverPackageJson = readJsonFile(serverPackageJsonPath);
+  const dependencies = {
+    ...(serverPackageJson.dependencies as Record<string, unknown> | undefined),
+    ...(serverPackageJson.devDependencies as Record<string, unknown> | undefined),
+  };
+  const workspacePackagePaths = discoverWorkspacePackagePaths(rootDir);
+  const mismatches: WorkspaceLinkMismatch[] = [];
+
+  for (const [packageName, version] of Object.entries(dependencies)) {
+    if (typeof version !== "string" || !version.startsWith("workspace:")) continue;
+
+    const expectedPath = workspacePackagePaths.get(packageName);
+    if (!expectedPath) continue;
+    const normalizedExpectedPath = existsSync(expectedPath) ? path.resolve(realpathSync(expectedPath)) : path.resolve(expectedPath);
+
+    const linkPath = path.join(rootDir, "server", "node_modules", ...packageName.split("/"));
+    const actualPath = existsSync(linkPath) ? path.resolve(realpathSync(linkPath)) : null;
+    if (actualPath === normalizedExpectedPath) continue;
+
+    mismatches.push({
+      packageName,
+      expectedPath: normalizedExpectedPath,
+      actualPath,
+    });
+  }
+
+  return mismatches;
+}
+
+export async function ensureServerWorkspaceLinksCurrent(
+  startCwd: string,
+  opts?: {
+    onLog?: (stream: "stdout" | "stderr", chunk: string) => Promise<void>;
+  },
+) {
+  const workspaceRoot = findWorkspaceRoot(startCwd);
+  if (!workspaceRoot) return;
+
+  const mismatches = findServerWorkspaceLinkMismatches(workspaceRoot);
+  if (mismatches.length === 0) return;
+
+  if (opts?.onLog) {
+    await opts.onLog("stdout", "[runtime] detected stale workspace package links for server; relinking dependencies...\n");
+    for (const mismatch of mismatches) {
+      await opts.onLog(
+        "stdout",
+        `[runtime]   ${mismatch.packageName}: ${mismatch.actualPath ?? "missing"} -> ${mismatch.expectedPath}\n`,
+      );
+    }
+  }
+
+  for (const mismatch of mismatches) {
+    const linkPath = path.join(workspaceRoot, "server", "node_modules", ...mismatch.packageName.split("/"));
+    await fs.mkdir(path.dirname(linkPath), { recursive: true });
+    try {
+      await fs.unlink(linkPath);
+    } catch {
+      await fs.rm(linkPath, { recursive: true, force: true });
+    }
+    await fs.symlink(
+      path.resolve(mismatch.expectedPath),
+      linkPath,
+      process.platform === "win32" ? "junction" : "dir",
+    );
+  }
+
+  const remainingMismatches = findServerWorkspaceLinkMismatches(workspaceRoot);
+  if (remainingMismatches.length === 0) return;
+
+  throw new Error(
+    `Workspace relink did not repair all server package links: ${remainingMismatches.map((item) => item.packageName).join(", ")}`,
+  );
 }
 
 export function sanitizeRuntimeServiceBaseEnv(baseEnv: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
@@ -286,7 +429,10 @@ function normalizeWindowsAbsolutePath(value: string): string {
 function toBashPath(value: string): string {
   const normalized = normalizeWindowsAbsolutePath(value);
   if (process.platform !== "win32") return normalized;
-  if (/^[A-Za-z]:[\\/]/.test(normalized) || normalized.startsWith("\\\\")) {
+  if (/^[A-Za-z]:[\\/]/.test(normalized)) {
+    return normalized.replace(/\\/g, "/");
+  }
+  if (normalized.startsWith("\\\\")) {
     return normalized.replace(/\\/g, "/");
   }
   return normalized;
@@ -341,8 +487,12 @@ function resolveDirectCommand(
     }
   }
 
-  const bashScriptMatch = /^bash\s+([^\s]+)$/u.exec(trimmed);
+  const bashScriptMatch = /^bash\s+(.+)$/u.exec(trimmed);
   if (bashScriptMatch) {
+    const args = (bashScriptMatch[1] ?? "")
+      .match(/"[^"]*"|'[^']*'|[^\s]+/g)
+      ?.map(decodeShellWord) ?? [];
+    if (args.length === 0) return null;
     if (process.platform === "win32") {
       const inlineEnv = Object.entries(env)
         .filter(
@@ -351,14 +501,16 @@ function resolveDirectCommand(
         )
         .map(([key, value]) => `export ${key}=${quoteForBash(value)};`)
         .join(" ");
+      const bashArgs = args.map((arg, index) => (index === 0 ? toBashPath(arg) : arg));
+      const bashCommand = `bash ${bashArgs.map(quoteForBash).join(" ")}`;
       return {
         command: "bash",
-        args: ["-lc", `${inlineEnv} ${trimmed}`.trim()],
+        args: ["-lc", `${inlineEnv} ${bashCommand}`.trim()],
       };
     }
     return {
       command: "bash",
-      args: [bashScriptMatch[1]!],
+      args: args.map((arg, index) => (process.platform === "win32" && index === 0 ? toBashPath(arg) : arg)),
     };
   }
 
@@ -381,30 +533,96 @@ function resolveShellCommand(command: string, env: NodeJS.ProcessEnv): { command
   };
 }
 
+function createProcessOutputCapture(maxBytes: number): ProcessOutputAccumulator {
+  const limit = Math.max(1, Math.trunc(maxBytes));
+  let chunks: string[] = [];
+  let truncated = false;
+  let totalBytes = 0;
+
+  return {
+    append(chunk: string) {
+      if (!chunk) return;
+      chunks.push(chunk);
+      totalBytes += Buffer.byteLength(chunk, "utf8");
+
+      let currentBytes = chunks.reduce((sum, value) => sum + Buffer.byteLength(value, "utf8"), 0);
+      if (currentBytes <= limit) return;
+
+      const combined = Buffer.from(chunks.join(""), "utf8");
+      const tail = combined.subarray(Math.max(0, combined.length - limit)).toString("utf8");
+      chunks = [tail];
+      truncated = true;
+      currentBytes = Buffer.byteLength(tail, "utf8");
+      if (currentBytes > limit) {
+        chunks = [Buffer.from(tail, "utf8").subarray(Math.max(0, currentBytes - limit)).toString("utf8")];
+      }
+    },
+    finish(): ProcessOutputCapture {
+      const text = chunks.join("");
+      if (!truncated) {
+        return {
+          text,
+          truncated: false,
+          totalBytes,
+        };
+      }
+      return {
+        text: `[output truncated to last ${limit} bytes; total ${totalBytes} bytes]\n${text}`,
+        truncated: true,
+        totalBytes,
+      };
+    },
+  };
+}
+
 async function executeProcess(input: {
   command: string;
   args: string[];
   cwd: string;
   env?: NodeJS.ProcessEnv;
-}): Promise<{ stdout: string; stderr: string; code: number | null }> {
-  const proc = await new Promise<{ stdout: string; stderr: string; code: number | null }>((resolve, reject) => {
+  maxStdoutBytes?: number;
+  maxStderrBytes?: number;
+}): Promise<{
+  stdout: string;
+  stderr: string;
+  code: number | null;
+  stdoutTruncated: boolean;
+  stderrTruncated: boolean;
+  stdoutBytes: number;
+  stderrBytes: number;
+}> {
+  const proc = await new Promise<{
+    stdout: ProcessOutputAccumulator;
+    stderr: ProcessOutputAccumulator;
+    code: number | null;
+  }>((resolve, reject) => {
     const child = spawn(input.command, input.args, {
       cwd: input.cwd,
       stdio: ["ignore", "pipe", "pipe"],
       env: input.env ?? process.env,
     });
-    let stdout = "";
-    let stderr = "";
+    const stdout = createProcessOutputCapture(input.maxStdoutBytes ?? DEFAULT_EXECUTE_PROCESS_OUTPUT_BYTES);
+    const stderr = createProcessOutputCapture(input.maxStderrBytes ?? DEFAULT_EXECUTE_PROCESS_OUTPUT_BYTES);
     child.stdout?.on("data", (chunk) => {
-      stdout += String(chunk);
+      stdout.append(String(chunk));
     });
     child.stderr?.on("data", (chunk) => {
-      stderr += String(chunk);
+      stderr.append(String(chunk));
     });
     child.on("error", reject);
     child.on("close", (code) => resolve({ stdout, stderr, code }));
   });
-  return proc;
+  const stdout = proc.stdout.finish();
+  const stderr = proc.stderr.finish();
+  return {
+    stdout: stdout.text,
+    stderr: stderr.text,
+    code: proc.code,
+    stdoutTruncated: stdout.truncated,
+    stderrTruncated: stderr.truncated,
+    stdoutBytes: stdout.totalBytes,
+    stderrBytes: stderr.totalBytes,
+  };
 }
 
 async function runGit(args: string[], cwd: string): Promise<string> {
@@ -498,13 +716,41 @@ function buildWorkspaceCommandEnv(input: {
   return env;
 }
 
+function quoteShellArg(value: string) {
+  return `'${value.replace(/'/g, `'\\''`)}'`;
+}
+
+async function syncRepoManagedWorkspaceCommand(command: string, repoRoot: string, workspacePath: string) {
+  const patterns = [
+    /^(?<prefix>(?:bash|sh|zsh)\s+)(?<quote>["']?)(?<relative>\.\/[^"'\s]+)\k<quote>(?<suffix>(?:\s.*)?)$/s,
+    /^(?<quote>["']?)(?<relative>\.\/[^"'\s]+)\k<quote>(?<suffix>(?:\s.*)?)$/s,
+  ];
+
+  for (const pattern of patterns) {
+    const match = command.match(pattern);
+    if (!match?.groups) continue;
+
+    const relativePath = match.groups.relative;
+    const resolvedRepoManagedPath = path.join(repoRoot, relativePath.slice(2));
+    if (!existsSync(resolvedRepoManagedPath)) return command;
+
+    const workspaceManagedPath = path.join(workspacePath, relativePath.slice(2));
+    await fs.mkdir(path.dirname(workspaceManagedPath), { recursive: true });
+    await fs.copyFile(resolvedRepoManagedPath, workspaceManagedPath);
+    return command;
+  }
+
+  return command;
+}
+
 async function runWorkspaceCommand(input: {
   command: string;
+  resolvedCommand?: string;
   cwd: string;
   env: NodeJS.ProcessEnv;
   label: string;
 }) {
-  const shellCommand = resolveShellCommand(input.command, input.env);
+  const shellCommand = resolveShellCommand(input.resolvedCommand ?? input.command, input.env);
   const proc = await executeProcess({
     command: shellCommand.command,
     args: shellCommand.args,
@@ -559,6 +805,15 @@ async function recordGitOperation(
         stdout: result.stdout,
         stderr: result.stderr,
         system: result.code === 0 ? input.successMessage ?? null : null,
+        metadata:
+          result.stdoutTruncated || result.stderrTruncated
+            ? {
+                stdoutTruncated: result.stdoutTruncated,
+                stderrTruncated: result.stderrTruncated,
+                stdoutBytes: result.stdoutBytes,
+                stderrBytes: result.stderrBytes,
+              }
+            : null,
       };
     },
   });
@@ -579,6 +834,7 @@ async function recordWorkspaceCommandOperation(
   input: {
     phase: "workspace_provision" | "workspace_teardown";
     command: string;
+    resolvedCommand?: string;
     cwd: string;
     env: NodeJS.ProcessEnv;
     label: string;
@@ -600,7 +856,7 @@ async function recordWorkspaceCommandOperation(
     cwd: input.cwd,
     metadata: input.metadata ?? null,
     run: async () => {
-      const shellCommand = resolveShellCommand(input.command, input.env);
+      const shellCommand = resolveShellCommand(input.resolvedCommand ?? input.command, input.env);
       const result = await executeProcess({
         command: shellCommand.command,
         args: shellCommand.args,
@@ -616,6 +872,15 @@ async function recordWorkspaceCommandOperation(
         stdout: result.stdout,
         stderr: result.stderr,
         system: result.code === 0 ? input.successMessage ?? null : null,
+        metadata:
+          result.stdoutTruncated || result.stderrTruncated
+            ? {
+                stdoutTruncated: result.stdoutTruncated,
+                stderrTruncated: result.stderrTruncated,
+                stdoutBytes: result.stdoutBytes,
+                stderrBytes: result.stderrBytes,
+              }
+            : null,
       };
     },
   });
@@ -643,6 +908,7 @@ async function provisionExecutionWorktree(input: {
 }) {
   const provisionCommand = asString(input.strategy.provisionCommand, "").trim();
   if (!provisionCommand) return;
+  await syncRepoManagedWorkspaceCommand(provisionCommand, input.repoRoot, input.worktreePath);
 
   await recordWorkspaceCommandOperation(input.recorder, {
     phase: "workspace_provision",
@@ -889,6 +1155,12 @@ export async function cleanupExecutionWorkspaceArtifacts(input: {
 }) {
   const warnings: string[] = [];
   const workspacePath = input.workspace.providerRef ?? input.workspace.cwd;
+  const repoRoot = input.workspace.providerType === "git_worktree" && workspacePath
+    ? await resolveGitRepoRootForWorkspaceCleanup(
+      workspacePath,
+      input.projectWorkspace?.cwd ?? null,
+    )
+    : null;
   const cleanupEnv = buildExecutionWorkspaceCleanupEnv({
     workspace: input.workspace,
     projectWorkspaceCwd: input.projectWorkspace?.cwd ?? null,
@@ -904,6 +1176,13 @@ export async function cleanupExecutionWorkspaceArtifacts(input: {
 
   for (const command of cleanupCommands) {
     try {
+      if (repoRoot) {
+        await syncRepoManagedWorkspaceCommand(
+          command,
+          repoRoot,
+          workspacePath ?? input.projectWorkspace?.cwd ?? process.cwd(),
+        );
+      }
       await recordWorkspaceCommandOperation(input.recorder, {
         phase: "workspace_teardown",
         command,
@@ -924,10 +1203,6 @@ export async function cleanupExecutionWorkspaceArtifacts(input: {
   }
 
   if (input.workspace.providerType === "git_worktree" && workspacePath) {
-    const repoRoot = await resolveGitRepoRootForWorkspaceCleanup(
-      workspacePath,
-      input.projectWorkspace?.cwd ?? null,
-    );
     const worktreeExists = await directoryExists(workspacePath);
     if (worktreeExists) {
       if (!repoRoot) {
@@ -1494,6 +1769,11 @@ async function startLocalRuntimeService(input: {
       );
     }
   }
+
+  await ensureServerWorkspaceLinksCurrent(serviceCwd, {
+    onLog: input.onLog,
+  });
+
   const shellCommand = resolveShellCommand(command, env);
   const child = spawn(shellCommand.command, shellCommand.args, {
     cwd: serviceCwd,

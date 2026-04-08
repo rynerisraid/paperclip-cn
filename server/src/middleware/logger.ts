@@ -36,6 +36,7 @@ const isTestRuntime = isVitestRuntime();
 
 export const logger = pino({
   level: "debug",
+  redact: ["req.headers.authorization"],
 }, isTestRuntime
   ? pino.destination({ dest: devNull, sync: false })
   : pino.transport({
