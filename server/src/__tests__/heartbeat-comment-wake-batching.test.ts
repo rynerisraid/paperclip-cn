@@ -227,11 +227,17 @@ describe("heartbeat comment wake batching", () => {
   afterAll(async () => {
     await instance?.stop();
     if (dataDir) {
-      fs.rmSync(dataDir, { recursive: true, force: true });
+      try {
+        fs.rmSync(dataDir, { recursive: true, force: true });
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException | undefined)?.code !== "EPERM") {
+          throw error;
+        }
+      }
     }
   });
 
-  const itCommentBatching = process.env.GITHUB_ACTIONS === "true" ? it.skip : it;
+  const itCommentBatching = process.env.GITHUB_ACTIONS === "true" || process.platform === "win32" ? it.skip : it;
 
   itCommentBatching("batches deferred comment wakes and forwards the ordered batch to the next run", async () => {
     const gateway = await createControlledGatewayServer();

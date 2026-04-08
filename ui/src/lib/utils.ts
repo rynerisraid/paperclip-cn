@@ -74,6 +74,13 @@ export function formatTime(
   return new Intl.DateTimeFormat(getCurrentLocale(), options).format(new Date(date));
 }
 
+export function formatShortDate(date: Date | string): string {
+  return new Date(date).toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+  });
+}
+
 export function relativeTime(date: Date | string): string {
   const deltaSeconds = Math.round((new Date(date).getTime() - Date.now()) / 1000);
   const absoluteSeconds = Math.abs(deltaSeconds);
