@@ -16,6 +16,7 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
  */
 
 const mockTransport = vi.hoisted(() => vi.fn(() => ({ write: vi.fn() })));
+const mockDestination = vi.hoisted(() => vi.fn(() => ({ write: vi.fn() })));
 const mockPino = vi.hoisted(() => {
   const fn = vi.fn(() => ({
     info: vi.fn(),
@@ -25,6 +26,7 @@ const mockPino = vi.hoisted(() => {
     child: vi.fn(),
   }));
   (fn as any).transport = mockTransport;
+  (fn as any).destination = mockDestination;
   return fn;
 });
 
@@ -52,14 +54,23 @@ describe("logger translateTime respects TZ environment variable", () => {
   beforeEach(() => {
     vi.resetModules();
     mockTransport.mockClear();
+    mockDestination.mockClear();
     mockPino.mockClear();
   });
 
   it("configures pino-pretty with SYS:HH:MM:ss so timestamps honour the TZ env var", async () => {
     await import("../middleware/logger.js");
 
+    expect(mockDestination).toHaveBeenCalledOnce();
+    expect(mockTransport).not.toHaveBeenCalled();
+
+    await vi.resetModules();
+    process.env.VITEST = "false";
+    process.argv = process.argv.filter((arg) => !arg.toLowerCase().includes("vitest"));
+    await import("../middleware/logger.js");
+
     expect(mockTransport).toHaveBeenCalledOnce();
-    const { targets } = mockTransport.mock.calls[0][0] as {
+    const { targets } = mockTransport.mock.calls.at(-1)?.[0] as {
       targets: Array<{ options: Record<string, unknown> }>;
     };
     for (const target of targets) {
