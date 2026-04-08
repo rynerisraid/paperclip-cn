@@ -2179,4 +2179,9 @@
   "ran {{count}} commands": "ran {{count}} commands",
   "run": "run",
   "You can change this later in Instance Settings > General.": "You can change this later in Instance Settings > General."
+  ,"Censor username in logs": "Censor username in logs"
+  ,"Configure instance-wide defaults that affect operator-visible logs and agent runtime guidance.": "Configure instance-wide defaults that affect operator-visible logs and agent runtime guidance."
+  ,"Failed to sign out.": "Failed to sign out."
+  ,"Sign out": "Sign out"
+  ,"Sign out of this Paperclip instance. You will be redirected to the login page.": "Sign out of this Paperclip instance. You will be redirected to the login page."
 }

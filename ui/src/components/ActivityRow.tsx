@@ -23,6 +23,7 @@ const ACTION_VERBS: Record<string, string> = {
   "issue.deleted": "deleted",
   "agent.created": "created",
   "agent.updated": "updated",
+  "agent.deleted": "deleted",
   "agent.paused": "paused",
   "agent.resumed": "resumed",
   "agent.terminated": "terminated",

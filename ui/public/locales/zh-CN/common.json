@@ -2353,4 +2353,8 @@
   "ran {{count}} commands": "执行了 {{count}} 条命令",
   "run": "运行",
   "You can change this later in Instance Settings > General.": "你之后可以在“实例设置 > 常规”里更改这个选项。"
+  ,"Configure instance-wide defaults that affect operator-visible logs and agent runtime guidance.": "配置会影响操作者可见日志与智能体运行时提示的实例级默认项。"
+  ,"Failed to sign out.": "退出登录失败。"
+  ,"Sign out": "退出登录"
+  ,"Sign out of this Paperclip instance. You will be redirected to the login page.": "退出当前 Paperclip 实例的登录状态。随后会跳转到登录页面。"
 }
