@@ -336,7 +336,7 @@ describe("worktree helpers", () => {
       const envContents = fs.readFileSync(envPath, "utf8");
       expect(envContents).toContain("PAPERCLIP_AGENT_JWT_SECRET=worktree-shared-secret");
       expect(envContents).toContain("PAPERCLIP_WORKTREE_NAME=repo");
-      expect(envContents).toMatch(/PAPERCLIP_WORKTREE_COLOR=\"#[0-9a-f]{6}\"/);
+      expect(envContents).toMatch(/PAPERCLIP_WORKTREE_COLOR='#[0-9a-f]{6}'/);
     } finally {
       process.chdir(originalCwd);
       if (originalJwtSecret === undefined) {
@@ -574,7 +574,7 @@ describe("worktree helpers", () => {
       expect(rewrittenConfig.database.embeddedPostgresDataDir).toBe(currentPaths.embeddedPostgresDataDir);
       expect(rewrittenEnv).toContain(`PAPERCLIP_INSTANCE_ID=${currentInstanceId}`);
       expect(rewrittenEnv).toContain("PAPERCLIP_WORKTREE_NAME=existing-name");
-      expect(rewrittenEnv).toContain("PAPERCLIP_WORKTREE_COLOR=\"#112233\"");
+      expect(rewrittenEnv).toContain("PAPERCLIP_WORKTREE_COLOR='#112233'");
     } finally {
       process.chdir(originalCwd);
       if (originalPaperclipConfig === undefined) {

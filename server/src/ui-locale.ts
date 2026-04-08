@@ -1,7 +1,6 @@
 import type { Request } from "express";
 import {
   DEFAULT_UI_LOCALE,
-  resolveUiLocaleFromHeader,
   type UiLocale,
 } from "@penclipai/shared";
 
@@ -78,10 +77,13 @@ export function resolveInitialUiLocale(
   }
 
   if (typeof acceptLanguageHeader === "string" && acceptLanguageHeader.trim().length > 0) {
-    return {
-      locale: resolveUiLocaleFromHeader(acceptLanguageHeader),
-      source: "request",
-    };
+    const requestLocale = resolveExplicitUiLocaleFromHeader(acceptLanguageHeader);
+    if (requestLocale) {
+      return {
+        locale: requestLocale,
+        source: "request",
+      };
+    }
   }
 
   return {

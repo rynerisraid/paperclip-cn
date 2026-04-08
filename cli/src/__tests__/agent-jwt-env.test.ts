@@ -73,7 +73,25 @@ describe("agent jwt env helpers", () => {
     );
 
     const contents = fs.readFileSync(envPath, "utf-8");
-    expect(contents).toContain('PAPERCLIP_WORKTREE_COLOR="#439edb"');
+    expect(contents).toContain("PAPERCLIP_WORKTREE_COLOR='#439edb'");
     expect(readPaperclipEnvEntries(envPath).PAPERCLIP_WORKTREE_COLOR).toBe("#439edb");
+  });
+
+  it("escapes Windows-style backslashes so dotenv round-trips path-like values", () => {
+    const configPath = tempConfigPath();
+    const envPath = resolveAgentJwtEnvFile(configPath);
+    const windowsPath = String.raw`C:\new\temp`;
+
+    mergePaperclipEnvEntries(
+      {
+        PAPERCLIP_AGENT_HOME: windowsPath,
+      },
+      envPath,
+    );
+
+    const contents = fs.readFileSync(envPath, "utf-8");
+    const parsed = readPaperclipEnvEntries(envPath).PAPERCLIP_AGENT_HOME ?? "";
+    expect(contents).toContain("PAPERCLIP_AGENT_HOME='C:\\new\\temp'");
+    expect([...parsed]).toEqual(["C", ":", "\\", "n", "e", "w", "\\", "t", "e", "m", "p"]);
   });
 });

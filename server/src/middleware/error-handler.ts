@@ -51,6 +51,19 @@ export function errorHandler(
     ? req.t
     : ((key: string, params?: Record<string, string | number | boolean | null | undefined>) =>
         translateServer("en", key, params));
+  const status = typeof (err as { status?: unknown })?.status === "number"
+    ? (err as { status: number }).status
+    : typeof (err as { statusCode?: unknown })?.statusCode === "number"
+      ? (err as { statusCode: number }).statusCode
+      : null;
+  const type = typeof (err as { type?: unknown })?.type === "string"
+    ? (err as { type: string }).type
+    : null;
+
+  if (status === 400 && type === "entity.parse.failed") {
+    res.status(400).json({ error: translate("errors.validation") });
+    return;
+  }
 
   if (err instanceof HttpError) {
     const translatedMessage = translate(err.message);

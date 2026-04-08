@@ -26,7 +26,11 @@ function formatEnvValue(value: string): string {
   if (/^[A-Za-z0-9_./:@-]+$/.test(value)) {
     return value;
   }
+  if (!/[\r\n]/.test(value) && !value.includes("'")) {
+    return `'${value}'`;
+  }
   const escaped = value
+    .replace(/\\/g, "\\\\")
     .replace(/\r/g, "\\r")
     .replace(/\n/g, "\\n")
     .replace(/"/g, '\\"');

@@ -1,11 +1,15 @@
 import type { NextFunction, Request, Response } from "express";
 import { resolveRequestLocale, translate } from "../i18n.js";
 
-export function localeMiddleware(req: Request, res: Response, next: NextFunction) {
+export function localeMiddleware(req: Request, _res: Response, next: NextFunction) {
   const locale = resolveRequestLocale(req.get("Accept-Language"));
   req.locale = locale;
   req.t = (key, params) => translate(locale, key, params);
+  next();
+}
+
+export function localeResponseHeadersMiddleware(req: Request, res: Response, next: NextFunction) {
   res.vary("Accept-Language");
-  res.setHeader("Content-Language", locale);
+  res.setHeader("Content-Language", req.locale);
   next();
 }
