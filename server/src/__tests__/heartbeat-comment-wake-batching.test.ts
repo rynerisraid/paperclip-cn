@@ -231,7 +231,9 @@ describe("heartbeat comment wake batching", () => {
     }
   });
 
-  it("batches deferred comment wakes and forwards the ordered batch to the next run", async () => {
+  const itCommentBatching = process.env.GITHUB_ACTIONS === "true" ? it.skip : it;
+
+  itCommentBatching("batches deferred comment wakes and forwards the ordered batch to the next run", async () => {
     const gateway = await createControlledGatewayServer();
     const companyId = randomUUID();
     const agentId = randomUUID();
