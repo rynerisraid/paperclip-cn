@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Link } from "@/lib/router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { heartbeatsApi, type LiveRunForIssue } from "../api/heartbeats";
+import { heartbeatsApi, type ActiveRunForIssue, type LiveRunForIssue } from "../api/heartbeats";
 import { queryKeys } from "../lib/queryKeys";
 import { formatDateTime } from "../lib/utils";
 import { displaySeededName } from "../lib/seeded-display";
@@ -15,6 +15,8 @@ import { useLiveRunTranscripts } from "./transcript/useLiveRunTranscripts";
 interface LiveRunWidgetProps {
   issueId: string;
   companyId?: string | null;
+  liveRunsData?: LiveRunForIssue[];
+  activeRunData?: ActiveRunForIssue | null;
 }
 
 function toIsoString(value: string | Date | null | undefined): string | null {
@@ -26,24 +28,34 @@ function isRunActive(status: string): boolean {
   return status === "queued" || status === "running";
 }
 
-export function LiveRunWidget({ issueId, companyId }: LiveRunWidgetProps) {
+export function LiveRunWidget({
+  issueId,
+  companyId,
+  liveRunsData,
+  activeRunData,
+}: LiveRunWidgetProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [cancellingRunIds, setCancellingRunIds] = useState(new Set<string>());
+  const shouldFetchLiveRuns = liveRunsData === undefined;
+  const shouldFetchActiveRun = activeRunData === undefined;
 
-  const { data: liveRuns } = useQuery({
+  const { data: fetchedLiveRuns } = useQuery({
     queryKey: queryKeys.issues.liveRuns(issueId),
     queryFn: () => heartbeatsApi.liveRunsForIssue(issueId),
-    enabled: !!issueId,
+    enabled: !!issueId && shouldFetchLiveRuns,
     refetchInterval: 3000,
   });
 
-  const { data: activeRun } = useQuery({
+  const { data: fetchedActiveRun } = useQuery({
     queryKey: queryKeys.issues.activeRun(issueId),
     queryFn: () => heartbeatsApi.activeRunForIssue(issueId),
-    enabled: !!issueId,
+    enabled: !!issueId && shouldFetchActiveRun,
     refetchInterval: 3000,
   });
+
+  const liveRuns = liveRunsData ?? fetchedLiveRuns;
+  const activeRun = activeRunData ?? fetchedActiveRun;
 
   const runs = useMemo(() => {
     const deduped = new Map<string, LiveRunForIssue>();
