@@ -46,6 +46,18 @@ vi.mock("../api/auth", () => ({
   authApi: mockAuthApi,
 }));
 
+vi.mock("react-i18next", async () => {
+  const actual = await vi.importActual<typeof import("react-i18next")>("react-i18next");
+  return {
+    ...actual,
+    useTranslation: () => ({
+      t: (key: string, options?: { defaultValue?: string }) => options?.defaultValue ?? key,
+      i18n: {} as never,
+      ready: true,
+    }),
+  };
+});
+
 vi.mock("../hooks/useProjectOrder", () => ({
   useProjectOrder: ({ projects }: { projects: unknown[] }) => ({
     orderedProjects: projects,
@@ -95,12 +107,6 @@ vi.mock("@/components/ui/popover", () => ({
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
 
-async function flush() {
-  await act(async () => {
-    await new Promise((resolve) => setTimeout(resolve, 0));
-  });
-}
-
 function createIssue(overrides: Partial<Issue> = {}): Issue {
   return {
     id: "issue-1",
@@ -143,19 +149,20 @@ function createIssue(overrides: Partial<Issue> = {}): Issue {
   };
 }
 
-function renderProperties(container: HTMLDivElement, props: ComponentProps<typeof IssueProperties>) {
+async function renderProperties(container: HTMLDivElement, props: ComponentProps<typeof IssueProperties>) {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: { retry: false },
     },
   });
   const root = createRoot(container);
-  act(() => {
+  await act(async () => {
     root.render(
       <QueryClientProvider client={queryClient}>
         <IssueProperties {...props} />
       </QueryClientProvider>,
     );
+    await Promise.resolve();
   });
   return root;
 }
@@ -178,19 +185,19 @@ describe("IssueProperties", () => {
 
   it("always exposes the add sub-issue action", async () => {
     const onAddSubIssue = vi.fn();
-    const root = renderProperties(container, {
+    const root = await renderProperties(container, {
       issue: createIssue(),
       childIssues: [],
       onAddSubIssue,
       onUpdate: vi.fn(),
     });
-    await flush();
 
-    expect(container.textContent).toContain("Sub-issues");
-    expect(container.textContent).toContain("Add sub-issue");
+    const renderedText = container.textContent ?? "";
+    expect(renderedText).toMatch(/Sub-issues|子任务/);
+    expect(renderedText).toMatch(/Add sub-issue|添加子任务/);
 
     const addButton = Array.from(container.querySelectorAll("button"))
-      .find((button) => button.textContent?.includes("Add sub-issue"));
+      .find((button) => /Add sub-issue|添加子任务/.test(button.textContent ?? ""));
     expect(addButton).not.toBeUndefined();
 
     await act(async () => {

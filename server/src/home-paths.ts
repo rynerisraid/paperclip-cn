@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
@@ -5,6 +6,7 @@ const DEFAULT_INSTANCE_ID = "default";
 const INSTANCE_ID_RE = /^[a-zA-Z0-9_-]+$/;
 const PATH_SEGMENT_RE = /^[a-zA-Z0-9_-]+$/;
 const FRIENDLY_PATH_SEGMENT_RE = /[^a-zA-Z0-9._-]+/g;
+const DESKTOP_TEMP_INSTANCE_PATH_RE = /paperclip-desktop-(?:smoke|acceptance)-/i;
 
 function expandHomePrefix(value: string): string {
   if (value === "~") return os.homedir();
@@ -12,9 +14,31 @@ function expandHomePrefix(value: string): string {
   return value;
 }
 
+function isPathInsideDir(candidatePath: string, parentDir: string): boolean {
+  const resolvedCandidate = path.resolve(candidatePath);
+  const resolvedParent = path.resolve(parentDir);
+  const relative = path.relative(resolvedParent, resolvedCandidate);
+  return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
+}
+
+function isFreshDesktopTempHome(candidate: string | undefined): boolean {
+  const desktopUserDataDir = process.env.PAPERCLIP_DESKTOP_USER_DATA_DIR?.trim();
+  const trimmed = candidate?.trim();
+  if (!desktopUserDataDir || !trimmed) return false;
+  return isPathInsideDir(trimmed, path.resolve(desktopUserDataDir));
+}
+
 export function resolvePaperclipHomeDir(): string {
   const envHome = process.env.PAPERCLIP_HOME?.trim();
-  if (envHome) return path.resolve(expandHomePrefix(envHome));
+  if (envHome) {
+    const resolved = path.resolve(expandHomePrefix(envHome));
+    if (
+      isFreshDesktopTempHome(resolved)
+      || !(DESKTOP_TEMP_INSTANCE_PATH_RE.test(resolved) && !existsSync(resolved))
+    ) {
+      return resolved;
+    }
+  }
   return path.resolve(os.homedir(), ".paperclip");
 }
 

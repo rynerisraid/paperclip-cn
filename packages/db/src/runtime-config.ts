@@ -6,6 +6,7 @@ const DEFAULT_INSTANCE_ID = "default";
 const CONFIG_BASENAME = "config.json";
 const ENV_BASENAME = ".env";
 const INSTANCE_ID_RE = /^[a-zA-Z0-9_-]+$/;
+const DESKTOP_TEMP_INSTANCE_PATH_RE = /paperclip-desktop-(?:smoke|acceptance)-/i;
 
 type PartialConfig = {
   database?: {
@@ -41,9 +42,31 @@ function expandHomePrefix(value: string): string {
   return value;
 }
 
+function isPathInsideDir(candidatePath: string, parentDir: string): boolean {
+  const resolvedCandidate = path.resolve(candidatePath);
+  const resolvedParent = path.resolve(parentDir);
+  const relative = path.relative(resolvedParent, resolvedCandidate);
+  return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
+}
+
+function isFreshDesktopTempHome(candidate: string | undefined): boolean {
+  const desktopUserDataDir = process.env.PAPERCLIP_DESKTOP_USER_DATA_DIR?.trim();
+  const trimmed = candidate?.trim();
+  if (!desktopUserDataDir || !trimmed) return false;
+  return isPathInsideDir(trimmed, path.resolve(desktopUserDataDir));
+}
+
 function resolvePaperclipHomeDir(): string {
   const envHome = process.env.PAPERCLIP_HOME?.trim();
-  if (envHome) return path.resolve(expandHomePrefix(envHome));
+  if (envHome) {
+    const resolved = path.resolve(expandHomePrefix(envHome));
+    if (
+      isFreshDesktopTempHome(resolved)
+      || !(DESKTOP_TEMP_INSTANCE_PATH_RE.test(resolved) && !existsSync(resolved))
+    ) {
+      return resolved;
+    }
+  }
   return path.resolve(os.homedir(), ".paperclip");
 }
 
@@ -70,6 +93,20 @@ function resolveDefaultEmbeddedPostgresDir(): string {
 
 function resolveHomeAwarePath(value: string): string {
   return path.resolve(expandHomePrefix(value));
+}
+
+function containsBrokenDesktopTempPath(value: unknown): boolean {
+  if (typeof value === "string") {
+    const resolved = path.resolve(expandHomePrefix(value));
+    return DESKTOP_TEMP_INSTANCE_PATH_RE.test(resolved) && !existsSync(resolved);
+  }
+  if (Array.isArray(value)) {
+    return value.some((entry) => containsBrokenDesktopTempPath(entry));
+  }
+  if (typeof value === "object" && value !== null) {
+    return Object.values(value).some((entry) => containsBrokenDesktopTempPath(entry));
+  }
+  return false;
 }
 
 function findConfigFileFromAncestors(startDir: string): string | null {
@@ -194,16 +231,19 @@ function readConfig(configPath: string): PartialConfig | null {
       ? migrated.database
       : undefined;
 
+  const embeddedPostgresDataDir =
+    typeof database?.embeddedPostgresDataDir === "string" &&
+    !containsBrokenDesktopTempPath(database.embeddedPostgresDataDir)
+      ? database.embeddedPostgresDataDir
+      : undefined;
+
   return {
     database: database
       ? {
           mode: database.mode === "postgres" ? "postgres" : "embedded-postgres",
           connectionString:
             typeof database.connectionString === "string" ? database.connectionString : undefined,
-          embeddedPostgresDataDir:
-            typeof database.embeddedPostgresDataDir === "string"
-              ? database.embeddedPostgresDataDir
-              : undefined,
+          embeddedPostgresDataDir,
           embeddedPostgresPort: asPositiveInt(database.embeddedPostgresPort) ?? undefined,
           pgliteDataDir: typeof database.pgliteDataDir === "string" ? database.pgliteDataDir : undefined,
           pglitePort: asPositiveInt(database.pglitePort) ?? undefined,

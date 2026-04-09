@@ -18,6 +18,7 @@ export const DESKTOP_TITLEBAR_HEIGHT = 42;
 export const DESKTOP_WINDOW_TITLE = "Paperclip CN";
 export const DESKTOP_APP_ID = "ai.penclip.desktop";
 export const DESKTOP_PREFERENCES_FILENAME = "desktop-preferences.json";
+const DESKTOP_TEMP_INSTANCE_PATH_RE = /paperclip-desktop-(?:smoke|acceptance)-/i;
 
 export type DesktopTitlebarThemeConfig = {
   version: 1;
@@ -188,11 +189,67 @@ export function resolveTitlebarThemePath(appRoot: string): string {
   return path.resolve(appRoot, "dist", "titlebar.theme.json");
 }
 
+function isBrokenDesktopTempPath(candidate: string | undefined): boolean {
+  const trimmed = candidate?.trim();
+  if (!trimmed) return false;
+
+  const resolved = path.resolve(trimmed);
+  return DESKTOP_TEMP_INSTANCE_PATH_RE.test(resolved) && !fs.existsSync(resolved);
+}
+
+function isPathInsideDir(candidatePath: string, parentDir: string): boolean {
+  const resolvedCandidate = path.resolve(candidatePath);
+  const resolvedParent = path.resolve(parentDir);
+  const relative = path.relative(resolvedParent, resolvedCandidate);
+  return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
+}
+
+function isCurrentDesktopOverridePath(
+  candidate: string | undefined,
+  desktopUserDataDir: string,
+): boolean {
+  const trimmed = candidate?.trim();
+  if (!trimmed) return false;
+  return isPathInsideDir(trimmed, desktopUserDataDir);
+}
+
+function hasBrokenInheritedDesktopPaperclipEnv(desktopUserDataDir: string): boolean {
+  return (
+    (isBrokenDesktopTempPath(process.env.PAPERCLIP_HOME)
+      && !isCurrentDesktopOverridePath(process.env.PAPERCLIP_HOME, desktopUserDataDir))
+    || (isBrokenDesktopTempPath(process.env.PAPERCLIP_CONTEXT)
+      && !isCurrentDesktopOverridePath(process.env.PAPERCLIP_CONTEXT, desktopUserDataDir))
+    || (isBrokenDesktopTempPath(process.env.PAPERCLIP_CONFIG)
+      && !isCurrentDesktopOverridePath(process.env.PAPERCLIP_CONFIG, desktopUserDataDir))
+  );
+}
+
 export function buildWorkerEnvironment(input: DesktopRuntimeInput): NodeJS.ProcessEnv {
-  const paperclipHome = resolveDesktopPaperclipHome(input.userDataDir);
-  const paperclipInstanceId = resolveDesktopPaperclipInstanceId();
-  const baseEnv: NodeJS.ProcessEnv = {
-    ...process.env,
+  const inheritedEnv: NodeJS.ProcessEnv = { ...process.env };
+
+  // Desktop smoke/acceptance runs intentionally inject a temp PAPERCLIP_HOME.
+  // If a later desktop session inherits one of those temp paths after cleanup,
+  // the worker should fall back to the normal desktop instance instead of
+  // crashing while trying to reuse a deleted temp runtime.
+  if (hasBrokenInheritedDesktopPaperclipEnv(input.userDataDir)) {
+    for (const key of [
+      "PAPERCLIP_HOME",
+      "PAPERCLIP_INSTANCE_ID",
+      "PAPERCLIP_CONFIG",
+      "PAPERCLIP_CONTEXT",
+      "PAPERCLIP_IN_WORKTREE",
+      "PAPERCLIP_WORKTREE_NAME",
+      "PAPERCLIP_WORKTREE_COLOR",
+      "PAPERCLIP_WORKTREES_DIR",
+    ]) {
+      delete inheritedEnv[key];
+    }
+  }
+
+  const paperclipHome = inheritedEnv.PAPERCLIP_HOME?.trim() || input.userDataDir;
+  const paperclipInstanceId = inheritedEnv.PAPERCLIP_INSTANCE_ID?.trim() || "default";
+  const workerEnv: NodeJS.ProcessEnv = {
+    ...inheritedEnv,
     PAPERCLIP_DESKTOP_MODE: input.mode,
     PAPERCLIP_DESKTOP_SERVER_ENTRY: resolveServerEntrypoint(input),
     PAPERCLIP_HOME: paperclipHome,
@@ -204,14 +261,14 @@ export function buildWorkerEnvironment(input: DesktopRuntimeInput): NodeJS.Proce
 
   if (input.mode === "development") {
     return {
-      ...baseEnv,
+      ...workerEnv,
       PAPERCLIP_UI_DEV_MIDDLEWARE: "true",
     };
   }
 
   // Packaged desktop builds must always serve the bundled ui-dist instead of inheriting dev/API-only flags.
   return {
-    ...baseEnv,
+    ...workerEnv,
     PAPERCLIP_CONFIG: resolveDesktopPaperclipConfigPath(paperclipHome, paperclipInstanceId),
     PAPERCLIP_CONTEXT: resolveDesktopPaperclipContextPath(paperclipHome),
     PAPERCLIP_IN_WORKTREE: "",

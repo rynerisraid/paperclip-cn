@@ -11,9 +11,7 @@ function findConfigFileFromAncestors(startDir: string): string | null {
 
   while (true) {
     const candidate = path.resolve(currentDir, ".paperclip", PAPERCLIP_CONFIG_BASENAME);
-    if (fs.existsSync(candidate)) {
-      return candidate;
-    }
+    if (fs.existsSync(candidate)) return candidate;
 
     const nextDir = path.resolve(currentDir, "..");
     if (nextDir === currentDir) break;

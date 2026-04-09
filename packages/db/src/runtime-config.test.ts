@@ -105,4 +105,76 @@ describe("resolveDatabaseTarget", () => {
       source: "embedded-postgres@55444",
     });
   });
+
+  it("ignores deleted desktop smoke PAPERCLIP_HOME values", () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "paperclip-db-runtime-"));
+    const projectDir = path.join(tempDir, "repo");
+    fs.mkdirSync(projectDir, { recursive: true });
+    process.chdir(projectDir);
+    delete process.env.PAPERCLIP_CONFIG;
+    process.env.PAPERCLIP_HOME = "C:\\Users\\chenj\\AppData\\Local\\Temp\\paperclip-desktop-smoke-dev-light-aur69x\\runtime";
+    writeJson(path.join(projectDir, ".paperclip", "config.json"), {
+      database: {
+        mode: "embedded-postgres",
+        embeddedPostgresDataDir: "~/project-db",
+        embeddedPostgresPort: 54331,
+      },
+    });
+
+    const target = resolveDatabaseTarget();
+
+    expect(target).toMatchObject({
+      mode: "embedded-postgres",
+      dataDir: path.resolve(os.homedir(), "project-db"),
+      port: 54331,
+      source: "embedded-postgres@54331",
+    });
+  });
+
+  it("preserves a fresh desktop temp PAPERCLIP_HOME inside the active desktop user-data dir", () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "paperclip-db-runtime-"));
+    const projectDir = path.join(tempDir, "repo");
+    fs.mkdirSync(projectDir, { recursive: true });
+    process.chdir(projectDir);
+    delete process.env.PAPERCLIP_CONFIG;
+    delete process.env.PAPERCLIP_INSTANCE_ID;
+    const userDataDir = path.join(os.tmpdir(), "paperclip-desktop-acceptance-dark-12345");
+    const runtimeDir = path.join(userDataDir, "runtime");
+    process.env.PAPERCLIP_DESKTOP_USER_DATA_DIR = userDataDir;
+    process.env.PAPERCLIP_HOME = runtimeDir;
+
+    const target = resolveDatabaseTarget();
+
+    expect(target).toMatchObject({
+      mode: "embedded-postgres",
+      dataDir: path.resolve(runtimeDir, "instances", "default", "db"),
+      port: 54329,
+      source: "embedded-postgres@54329",
+    });
+  });
+
+  it("repairs a broken repo-local embedded postgres path without discarding the rest of the config", () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "paperclip-db-runtime-"));
+    const projectDir = path.join(tempDir, "repo");
+    fs.mkdirSync(projectDir, { recursive: true });
+    process.chdir(projectDir);
+    delete process.env.PAPERCLIP_CONFIG;
+    delete process.env.PAPERCLIP_HOME;
+    writeJson(path.join(projectDir, ".paperclip", "config.json"), {
+      database: {
+        mode: "embedded-postgres",
+        embeddedPostgresDataDir: "C:\\Users\\chenj\\AppData\\Local\\Temp\\paperclip-desktop-smoke-dev-light-aur69x\\runtime\\instances\\default\\db",
+        embeddedPostgresPort: 54331,
+      },
+    });
+
+    const target = resolveDatabaseTarget();
+
+    expect(target).toMatchObject({
+      mode: "embedded-postgres",
+      dataDir: path.resolve(os.homedir(), ".paperclip", "instances", "default", "db"),
+      port: 54331,
+      source: "embedded-postgres@54331",
+    });
+  });
 });
