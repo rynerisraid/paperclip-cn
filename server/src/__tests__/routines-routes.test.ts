@@ -239,6 +239,29 @@ describe("routine routes", () => {
     expect(mockRoutineService.updateTrigger).not.toHaveBeenCalled();
   });
 
+  it("threads the explicit request locale into manual routine runs", async () => {
+    const app = createApp({
+      type: "board",
+      userId: "board-user",
+      source: "session",
+      isInstanceAdmin: true,
+      companyIds: [companyId],
+    });
+
+    const res = await request(app)
+      .post(`/api/routines/${routineId}/run?lng=en`)
+      .send({
+        source: "manual",
+      });
+
+    expect(res.status, JSON.stringify(res.body)).toBe(202);
+    expect(mockRoutineService.runRoutine).toHaveBeenCalledWith(
+      routineId,
+      { source: "manual" },
+      { requestedUiLocale: "en" },
+    );
+  });
+
   it("requires tasks:assign permission to manually run a routine", async () => {
     const app = createApp({
       type: "board",

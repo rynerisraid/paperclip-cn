@@ -222,6 +222,24 @@ describeEmbeddedPostgres("routine service live-execution coalescing", () => {
     expect(routineIssues.map((issue) => issue.id)).toContain(run.linkedIssueId);
   });
 
+  it("propagates requestedUiLocale into the assignee wakeup context for manual runs", async () => {
+    const { routine, svc, wakeups } = await seedFixture();
+
+    const run = await svc.runRoutine(
+      routine.id,
+      { source: "manual" },
+      { requestedUiLocale: "en" },
+    );
+
+    expect(run.status).toBe("issue_created");
+    expect(wakeups).toHaveLength(1);
+    expect(wakeups[0]?.opts.contextSnapshot).toMatchObject({
+      issueId: expect.any(String),
+      source: "routine.dispatch",
+      requestedUiLocale: "en",
+    });
+  });
+
   it("wakes the assignee when a routine creates a fresh execution issue", async () => {
     const { agentId, routine, svc, wakeups } = await seedFixture();
 

@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 import type { Db } from "@penclipai/db";
 import type { DeploymentExposure, DeploymentMode } from "@penclipai/shared";
 import type { StorageService } from "./storage/types.js";
-import { httpLogger, errorHandler, localeMiddleware } from "./middleware/index.js";
+import { httpLogger, errorHandler, localeMiddleware, localeResponseHeadersMiddleware } from "./middleware/index.js";
 import { actorMiddleware } from "./middleware/auth.js";
 import { boardMutationGuard } from "./middleware/board-mutation-guard.js";
 import { privateHostnameGuard, resolvePrivateHostnameAllowSet } from "./middleware/private-hostname-guard.js";
@@ -89,6 +89,8 @@ export async function createApp(
 ) {
   const app = express();
 
+  app.use(localeMiddleware);
+  app.use("/api", localeResponseHeadersMiddleware);
   app.use(express.json({
     // Company import/export payloads can inline full portable packages.
     limit: "10mb",
@@ -97,7 +99,6 @@ export async function createApp(
     },
   }));
   app.use(httpLogger);
-  app.use(localeMiddleware);
   const privateHostnameGateEnabled =
     opts.deploymentMode === "authenticated" && opts.deploymentExposure === "private";
   const privateHostnameAllowSet = resolvePrivateHostnameAllowSet({
@@ -261,13 +262,21 @@ export async function createApp(
       const indexHtmlTemplate = applyUiBranding(
         fs.readFileSync(path.join(uiDist, "index.html"), "utf-8"),
       );
-      app.use(express.static(uiDist));
+      app.use(express.static(uiDist, { index: false }));
       app.get(/.*/, (req, res) => {
+        const initialLocale = resolveInitialUiLocale(req.get("Accept-Language"), req.query?.lng);
         const html = applyUiLocaleToHtml(
           indexHtmlTemplate,
-          resolveInitialUiLocale(req.get("Accept-Language"), req.query?.lng),
+          initialLocale,
         );
-        res.status(200).set("Content-Type", "text/html").end(html);
+        res
+          .status(200)
+          .set({
+            "Content-Type": "text/html",
+            "Content-Language": initialLocale.locale,
+          })
+          .vary("Accept-Language")
+          .end(html);
       });
     } else {
       console.warn("[paperclip] UI dist not found; running in API-only mode");
@@ -297,11 +306,19 @@ export async function createApp(
       try {
         const templatePath = path.resolve(uiRoot, "index.html");
         const template = fs.readFileSync(templatePath, "utf-8");
+        const initialLocale = resolveInitialUiLocale(req.get("Accept-Language"), req.query?.lng);
         const html = applyUiLocaleToHtml(
           applyUiBranding(await vite.transformIndexHtml(req.originalUrl, template)),
-          resolveInitialUiLocale(req.get("Accept-Language"), req.query?.lng),
+          initialLocale,
         );
-        res.status(200).set({ "Content-Type": "text/html" }).end(html);
+        res
+          .status(200)
+          .set({
+            "Content-Type": "text/html",
+            "Content-Language": initialLocale.locale,
+          })
+          .vary("Accept-Language")
+          .end(html);
       } catch (err) {
         next(err);
       }

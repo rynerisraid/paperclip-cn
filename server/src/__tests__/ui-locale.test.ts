@@ -28,6 +28,13 @@ describe("UI locale helpers", () => {
     });
   });
 
+  it("ignores unsupported Accept-Language values instead of treating them as explicit locale requests", () => {
+    expect(resolveInitialUiLocale("fr-FR,de-DE;q=0.9", undefined)).toEqual({
+      locale: DEFAULT_UI_LOCALE,
+      source: "default",
+    });
+  });
+
   it("extracts an explicit supported locale from Accept-Language without fallback", () => {
     expect(
       resolveExplicitRequestUiLocale({

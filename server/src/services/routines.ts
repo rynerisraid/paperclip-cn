@@ -23,6 +23,7 @@ import type {
   RoutineTriggerSecretMaterial,
   RoutineVariable,
   RunRoutine,
+  UiLocale,
   UpdateRoutine,
   UpdateRoutineTrigger,
 } from "@penclipai/shared";
@@ -673,6 +674,7 @@ export function routineService(db: Db, deps: { heartbeat?: IssueAssignmentWakeup
     executionWorkspaceId?: string | null;
     executionWorkspacePreference?: string | null;
     executionWorkspaceSettings?: Record<string, unknown> | null;
+    requestedUiLocale?: UiLocale | null;
   }) {
     const resolvedVariables = resolveRoutineVariableValues(input.routine.variables ?? [], input);
     const description = interpolateRoutineTemplate(input.routine.description, resolvedVariables);
@@ -799,6 +801,7 @@ export function routineService(db: Db, deps: { heartbeat?: IssueAssignmentWakeup
           reason: "issue_assigned",
           mutation: "create",
           contextSource: "routine.dispatch",
+          requestedUiLocale: input.requestedUiLocale ?? null,
           requestedByActorType: input.source === "schedule" ? "system" : undefined,
           rethrowOnError: true,
         });
@@ -1227,7 +1230,11 @@ export function routineService(db: Db, deps: { heartbeat?: IssueAssignmentWakeup
       };
     },
 
-    runRoutine: async (id: string, input: RunRoutine) => {
+    runRoutine: async (
+      id: string,
+      input: RunRoutine,
+      opts?: { requestedUiLocale?: UiLocale | null },
+    ) => {
       const routine = await getRoutineById(id);
       if (!routine) throw notFound("Routine not found");
       if (routine.status === "archived") throw conflict("Routine is archived");
@@ -1245,6 +1252,7 @@ export function routineService(db: Db, deps: { heartbeat?: IssueAssignmentWakeup
         executionWorkspacePreference: input.executionWorkspacePreference ?? null,
         executionWorkspaceSettings:
           (input.executionWorkspaceSettings as Record<string, unknown> | null | undefined) ?? null,
+        requestedUiLocale: opts?.requestedUiLocale ?? null,
       });
     },
 

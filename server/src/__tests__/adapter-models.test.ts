@@ -52,6 +52,11 @@ describe("adapter model listing", () => {
     expect(models).toEqual([]);
   });
 
+  it("does not expose hermes as a built-in adapter in this fork", async () => {
+    const models = await listAdapterModels("hermes_local");
+    expect(models).toEqual([]);
+  });
+
   it("returns an empty list for qwen because models are user-configured", async () => {
     const models = await listAdapterModels("qwen_local");
     expect(models).toEqual([]);

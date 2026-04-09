@@ -14,6 +14,7 @@ import { accessService, logActivity, routineService } from "../services/index.js
 import { assertCompanyAccess, getActorInfo } from "./authz.js";
 import { forbidden, unauthorized } from "../errors.js";
 import { getTelemetryClient } from "../telemetry.js";
+import { resolveExplicitRequestUiLocale } from "../ui-locale.js";
 
 export function routineRoutes(db: Db) {
   const router = Router();
@@ -273,7 +274,9 @@ export function routineRoutes(db: Db) {
       return;
     }
     await assertBoardCanAssignTasks(req, routine.companyId);
-    const run = await svc.runRoutine(routine.id, req.body);
+    const run = await svc.runRoutine(routine.id, req.body, {
+      requestedUiLocale: resolveExplicitRequestUiLocale(req),
+    });
     const actor = getActorInfo(req);
     await logActivity(db, {
       companyId: routine.companyId,
