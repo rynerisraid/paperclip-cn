@@ -65,15 +65,22 @@ export function deriveAuthTrustedOrigins(config: Config): string[] {
   return Array.from(trustedOrigins);
 }
 
+export function resolveBetterAuthSecret(): string {
+  const fromBetterAuth = process.env.BETTER_AUTH_SECRET?.trim();
+  if (fromBetterAuth) return fromBetterAuth;
+
+  const fromAgentJwt = process.env.PAPERCLIP_AGENT_JWT_SECRET?.trim();
+  if (fromAgentJwt) return fromAgentJwt;
+
+  throw new Error(
+    "BETTER_AUTH_SECRET (or PAPERCLIP_AGENT_JWT_SECRET) must be set. " +
+    "For local development, set BETTER_AUTH_SECRET to a non-empty local secret in your .env file.",
+  );
+}
+
 export function createBetterAuthInstance(db: Db, config: Config, trustedOrigins?: string[]): BetterAuthInstance {
   const baseUrl = config.authBaseUrlMode === "explicit" ? config.authPublicBaseUrl : undefined;
-  const secret = process.env.BETTER_AUTH_SECRET ?? process.env.PAPERCLIP_AGENT_JWT_SECRET;
-  if (!secret) {
-    throw new Error(
-      "BETTER_AUTH_SECRET (or PAPERCLIP_AGENT_JWT_SECRET) must be set. " +
-      "For local development, set BETTER_AUTH_SECRET=paperclip-dev-secret in your .env file.",
-    );
-  }
+  const secret = resolveBetterAuthSecret();
   const effectiveTrustedOrigins = trustedOrigins ?? deriveAuthTrustedOrigins(config);
 
   const publicUrl = process.env.PAPERCLIP_PUBLIC_URL ?? baseUrl;
