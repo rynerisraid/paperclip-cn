@@ -551,7 +551,73 @@ describe("worktree helpers", () => {
     }
   });
 
-  it("reseed preserves the current worktree ports, instance id, and branding", async () => {
+  it("fails loudly when an explicit embedded-postgres reseed source has no data directory", async () => {
+    const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "paperclip-worktree-reseed-missing-source-"));
+    const repoRoot = path.join(tempRoot, "repo");
+    const sourceRoot = path.join(tempRoot, "source");
+    const homeDir = path.join(tempRoot, ".paperclip-worktrees");
+    const currentInstanceId = "existing-worktree";
+    const currentPaths = resolveWorktreeLocalPaths({
+      cwd: repoRoot,
+      homeDir,
+      instanceId: currentInstanceId,
+    });
+    const sourcePaths = resolveWorktreeLocalPaths({
+      cwd: sourceRoot,
+      homeDir: path.join(tempRoot, ".paperclip-source"),
+      instanceId: "default",
+    });
+    const originalCwd = process.cwd();
+    const originalPaperclipConfig = process.env.PAPERCLIP_CONFIG;
+
+    try {
+      fs.mkdirSync(path.dirname(currentPaths.configPath), { recursive: true });
+      fs.mkdirSync(path.dirname(sourcePaths.configPath), { recursive: true });
+      fs.mkdirSync(repoRoot, { recursive: true });
+      fs.mkdirSync(sourceRoot, { recursive: true });
+
+      const currentConfig = buildWorktreeConfig({
+        sourceConfig: buildSourceConfig(),
+        paths: currentPaths,
+        serverPort: 3114,
+        databasePort: 54341,
+      });
+      const sourceConfig = buildWorktreeConfig({
+        sourceConfig: buildSourceConfig(),
+        paths: sourcePaths,
+        serverPort: 3200,
+        databasePort: 54400,
+      });
+      fs.writeFileSync(currentPaths.configPath, JSON.stringify(currentConfig, null, 2), "utf8");
+      fs.writeFileSync(
+        currentPaths.envPath,
+        [
+          `PAPERCLIP_HOME=${homeDir}`,
+          `PAPERCLIP_INSTANCE_ID=${currentInstanceId}`,
+        ].join("\n"),
+        "utf8",
+      );
+      fs.writeFileSync(sourcePaths.configPath, JSON.stringify(sourceConfig, null, 2), "utf8");
+
+      delete process.env.PAPERCLIP_CONFIG;
+      process.chdir(repoRoot);
+
+      await expect(worktreeReseedCommand({
+        fromConfig: sourcePaths.configPath,
+        yes: true,
+      })).rejects.toThrow("has no data directory");
+    } finally {
+      process.chdir(originalCwd);
+      if (originalPaperclipConfig === undefined) {
+        delete process.env.PAPERCLIP_CONFIG;
+      } else {
+        process.env.PAPERCLIP_CONFIG = originalPaperclipConfig;
+      }
+      fs.rmSync(tempRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("reseed with --seed false preserves the current worktree ports, instance id, and branding", async () => {
     const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "paperclip-worktree-reseed-"));
     const repoRoot = path.join(tempRoot, "repo");
     const sourceRoot = path.join(tempRoot, "source");
@@ -609,6 +675,7 @@ describe("worktree helpers", () => {
       await worktreeReseedCommand({
         fromConfig: sourcePaths.configPath,
         yes: true,
+        seed: false,
       });
 
       const rewrittenConfig = JSON.parse(fs.readFileSync(currentPaths.configPath, "utf8"));

@@ -1175,11 +1175,16 @@ export async function worktreeReseedCommand(opts: WorktreeReseedOptions): Promis
   }
 
   const sourceConfig = readConfig(sourceConfigPath);
-  const shouldSeed =
-    opts.seed ?? (
-      sourceConfig?.database.mode !== "embedded-postgres"
-      || existsSync(sourceConfig.database.embeddedPostgresDataDir)
+  const shouldSeed = opts.seed ?? true;
+  if (
+    shouldSeed
+    && sourceConfig?.database.mode === "embedded-postgres"
+    && !existsSync(sourceConfig.database.embeddedPostgresDataDir)
+  ) {
+    throw new Error(
+      `Embedded-postgres reseed source at ${sourceConfigPath} has no data directory. Pass --seed false only if you intentionally want to reinitialize the current worktree without copying data.`,
     );
+  }
 
   const confirmed = opts.yes
     ? true
