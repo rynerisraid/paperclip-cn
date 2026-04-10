@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Filter, X, User } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { PriorityIcon } from "./PriorityIcon";
 import { StatusIcon } from "./StatusIcon";
 import {
@@ -52,12 +53,17 @@ export function IssueFiltersPopover({
   enableRoutineVisibilityFilter?: boolean;
   buttonVariant?: "ghost" | "outline";
 }) {
+  const { t } = useTranslation();
   return (
     <Popover>
       <PopoverTrigger asChild>
         <Button variant={buttonVariant} size="sm" className={`text-xs ${activeFilterCount > 0 ? "text-blue-600 dark:text-blue-400" : ""}`}>
           <Filter className="h-3.5 w-3.5 sm:h-3 sm:w-3 sm:mr-1" />
-          <span className="hidden sm:inline">{activeFilterCount > 0 ? `Filters: ${activeFilterCount}` : "Filter"}</span>
+          <span className="hidden sm:inline">
+            {activeFilterCount > 0
+              ? t("Filters: {{count}}", { defaultValue: "Filters: {{count}}", count: activeFilterCount })
+              : t("issuesList.filter", { defaultValue: "Filter" })}
+          </span>
           {activeFilterCount > 0 ? <span className="ml-0.5 text-[10px] font-medium sm:hidden">{activeFilterCount}</span> : null}
           {activeFilterCount > 0 ? (
             <X
@@ -73,20 +79,20 @@ export function IssueFiltersPopover({
       <PopoverContent align="end" className="w-[min(480px,calc(100vw-2rem))] p-0">
         <div className="space-y-3 p-3">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">Filters</span>
+            <span className="text-sm font-medium">{t("issuesList.filters", { defaultValue: "Filters" })}</span>
             {activeFilterCount > 0 ? (
               <button
                 type="button"
                 className="text-xs text-muted-foreground hover:text-foreground"
                 onClick={() => onChange(defaultIssueFilterState)}
               >
-                Clear
+                {t("Clear", { defaultValue: "Clear" })}
               </button>
             ) : null}
           </div>
 
           <div className="space-y-1.5">
-            <span className="text-xs text-muted-foreground">Quick filters</span>
+            <span className="text-xs text-muted-foreground">{t("issuesList.quickFilters", { defaultValue: "Quick filters" })}</span>
             <div className="flex flex-wrap gap-1.5">
               {issueQuickFilterPresets.map((preset) => {
                 const isActive = issueFilterArraysEqual(state.statuses, preset.statuses);

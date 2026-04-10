@@ -23,6 +23,7 @@ import {
   type Ref,
   type ReactNode,
 } from "react";
+import { useTranslation } from "react-i18next";
 import { Link, useLocation } from "@/lib/router";
 import type {
   Agent,
@@ -33,6 +34,7 @@ import type {
 import type { ActiveRunForIssue, LiveRunForIssue } from "../api/heartbeats";
 import { useLiveRunTranscripts } from "./transcript/useLiveRunTranscripts";
 import { usePaperclipIssueRuntime, type PaperclipIssueRuntimeReassignment } from "../hooks/usePaperclipIssueRuntime";
+import { translateInstant } from "../i18n";
 import {
   buildIssueChatMessages,
   formatDurationWords,
@@ -308,15 +310,18 @@ function IssueChatFallbackThread({
   emptyMessage: string;
   variant: "full" | "embedded";
 }) {
+  const { t } = useTranslation();
   return (
     <div className={cn(variant === "embedded" ? "space-y-3" : "space-y-4")}>
       <div className="rounded-xl border border-amber-300/60 bg-amber-50/80 px-4 py-3 text-sm text-amber-900 dark:border-amber-500/30 dark:bg-amber-950/20 dark:text-amber-200">
         <div className="flex items-start gap-2">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
           <div className="space-y-1">
-            <p className="font-medium">Chat renderer hit an internal state error.</p>
+            <p className="font-medium">
+              {t("issueChat.fallbackErrorTitle", { defaultValue: "Chat renderer hit an internal state error." })}
+            </p>
             <p className="text-xs opacity-80">
-              Showing a safe fallback transcript instead of crashing the issues page.
+              {t("issueChat.fallbackErrorBody", { defaultValue: "Showing a safe fallback transcript instead of crashing the issues page." })}
             </p>
           </div>
         </div>
@@ -349,7 +354,7 @@ function IssueChatFallbackThread({
                   {lines.length > 0 ? lines.map((line, index) => (
                     <MarkdownBody key={`${message.id}:fallback:${index}`}>{line}</MarkdownBody>
                   )) : (
-                    <p className="text-sm text-muted-foreground">No message content.</p>
+                    <p className="text-sm text-muted-foreground">{t("No message content.", { defaultValue: "No message content." })}</p>
                   )}
                 </div>
               </div>
@@ -876,6 +881,7 @@ function IssueChatUserMessage() {
   const pending = custom.clientStatus === "pending";
   const queueTargetRunId = typeof custom.queueTargetRunId === "string" ? custom.queueTargetRunId : null;
   const [copied, setCopied] = useState(false);
+  const { t } = useTranslation();
 
   return (
     <MessagePrimitive.Root id={anchorId}>
@@ -893,7 +899,7 @@ function IssueChatUserMessage() {
             {queued ? (
               <div className="mb-1.5 flex items-center gap-2">
                 <span className="inline-flex items-center rounded-full border border-amber-400/60 bg-amber-100/70 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-amber-800 dark:border-amber-400/40 dark:bg-amber-500/20 dark:text-amber-200">
-                  Queued
+                  {t("Queued", { defaultValue: "Queued" })}
                 </span>
                 {queueTargetRunId && onInterruptQueued ? (
                   <Button
@@ -903,7 +909,9 @@ function IssueChatUserMessage() {
                     disabled={interruptingQueuedRunId === queueTargetRunId}
                     onClick={() => void onInterruptQueued(queueTargetRunId)}
                   >
-                    {interruptingQueuedRunId === queueTargetRunId ? "Interrupting..." : "Interrupt"}
+                    {interruptingQueuedRunId === queueTargetRunId
+                      ? t("Interrupting...", { defaultValue: "Interrupting..." })
+                      : t("Interrupt", { defaultValue: "Interrupt" })}
                   </Button>
                 ) : null}
               </div>
@@ -1427,7 +1435,7 @@ function IssueChatSystemMessage() {
       <div className="min-w-0 space-y-1">
         <div className={cn("flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5 text-xs", isCurrentUser && "justify-end")}>
           <span className="font-medium text-foreground">{actorName}</span>
-          <span className="text-muted-foreground">updated this task</span>
+          <span className="text-muted-foreground">{translateInstant("updated this task", { defaultValue: "updated this task" })}</span>
           <a
             href={anchorId ? `#${anchorId}` : undefined}
             className="text-xs text-muted-foreground transition-colors hover:text-foreground hover:underline"
@@ -1439,7 +1447,7 @@ function IssueChatSystemMessage() {
         {statusChange ? (
           <div className={cn("flex flex-wrap items-center gap-1.5 text-xs", isCurrentUser && "justify-end")}>
             <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              Status
+              {translateInstant("Status", { defaultValue: "Status" })}
             </span>
             <span className="text-muted-foreground">{humanizeValue(statusChange.from)}</span>
             <ArrowRight className="h-3 w-3 text-muted-foreground" />
@@ -1450,7 +1458,7 @@ function IssueChatSystemMessage() {
         {assigneeChange ? (
           <div className={cn("flex flex-wrap items-center gap-1.5 text-xs", isCurrentUser && "justify-end")}>
             <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              Assignee
+              {translateInstant("Assignee", { defaultValue: "Assignee" })}
             </span>
             <span className="text-muted-foreground">
               {formatTimelineAssigneeLabel(assigneeChange.from, agentMap, currentUserId)}
@@ -1511,7 +1519,7 @@ function IssueChatSystemMessage() {
               <Link to={`/agents/${runAgentId}`} className="font-medium text-foreground transition-colors hover:underline">
                 {displayedRunAgentName}
               </Link>
-              <span className="text-muted-foreground">run</span>
+              <span className="text-muted-foreground">{translateInstant("run", { defaultValue: "run" })}</span>
               <Link
                 to={`/agents/${runAgentId}/runs/${runId}`}
                 className="inline-flex items-center rounded-md border border-border bg-accent/40 px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground"
@@ -1672,7 +1680,7 @@ const IssueChatComposer = forwardRef<IssueChatComposerHandle, IssueChatComposerP
         ref={editorRef}
         value={body}
         onChange={setBody}
-        placeholder="Reply"
+        placeholder={translateInstant("Reply", { defaultValue: "Reply" })}
         mentions={mentions}
         onSubmit={handleSubmit}
         imageUploadHandler={onImageUpload}
@@ -1695,7 +1703,7 @@ const IssueChatComposer = forwardRef<IssueChatComposerHandle, IssueChatComposerP
               size="icon-sm"
               onClick={() => attachInputRef.current?.click()}
               disabled={attaching}
-              title="Attach image"
+              title={translateInstant("Attach image", { defaultValue: "Attach image" })}
             >
               <Paperclip className="h-4 w-4" />
             </Button>
@@ -1709,21 +1717,21 @@ const IssueChatComposer = forwardRef<IssueChatComposerHandle, IssueChatComposerP
             onChange={(event) => setReopen(event.target.checked)}
             className="rounded border-border"
           />
-          Re-open
+          {translateInstant("Re-open", { defaultValue: "Re-open" })}
         </label>
 
         {enableReassign && reassignOptions.length > 0 ? (
           <InlineEntitySelector
             value={reassignTarget}
             options={reassignOptions}
-            placeholder="Assignee"
-            noneLabel="No assignee"
-            searchPlaceholder="Search assignees..."
-            emptyMessage="No assignees found."
+            placeholder={translateInstant("Assignee", { defaultValue: "Assignee" })}
+            noneLabel={translateInstant("No assignee", { defaultValue: "No assignee" })}
+            searchPlaceholder={translateInstant("Search assignees...", { defaultValue: "Search assignees..." })}
+            emptyMessage={translateInstant("No assignees found.", { defaultValue: "No assignees found." })}
             onChange={setReassignTarget}
             className="h-8 text-xs"
             renderTriggerValue={(option) => {
-              if (!option) return <span className="text-muted-foreground">Assignee</span>;
+              if (!option) return <span className="text-muted-foreground">{translateInstant("Assignee", { defaultValue: "Assignee" })}</span>;
               const agentId = option.id.startsWith("agent:") ? option.id.slice("agent:".length) : null;
               const agent = agentId ? agentMap?.get(agentId) : null;
               return (
@@ -1752,7 +1760,9 @@ const IssueChatComposer = forwardRef<IssueChatComposerHandle, IssueChatComposerP
         ) : null}
 
         <Button size="sm" disabled={!canSubmit} onClick={() => void handleSubmit()}>
-          {submitting ? "Posting..." : "Send"}
+          {submitting
+            ? translateInstant("Posting...", { defaultValue: "Posting..." })
+            : translateInstant("Send", { defaultValue: "Send" })}
         </Button>
       </div>
     </div>
@@ -1798,6 +1808,7 @@ export function IssueChatThread({
   onImageClick,
   composerRef,
 }: IssueChatThreadProps) {
+  const { t } = useTranslation();
   const location = useLocation();
   const hasScrolledRef = useRef(false);
   const bottomAnchorRef = useRef<HTMLDivElement | null>(null);
@@ -1937,8 +1948,8 @@ export function IssueChatThread({
   const resolvedShowJumpToLatest = showJumpToLatest ?? variant === "full";
   const resolvedEmptyMessage = emptyMessage
     ?? (variant === "embedded"
-      ? "No run output yet."
-      : "This issue conversation is empty. Start with a message below.");
+      ? t("No run output yet.", { defaultValue: "No run output yet." })
+      : t("issueChat.emptyConversation", { defaultValue: "This issue conversation is empty. Start with a message below." }));
   const errorBoundaryResetKey = useMemo(
     () => messages.map((message) => `${message.id}:${message.role}:${message.content.length}:${message.status?.type ?? "none"}`).join("|"),
     [messages],
@@ -1955,7 +1966,7 @@ export function IssueChatThread({
               onClick={handleJumpToLatest}
               className="text-xs text-muted-foreground transition-colors hover:text-foreground"
             >
-              Jump to latest
+              {t("Jump to latest", { defaultValue: "Jump to latest" })}
             </button>
           </div>
         ) : null}

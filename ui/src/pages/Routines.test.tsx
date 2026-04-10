@@ -3,6 +3,7 @@
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import type { TFunction } from "i18next";
 import type { Issue, RoutineListItem } from "@penclipai/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { queryKeys } from "../lib/queryKeys";
@@ -338,6 +339,7 @@ describe("Routines page", () => {
         ["agent-1", { name: "Agent One" }],
         ["agent-2", { name: "Agent Two" }],
       ]),
+      ((key: string, options?: { defaultValue?: string }) => options?.defaultValue ?? key) as TFunction,
     );
 
     expect(groups.map((group) => group.label)).toEqual(["Project Alpha", "Project Beta"]);

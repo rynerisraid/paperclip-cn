@@ -1,5 +1,6 @@
 import { startTransition, useDeferredValue, useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { useDialog } from "../context/DialogContext";
 import { useCompany } from "../context/CompanyContext";
 import { executionWorkspacesApi } from "../api/execution-workspaces";
@@ -141,6 +142,7 @@ function IssueSearchInput({
   value: string;
   onDebouncedChange?: (search: string) => void;
 }) {
+  const { t } = useTranslation();
   const [draftValue, setDraftValue] = useState(value);
   const lastCommittedValueRef = useRef(value);
 
@@ -170,9 +172,9 @@ function IssueSearchInput({
         onChange={(e) => {
           setDraftValue(e.target.value);
         }}
-        placeholder="Search issues..."
+        placeholder={t("Search issues...", { defaultValue: "Search issues..." })}
         className="pl-7 text-xs sm:text-sm"
-        aria-label="Search issues"
+        aria-label={t("Search issues", { defaultValue: "Search issues" })}
       />
     </div>
   );
@@ -195,6 +197,7 @@ export function IssuesList({
   onSearchChange,
   onUpdateIssue,
 }: IssuesListProps) {
+  const { t } = useTranslation();
   const { selectedCompanyId } = useCompany();
   const { openNewIssue } = useDialog();
   const { data: session } = useQuery({
@@ -495,7 +498,7 @@ export function IssuesList({
         <div className="flex min-w-0 items-center gap-2 sm:gap-3">
           <Button size="sm" variant="outline" onClick={() => openNewIssue(newIssueDefaults())}>
             <Plus className="h-4 w-4 sm:mr-1" />
-            <span className="hidden sm:inline">New Issue</span>
+            <span className="hidden sm:inline">{t("issuesList.newIssue", { defaultValue: "New Issue" })}</span>
           </Button>
           <IssueSearchInput
             value={issueSearch}
@@ -512,14 +515,14 @@ export function IssuesList({
             <button
               className={`p-1.5 transition-colors ${viewState.viewMode === "list" ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground"}`}
               onClick={() => updateView({ viewMode: "list" })}
-              title="List view"
+              title={t("List view", { defaultValue: "List view" })}
             >
               <List className="h-3.5 w-3.5" />
             </button>
             <button
               className={`p-1.5 transition-colors ${viewState.viewMode === "board" ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground"}`}
               onClick={() => updateView({ viewMode: "board" })}
-              title="Board view"
+              title={t("Board view", { defaultValue: "Board view" })}
             >
               <Columns3 className="h-3.5 w-3.5" />
             </button>
@@ -530,7 +533,7 @@ export function IssuesList({
             visibleColumnSet={visibleIssueColumnSet}
             onToggleColumn={toggleIssueColumn}
             onResetColumns={() => setIssueColumns(DEFAULT_INBOX_ISSUE_COLUMNS)}
-            title="Choose which issue columns stay visible"
+            title={t("issuesList.chooseVisibleColumns", { defaultValue: "Choose which issue columns stay visible" })}
           />
 
           <IssueFiltersPopover
@@ -550,17 +553,17 @@ export function IssuesList({
               <PopoverTrigger asChild>
                 <Button variant="ghost" size="sm" className="text-xs">
                   <ArrowUpDown className="h-3.5 w-3.5 sm:h-3 sm:w-3 sm:mr-1" />
-                  <span className="hidden sm:inline">Sort</span>
+                  <span className="hidden sm:inline">{t("issuesList.sort", { defaultValue: "Sort" })}</span>
                 </Button>
               </PopoverTrigger>
               <PopoverContent align="end" className="w-48 p-0">
                 <div className="p-2 space-y-0.5">
                   {([
-                    ["status", "Status"],
-                    ["priority", "Priority"],
-                    ["title", "Title"],
-                    ["created", "Created"],
-                    ["updated", "Updated"],
+                    ["status", t("Status", { defaultValue: "Status" })],
+                    ["priority", t("Priority", { defaultValue: "Priority" })],
+                    ["title", t("Title", { defaultValue: "Title" })],
+                    ["created", t("Created", { defaultValue: "Created" })],
+                    ["updated", t("Updated", { defaultValue: "Updated" })],
                   ] as const).map(([field, label]) => (
                     <button
                       key={field}
@@ -594,18 +597,18 @@ export function IssuesList({
               <PopoverTrigger asChild>
                 <Button variant="ghost" size="sm" className="text-xs">
                   <Layers className="h-3.5 w-3.5 sm:h-3 sm:w-3 sm:mr-1" />
-                  <span className="hidden sm:inline">Group</span>
+                  <span className="hidden sm:inline">{t("issuesList.group", { defaultValue: "Group" })}</span>
                 </Button>
               </PopoverTrigger>
               <PopoverContent align="end" className="w-44 p-0">
                 <div className="p-2 space-y-0.5">
                   {([
-                    ["status", "Status"],
-                    ["priority", "Priority"],
-                    ["assignee", "Assignee"],
-                    ["workspace", "Workspace"],
-                    ["parent", "Parent Issue"],
-                    ["none", "None"],
+                    ["status", t("Status", { defaultValue: "Status" })],
+                    ["priority", t("Priority", { defaultValue: "Priority" })],
+                    ["assignee", t("Assignee", { defaultValue: "Assignee" })],
+                    ["workspace", t("Workspace", { defaultValue: "Workspace" })],
+                    ["parent", t("Parent issue", { defaultValue: "Parent issue" })],
+                    ["none", t("None", { defaultValue: "None" })],
                   ] as const).map(([value, label]) => (
                     <button
                       key={value}
