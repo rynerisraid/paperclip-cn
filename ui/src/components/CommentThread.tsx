@@ -1,6 +1,5 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
+import { memo, useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { useTranslation } from "react-i18next";
 import type {
   Agent,
   Approval,
@@ -25,7 +24,6 @@ import { timeAgo } from "../lib/timeAgo";
 import { cn, formatDateTime } from "../lib/utils";
 import { restoreSubmittedCommentDraft } from "../lib/comment-submit-draft";
 import { PluginSlotOutlet } from "@/plugins/slots";
-import { translateInstant } from "../i18n";
 
 interface CommentWithRunMeta extends IssueComment {
   runId?: string | null;
@@ -137,10 +135,8 @@ function parseReassignment(target: string): CommentReassignment | null {
 }
 
 function humanizeValue(value: string | null): string {
-  if (!value) return translateInstant("None", { defaultValue: "None" });
-  return translateInstant(value.replace(/_/g, " "), {
-    defaultValue: value.replace(/_/g, " "),
-  });
+  if (!value) return "None";
+  return value.replace(/_/g, " ");
 }
 
 function formatTimelineAssigneeLabel(
@@ -152,9 +148,9 @@ function formatTimelineAssigneeLabel(
     return agentMap?.get(assignee.agentId)?.name ?? assignee.agentId.slice(0, 8);
   }
   if (assignee.userId) {
-    return formatAssigneeUserLabel(assignee.userId, currentUserId) ?? translateInstant("Board", { defaultValue: "Board" });
+    return formatAssigneeUserLabel(assignee.userId, currentUserId) ?? "Board";
   }
-  return translateInstant("Unassigned", { defaultValue: "Unassigned" });
+  return "Unassigned";
 }
 
 function formatTimelineActorName(
@@ -167,9 +163,9 @@ function formatTimelineActorName(
     return agentMap?.get(actorId)?.name ?? actorId.slice(0, 8);
   }
   if (actorType === "system") {
-    return translateInstant("System", { defaultValue: "System" });
+    return "System";
   }
-  return formatAssigneeUserLabel(actorId, currentUserId) ?? translateInstant("Board", { defaultValue: "Board" });
+  return formatAssigneeUserLabel(actorId, currentUserId) ?? "Board";
 }
 
 function initialsForName(name: string) {
@@ -183,11 +179,9 @@ function initialsForName(name: string) {
 function formatRunStatusLabel(status: string) {
   switch (status) {
     case "timed_out":
-      return translateInstant("timed out", { defaultValue: "timed out" });
+      return "timed out";
     default:
-      return translateInstant(status.replace(/_/g, " "), {
-        defaultValue: status.replace(/_/g, " "),
-      });
+      return status.replace(/_/g, " ");
   }
 }
 
@@ -216,22 +210,71 @@ function runStatusClass(status: string) {
   }
 }
 
+async function copyTextWithFallback(text: string) {
+  if (navigator.clipboard && window.isSecureContext) {
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+
+  const textarea = document.createElement("textarea");
+  textarea.value = text;
+  textarea.style.position = "fixed";
+  textarea.style.left = "-9999px";
+  document.body.appendChild(textarea);
+
+  try {
+    textarea.select();
+    const success = document.execCommand("copy");
+    if (!success) throw new Error("execCommand copy failed");
+  } finally {
+    document.body.removeChild(textarea);
+  }
+}
+
 function CopyMarkdownButton({ text }: { text: string }) {
-  const { t } = useTranslation();
-  const [copied, setCopied] = useState(false);
+  const [status, setStatus] = useState<"idle" | "copied" | "failed">("idle");
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => () => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+  }, []);
+
+  const label = status === "copied" ? "Copied" : status === "failed" ? "Copy failed" : "Copy";
+
   return (
     <button
       type="button"
-      className="text-muted-foreground hover:text-foreground transition-colors"
-      title={t("Copy as markdown", { defaultValue: "Copy as markdown" })}
+      className={cn(
+        "inline-flex min-h-8 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium transition-colors",
+        status === "copied"
+          ? "bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-300"
+          : status === "failed"
+            ? "bg-destructive/10 text-destructive"
+            : "text-muted-foreground hover:bg-accent/60 hover:text-foreground",
+      )}
+      title={label}
+      aria-label="Copy comment as markdown"
       onClick={() => {
-        navigator.clipboard.writeText(text).then(() => {
-          setCopied(true);
-          setTimeout(() => setCopied(false), 2000);
-        });
+        void copyTextWithFallback(text)
+          .then(() => setStatus("copied"))
+          .catch(() => setStatus("failed"));
+
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+        }
+        timeoutRef.current = setTimeout(() => {
+          setStatus("idle");
+          timeoutRef.current = null;
+        }, 1500);
       }}
     >
-      {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+      {status === "copied" ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+      <span className="sm:hidden">{label}</span>
+      <span className="sr-only" aria-live="polite">
+        {label}
+      </span>
     </button>
   );
 }
@@ -264,7 +307,6 @@ function CommentCard({
   highlightCommentId?: string | null;
   queued?: boolean;
 }) {
-  const { t } = useTranslation();
   const isHighlighted = highlightCommentId === comment.id;
   const isPending = comment.clientStatus === "pending";
   const isQueued = queued || comment.queueState === "queued" || comment.clientStatus === "queued";
@@ -290,12 +332,12 @@ function CommentCard({
             />
           </Link>
         ) : (
-          <Identity name={t("You", { defaultValue: "You" })} size="sm" />
+          <Identity name="You" size="sm" />
         )}
         <span className="flex items-center gap-1.5">
           {isQueued ? (
             <span className="inline-flex items-center rounded-full border border-amber-400/60 bg-amber-100/70 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-amber-800 dark:border-amber-400/40 dark:bg-amber-500/20 dark:text-amber-200">
-              {t("Queued", { defaultValue: "Queued" })}
+              Queued
             </span>
           ) : null}
           {companyId && !isPending ? (
@@ -315,11 +357,7 @@ function CommentCard({
             />
           ) : null}
           {isPending ? (
-            <span className="text-xs text-muted-foreground">
-              {isQueued
-                ? t("Queueing...", { defaultValue: "Queueing..." })
-                : t("Sending...", { defaultValue: "Sending..." })}
-            </span>
+            <span className="text-xs text-muted-foreground">{isQueued ? "Queueing..." : "Sending..."}</span>
           ) : (
             <a
               href={`#comment-${comment.id}`}
@@ -408,7 +446,6 @@ function TimelineEventCard({
   agentMap?: Map<string, Agent>;
   currentUserId?: string | null;
 }) {
-  const { t } = useTranslation();
   const actorName = formatTimelineActorName(event.actorType, event.actorId, agentMap, currentUserId);
 
   return (
@@ -420,9 +457,7 @@ function TimelineEventCard({
       <div className="min-w-0 flex-1 space-y-1.5">
         <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-1 text-sm">
           <span className="font-medium text-foreground">{actorName}</span>
-          <span className="text-muted-foreground">
-            {t("updated this task", { defaultValue: "updated this task" })}
-          </span>
+          <span className="text-muted-foreground">updated this task</span>
           <a
             href={`#activity-${event.id}`}
             className="text-sm text-muted-foreground transition-colors hover:text-foreground hover:underline"
@@ -434,7 +469,7 @@ function TimelineEventCard({
         {event.statusChange ? (
           <div className="flex flex-wrap items-center gap-2 text-sm">
             <span className="w-14 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-              {t("Status", { defaultValue: "Status" })}
+              Status
             </span>
             <span className="text-muted-foreground">
               {humanizeValue(event.statusChange.from)}
@@ -449,7 +484,7 @@ function TimelineEventCard({
         {event.assigneeChange ? (
           <div className="flex flex-wrap items-center gap-2 text-sm">
             <span className="w-14 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-              {t("Assignee", { defaultValue: "Assignee" })}
+              Assignee
             </span>
             <span className="text-muted-foreground">
               {formatTimelineAssigneeLabel(event.assigneeChange.from, agentMap, currentUserId)}
@@ -503,9 +538,8 @@ const TimelineList = memo(function TimelineList({
   votingTargetId?: string | null;
   highlightCommentId?: string | null;
 }) {
-  const { t } = useTranslation();
   if (timeline.length === 0) {
-    return <p className="text-sm text-muted-foreground">{t("No timeline entries yet.", { defaultValue: "No timeline entries yet." })}</p>;
+    return <p className="text-sm text-muted-foreground">No timeline entries yet.</p>;
   }
 
   return (
@@ -597,7 +631,7 @@ const TimelineList = memo(function TimelineList({
   );
 });
 
-export const CommentThread = memo(function CommentThread({
+export function CommentThread({
   comments,
   queuedComments = [],
   linkedApprovals = [],
@@ -628,10 +662,17 @@ export const CommentThread = memo(function CommentThread({
   interruptingQueuedRunId = null,
   composerDisabledReason = null,
 }: CommentThreadProps) {
-  const { t } = useTranslation();
+  const [body, setBody] = useState("");
+  const [reopen, setReopen] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [attaching, setAttaching] = useState(false);
   const effectiveSuggestedAssigneeValue = suggestedAssigneeValue ?? currentAssigneeValue;
+  const [reassignTarget, setReassignTarget] = useState(effectiveSuggestedAssigneeValue);
   const [highlightCommentId, setHighlightCommentId] = useState<string | null>(null);
   const [votingTargetId, setVotingTargetId] = useState<string | null>(null);
+  const editorRef = useRef<MarkdownEditorRef>(null);
+  const attachInputRef = useRef<HTMLInputElement | null>(null);
+  const draftTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const location = useLocation();
   const hasScrolledRef = useRef(false);
 
@@ -697,183 +738,6 @@ export const CommentThread = memo(function CommentThread({
       }));
   }, [agentMap, providedMentions]);
 
-  // Scroll to comment when URL hash matches #comment-{id}
-  useEffect(() => {
-    const hash = location.hash;
-    if (!hash.startsWith("#comment-") || comments.length + queuedComments.length === 0) return;
-    const commentId = hash.slice("#comment-".length);
-    // Only scroll once per hash
-    if (hasScrolledRef.current) return;
-    const el = document.getElementById(`comment-${commentId}`);
-    if (el) {
-      hasScrolledRef.current = true;
-      setHighlightCommentId(commentId);
-      el.scrollIntoView({ behavior: "smooth", block: "center" });
-      // Clear highlight after animation
-      const timer = setTimeout(() => setHighlightCommentId(null), 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [location.hash, comments, queuedComments]);
-
-  const handleFeedbackVote = useCallback(
-    async (
-      commentId: string,
-      vote: FeedbackVoteValue,
-      options?: { allowSharing?: boolean; reason?: string },
-    ) => {
-      if (!onVote) return;
-      setVotingTargetId(commentId);
-      try {
-        await onVote(commentId, vote, options);
-      } finally {
-        setVotingTargetId(null);
-      }
-    },
-    [onVote],
-  );
-
-  const timelineSection = useMemo(
-    () => (
-      <TimelineList
-        timeline={timeline}
-        agentMap={agentMap}
-        currentUserId={currentUserId}
-        companyId={companyId}
-        projectId={projectId}
-        onApproveApproval={onApproveApproval}
-        onRejectApproval={onRejectApproval}
-        pendingApprovalAction={pendingApprovalAction}
-        feedbackVoteByTargetId={feedbackVoteByTargetId}
-        feedbackDataSharingPreference={feedbackDataSharingPreference}
-        onVote={onVote ? handleFeedbackVote : undefined}
-        votingTargetId={votingTargetId}
-        highlightCommentId={highlightCommentId}
-        feedbackTermsUrl={feedbackTermsUrl}
-      />
-    ),
-    [
-      timeline, agentMap, currentUserId, companyId, projectId,
-      onApproveApproval, onRejectApproval, pendingApprovalAction,
-      feedbackVoteByTargetId, feedbackDataSharingPreference,
-      onVote, handleFeedbackVote, votingTargetId, highlightCommentId,
-      feedbackTermsUrl,
-    ],
-  );
-
-  return (
-    <div className="space-y-4">
-      <h3 className="text-sm font-semibold">
-        {t("Timeline ({{count}})", {
-          count: timeline.length + queuedComments.length,
-          defaultValue: "Timeline ({{count}})",
-        })}
-      </h3>
-
-      {timelineSection}
-
-      {liveRunSlot}
-
-      {queuedComments.length > 0 && (
-        <div className="space-y-3">
-          <div className="flex items-center justify-between gap-2">
-            <h4 className="text-xs font-semibold uppercase tracking-[0.14em] text-amber-700 dark:text-amber-300">
-              {t("Queued Comments ({{count}})", {
-                count: queuedComments.length,
-                defaultValue: "Queued Comments ({{count}})",
-              })}
-            </h4>
-            {onInterruptQueued && queuedComments[0]?.queueTargetRunId ? (
-              <Button
-                size="sm"
-                variant="outline"
-                className="border-red-300 text-red-700 hover:bg-red-50 hover:text-red-800 dark:border-red-500/40 dark:text-red-300 dark:hover:bg-red-500/10"
-                disabled={interruptingQueuedRunId === queuedComments[0].queueTargetRunId}
-                onClick={() => void onInterruptQueued(queuedComments[0]!.queueTargetRunId!)}
-              >
-                {interruptingQueuedRunId === queuedComments[0].queueTargetRunId
-                  ? t("Interrupting...", { defaultValue: "Interrupting..." })
-                  : t("Interrupt", { defaultValue: "Interrupt" })}
-              </Button>
-            ) : null}
-          </div>
-          <div className="space-y-3">
-            {queuedComments.map((comment) => (
-              <CommentCard
-                key={comment.id}
-                comment={comment}
-                agentMap={agentMap}
-                companyId={companyId}
-                projectId={projectId}
-                highlightCommentId={highlightCommentId}
-                queued
-              />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {composerDisabledReason ? (
-        <div className="rounded-md border border-amber-300/70 bg-amber-50/80 px-3 py-2 text-sm text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-100">
-          {composerDisabledReason}
-        </div>
-      ) : (
-        <CommentComposer
-          onAdd={onAdd}
-          mentions={mentions}
-          imageUploadHandler={imageUploadHandler}
-          onAttachImage={onAttachImage}
-          draftKey={draftKey}
-          enableReassign={enableReassign}
-          reassignOptions={reassignOptions}
-          currentAssigneeValue={currentAssigneeValue}
-          suggestedAssigneeValue={effectiveSuggestedAssigneeValue}
-          agentMap={agentMap}
-        />
-      )}
-
-    </div>
-  );
-});
-
-CommentThread.displayName = "CommentThread";
-
-/* ---- Isolated Composer (body state lives here, not in CommentThread) ---- */
-
-interface CommentComposerProps {
-  onAdd: (body: string, reopen?: boolean, reassignment?: CommentReassignment) => Promise<void>;
-  mentions: MentionOption[];
-  imageUploadHandler?: (file: File) => Promise<string>;
-  onAttachImage?: (file: File) => Promise<void>;
-  draftKey?: string;
-  enableReassign: boolean;
-  reassignOptions: InlineEntityOption[];
-  currentAssigneeValue: string;
-  suggestedAssigneeValue: string;
-  agentMap?: Map<string, Agent>;
-}
-
-const CommentComposer = memo(function CommentComposer({
-  onAdd,
-  mentions,
-  imageUploadHandler,
-  onAttachImage,
-  draftKey,
-  enableReassign,
-  reassignOptions,
-  currentAssigneeValue,
-  suggestedAssigneeValue,
-  agentMap,
-}: CommentComposerProps) {
-  const { t } = useTranslation();
-  const [body, setBody] = useState("");
-  const [reopen, setReopen] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [attaching, setAttaching] = useState(false);
-  const [reassignTarget, setReassignTarget] = useState(suggestedAssigneeValue);
-  const editorRef = useRef<MarkdownEditorRef>(null);
-  const attachInputRef = useRef<HTMLInputElement | null>(null);
-  const draftTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
   useEffect(() => {
     if (!draftKey) return;
     setBody(loadDraft(draftKey));
@@ -894,8 +758,26 @@ const CommentComposer = memo(function CommentComposer({
   }, []);
 
   useEffect(() => {
-    setReassignTarget(suggestedAssigneeValue);
-  }, [suggestedAssigneeValue]);
+    setReassignTarget(effectiveSuggestedAssigneeValue);
+  }, [effectiveSuggestedAssigneeValue]);
+
+  // Scroll to comment when URL hash matches #comment-{id}
+  useEffect(() => {
+    const hash = location.hash;
+    if (!hash.startsWith("#comment-") || comments.length + queuedComments.length === 0) return;
+    const commentId = hash.slice("#comment-".length);
+    // Only scroll once per hash
+    if (hasScrolledRef.current) return;
+    const el = document.getElementById(`comment-${commentId}`);
+    if (el) {
+      hasScrolledRef.current = true;
+      setHighlightCommentId(commentId);
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      // Clear highlight after animation
+      const timer = setTimeout(() => setHighlightCommentId(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [location.hash, comments, queuedComments]);
 
   async function handleSubmit() {
     const trimmed = body.trim();
@@ -910,7 +792,7 @@ const CommentComposer = memo(function CommentComposer({
       await onAdd(submittedBody, reopen ? true : undefined, reassignment ?? undefined);
       if (draftKey) clearDraft(draftKey);
       setReopen(true);
-      setReassignTarget(suggestedAssigneeValue);
+      setReassignTarget(effectiveSuggestedAssigneeValue);
     } catch {
       setBody((current) =>
         restoreSubmittedCommentDraft({
@@ -918,6 +800,7 @@ const CommentComposer = memo(function CommentComposer({
           submittedBody,
         }),
       );
+      // Parent mutation handlers surface the failure and the draft is restored for retry.
     } finally {
       setSubmitting(false);
     }
@@ -942,100 +825,170 @@ const CommentComposer = memo(function CommentComposer({
     }
   }
 
+  async function handleFeedbackVote(
+    commentId: string,
+    vote: FeedbackVoteValue,
+    options?: { allowSharing?: boolean; reason?: string },
+  ) {
+    if (!onVote) return;
+    setVotingTargetId(commentId);
+    try {
+      await onVote(commentId, vote, options);
+    } finally {
+      setVotingTargetId(null);
+    }
+  }
+
   const canSubmit = !submitting && !!body.trim();
 
   return (
-    <div className="space-y-2">
-      <MarkdownEditor
-        ref={editorRef}
-        value={body}
-        onChange={setBody}
-        placeholder={t("Leave a comment...", { defaultValue: "Leave a comment..." })}
-        mentions={mentions}
-        onSubmit={handleSubmit}
-        imageUploadHandler={imageUploadHandler}
-        contentClassName="min-h-[60px] text-sm"
+    <div className="space-y-4">
+      <h3 className="text-sm font-semibold">Timeline ({timeline.length + queuedComments.length})</h3>
+
+      <TimelineList
+        timeline={timeline}
+        agentMap={agentMap}
+        currentUserId={currentUserId}
+        companyId={companyId}
+        projectId={projectId}
+        onApproveApproval={onApproveApproval}
+        onRejectApproval={onRejectApproval}
+        pendingApprovalAction={pendingApprovalAction}
+        feedbackVoteByTargetId={feedbackVoteByTargetId}
+        feedbackDataSharingPreference={feedbackDataSharingPreference}
+        onVote={onVote ? handleFeedbackVote : undefined}
+        votingTargetId={votingTargetId}
+        highlightCommentId={highlightCommentId}
+        feedbackTermsUrl={feedbackTermsUrl}
       />
-      <div className="flex items-center justify-end gap-3">
-        {(imageUploadHandler || onAttachImage) && (
-          <div className="mr-auto flex items-center gap-3">
-            <input
-              ref={attachInputRef}
-              type="file"
-              accept="image/png,image/jpeg,image/webp,image/gif"
-              className="hidden"
-              onChange={handleAttachFile}
-            />
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              onClick={() => attachInputRef.current?.click()}
-              disabled={attaching}
-              title={t("Attach image", { defaultValue: "Attach image" })}
-            >
-              <Paperclip className="h-4 w-4" />
+
+      {liveRunSlot}
+
+      {queuedComments.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between gap-2">
+            <h4 className="text-xs font-semibold uppercase tracking-[0.14em] text-amber-700 dark:text-amber-300">
+              Queued Comments ({queuedComments.length})
+            </h4>
+            {onInterruptQueued && queuedComments[0]?.queueTargetRunId ? (
+              <Button
+                size="sm"
+                variant="outline"
+                className="border-red-300 text-red-700 hover:bg-red-50 hover:text-red-800 dark:border-red-500/40 dark:text-red-300 dark:hover:bg-red-500/10"
+                disabled={interruptingQueuedRunId === queuedComments[0].queueTargetRunId}
+                onClick={() => void onInterruptQueued(queuedComments[0]!.queueTargetRunId!)}
+              >
+                {interruptingQueuedRunId === queuedComments[0].queueTargetRunId ? "Interrupting..." : "Interrupt"}
+              </Button>
+            ) : null}
+          </div>
+          <div className="space-y-3">
+            {queuedComments.map((comment) => (
+              <CommentCard
+                key={comment.id}
+                comment={comment}
+                agentMap={agentMap}
+                companyId={companyId}
+                projectId={projectId}
+                highlightCommentId={highlightCommentId}
+                queued
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {composerDisabledReason ? (
+        <div className="rounded-md border border-amber-300/70 bg-amber-50/80 px-3 py-2 text-sm text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-100">
+          {composerDisabledReason}
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <MarkdownEditor
+            ref={editorRef}
+            value={body}
+            onChange={setBody}
+            placeholder="Leave a comment..."
+            mentions={mentions}
+            onSubmit={handleSubmit}
+            imageUploadHandler={imageUploadHandler}
+            contentClassName="min-h-[60px] text-sm"
+          />
+          <div className="flex items-center justify-end gap-3">
+            {(imageUploadHandler || onAttachImage) && (
+              <div className="mr-auto flex items-center gap-3">
+                <input
+                  ref={attachInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/gif"
+                  className="hidden"
+                  onChange={handleAttachFile}
+                />
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={() => attachInputRef.current?.click()}
+                  disabled={attaching}
+                  title="Attach image"
+                >
+                  <Paperclip className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+            <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={reopen}
+                onChange={(e) => setReopen(e.target.checked)}
+                className="rounded border-border"
+              />
+              Re-open
+            </label>
+            {enableReassign && reassignOptions.length > 0 && (
+              <InlineEntitySelector
+                value={reassignTarget}
+                options={reassignOptions}
+                placeholder="Assignee"
+                noneLabel="No assignee"
+                searchPlaceholder="Search assignees..."
+                emptyMessage="No assignees found."
+                onChange={setReassignTarget}
+                className="text-xs h-8"
+                renderTriggerValue={(option) => {
+                  if (!option) return <span className="text-muted-foreground">Assignee</span>;
+                  const agentId = option.id.startsWith("agent:") ? option.id.slice("agent:".length) : null;
+                  const agent = agentId ? agentMap?.get(agentId) : null;
+                  return (
+                    <>
+                      {agent ? (
+                        <AgentIcon icon={agent.icon} className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                      ) : null}
+                      <span className="truncate">{option.label}</span>
+                    </>
+                  );
+                }}
+                renderOption={(option) => {
+                  if (!option.id) return <span className="truncate">{option.label}</span>;
+                  const agentId = option.id.startsWith("agent:") ? option.id.slice("agent:".length) : null;
+                  const agent = agentId ? agentMap?.get(agentId) : null;
+                  return (
+                    <>
+                      {agent ? (
+                        <AgentIcon icon={agent.icon} className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                      ) : null}
+                      <span className="truncate">{option.label}</span>
+                    </>
+                  );
+                }}
+              />
+            )}
+            <Button size="sm" disabled={!canSubmit} onClick={handleSubmit}>
+              {submitting ? "Posting..." : "Comment"}
             </Button>
           </div>
-        )}
-        <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none">
-          <input
-            type="checkbox"
-            checked={reopen}
-            onChange={(e) => setReopen(e.target.checked)}
-            className="rounded border-border"
-          />
-          {t("Re-open", { defaultValue: "Re-open" })}
-        </label>
-        {enableReassign && reassignOptions.length > 0 && (
-          <InlineEntitySelector
-            value={reassignTarget}
-            options={reassignOptions}
-            placeholder={t("Assignee", { defaultValue: "Assignee" })}
-            noneLabel={t("No assignee", { defaultValue: "No assignee" })}
-            searchPlaceholder={t("Search assignees...", { defaultValue: "Search assignees..." })}
-            emptyMessage={t("No assignees found.", { defaultValue: "No assignees found." })}
-            onChange={setReassignTarget}
-            className="text-xs h-8"
-            renderTriggerValue={(option) => {
-              if (!option) {
-                return (
-                  <span className="text-muted-foreground">
-                    {t("Assignee", { defaultValue: "Assignee" })}
-                  </span>
-                );
-              }
-              const agentId = option.id.startsWith("agent:") ? option.id.slice("agent:".length) : null;
-              const agent = agentId ? agentMap?.get(agentId) : null;
-              return (
-                <>
-                  {agent ? (
-                    <AgentIcon icon={agent.icon} className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                  ) : null}
-                  <span className="truncate">{option.label}</span>
-                </>
-              );
-            }}
-            renderOption={(option) => {
-              if (!option.id) return <span className="truncate">{option.label}</span>;
-              const agentId = option.id.startsWith("agent:") ? option.id.slice("agent:".length) : null;
-              const agent = agentId ? agentMap?.get(agentId) : null;
-              return (
-                <>
-                  {agent ? (
-                    <AgentIcon icon={agent.icon} className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                  ) : null}
-                  <span className="truncate">{option.label}</span>
-                </>
-              );
-            }}
-          />
-        )}
-        <Button size="sm" disabled={!canSubmit} onClick={handleSubmit}>
-          {submitting
-            ? t("Posting...", { defaultValue: "Posting..." })
-            : t("Comment", { defaultValue: "Comment" })}
-        </Button>
-      </div>
+        </div>
+      )}
+
     </div>
   );
-});
+}

@@ -312,17 +312,6 @@ pnpm penclip worktree:make experiment --no-seed
 
 **`pnpm penclip worktree env [options]`** — Print shell exports for the current worktree-local Paperclip instance.
 
-**`pnpm paperclipai worktree reseed [options]`** — Replace the current worktree instance with a fresh seed from another Paperclip source while preserving the current worktree's ports and instance id.
-
-| Option | Description |
-|---|---|
-| `--from-config <path>` | Source config.json to seed from |
-| `--from-data-dir <path>` | Source `PAPERCLIP_HOME` used when deriving the source config |
-| `--from-instance <id>` | Source instance id when deriving the source config |
-| `--home <path>` | Home root for worktree instances (default: `~/.paperclip-worktrees`) |
-| `--seed-mode <mode>` | Seed profile: `minimal` or `full` (default: `minimal`) |
-| `--yes` | Skip the destructive confirmation prompt |
-
 | Option | Description |
 |---|---|
 | `-c, --config <path>` | Path to config file |

@@ -98,16 +98,6 @@ type WorktreeMakeOptions = WorktreeInitOptions & {
   startPoint?: string;
 };
 
-type WorktreeReseedOptions = {
-  fromConfig?: string;
-  fromDataDir?: string;
-  fromInstance?: string;
-  home?: string;
-  seedMode?: string;
-  yes?: boolean;
-  seed?: boolean;
-};
-
 type WorktreeReseedBackup = {
   tempRoot: string;
   repoConfigDirBackup: string | null;
@@ -131,6 +121,25 @@ type WorktreeMergeHistoryOptions = {
   apply?: boolean;
   dry?: boolean;
   yes?: boolean;
+};
+
+type WorktreeReseedOptions = {
+  from?: string;
+  to?: string;
+  fromConfig?: string;
+  fromDataDir?: string;
+  fromInstance?: string;
+  home?: string;
+  seedMode?: string;
+  yes?: boolean;
+  seed?: boolean;
+  allowLiveTarget?: boolean;
+};
+
+type EmbeddedPostgresInstance = {
+  initialise(): Promise<void>;
+  start(): Promise<void>;
+  stop(): Promise<void>;
 };
 
 const PNPM_COMMAND = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
@@ -1013,6 +1022,65 @@ function hasExplicitSourceSelection(opts: {
   );
 }
 
+export function resolveWorktreeReseedSource(opts: WorktreeReseedOptions): {
+  configPath: string;
+  label: string;
+} {
+  const sourceSelector = nonEmpty(opts.from);
+  const hasExplicitConfigSelection = Boolean(
+    nonEmpty(opts.fromConfig) || nonEmpty(opts.fromDataDir) || nonEmpty(opts.fromInstance),
+  );
+
+  if (sourceSelector && hasExplicitConfigSelection) {
+    throw new Error(
+      "Use either --from <worktree> or --from-config/--from-data-dir/--from-instance, not both.",
+    );
+  }
+
+  if (sourceSelector) {
+    const endpoint = resolveWorktreeEndpointFromSelector(sourceSelector, { allowCurrent: true });
+    return {
+      configPath: endpoint.configPath,
+      label: endpoint.label,
+    };
+  }
+
+  if (!hasExplicitConfigSelection) {
+    throw new Error(
+      "Pass --from <worktree> or --from-config/--from-instance explicitly so the reseed source is unambiguous.",
+    );
+  }
+
+  const configPath = resolveSourceConfigPath(opts);
+  return {
+    configPath,
+    label: path.basename(path.dirname(configPath)),
+  };
+}
+
+export function resolveWorktreeReseedTargetPaths(input: {
+  configPath: string;
+  rootPath: string;
+}) {
+  const envEntries = readPaperclipEnvEntries(resolvePaperclipEnvFile(input.configPath));
+  const homeDir = nonEmpty(envEntries.PAPERCLIP_HOME);
+  const instanceId = nonEmpty(envEntries.PAPERCLIP_INSTANCE_ID);
+  if (!homeDir || !instanceId) {
+    throw new Error(
+      `Resolved config ${input.configPath} does not look like a worktree-local Paperclip instance.`,
+    );
+  }
+  const targetPaths = resolveWorktreeLocalPaths({
+    cwd: input.rootPath,
+    homeDir,
+    instanceId,
+  });
+  return {
+    ...targetPaths,
+    homeDir,
+  };
+}
+
 function resolveCurrentWorktreeReseedState(opts: { home?: string } = {}) {
   const currentConfigPath = resolveConfigPath();
   if (!existsSync(currentConfigPath)) {
@@ -1090,16 +1158,11 @@ async function restoreWorktreeReseedState(
 
 export async function worktreeReseedCommand(opts: WorktreeReseedOptions): Promise<void> {
   printPaperclipCliBanner();
-  p.intro(pc.bgCyan(pc.black(" paperclipai worktree reseed ")));
-
-  if (!hasExplicitSourceSelection(opts)) {
-    throw new Error(
-      "Reseed requires an explicit source. Pass --from-config or --from-instance (optionally with --from-data-dir).",
-    );
-  }
+  p.intro(pc.bgCyan(pc.black(" penclip worktree reseed ")));
 
   const target = resolveCurrentWorktreeReseedState({ home: opts.home });
-  const sourceConfigPath = resolveSourceConfigPath(opts);
+  const source = resolveWorktreeReseedSource(opts);
+  const sourceConfigPath = source.configPath;
   if (path.resolve(sourceConfigPath) === target.currentConfigPath) {
     throw new Error(
       "Source and target Paperclip configs are the same. Pass a different source instance/config when reseeding.",
@@ -1110,6 +1173,13 @@ export async function worktreeReseedCommand(opts: WorktreeReseedOptions): Promis
   if (!isWorktreeSeedMode(seedMode)) {
     throw new Error(`Unsupported seed mode "${seedMode}". Expected one of: minimal, full.`);
   }
+
+  const sourceConfig = readConfig(sourceConfigPath);
+  const shouldSeed =
+    opts.seed ?? (
+      sourceConfig?.database.mode !== "embedded-postgres"
+      || existsSync(sourceConfig.database.embeddedPostgresDataDir)
+    );
 
   const confirmed = opts.yes
     ? true
@@ -1141,7 +1211,7 @@ export async function worktreeReseedCommand(opts: WorktreeReseedOptions): Promis
       sourceConfigPathOverride: sourceConfigPath,
       serverPort: target.serverPort,
       dbPort: target.dbPort,
-      seed: opts.seed ?? true,
+      seed: shouldSeed,
       seedMode,
       force: true,
     });

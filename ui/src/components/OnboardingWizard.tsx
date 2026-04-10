@@ -39,6 +39,7 @@ import {
 } from "../lib/onboarding-launch";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { DEFAULT_CODEBUDDY_LOCAL_MODEL } from "@penclipai/adapter-codebuddy-local";
+import { buildNewAgentRuntimeConfig } from "../lib/new-agent-runtime-config";
 import {
   DEFAULT_CODEX_LOCAL_BYPASS_APPROVALS_AND_SANDBOX,
   DEFAULT_CODEX_LOCAL_MODEL
@@ -508,15 +509,7 @@ export function OnboardingWizard() {
         role: "ceo",
         adapterType,
         adapterConfig: buildAdapterConfig(),
-        runtimeConfig: {
-          heartbeat: {
-            enabled: true,
-            intervalSec: 3600,
-            wakeOnDemand: true,
-            cooldownSec: 10,
-            maxConcurrentRuns: 1
-          }
-        }
+        runtimeConfig: buildNewAgentRuntimeConfig()
       });
       setCreatedAgentId(agent.id);
       queryClient.invalidateQueries({
