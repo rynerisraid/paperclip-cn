@@ -74,9 +74,9 @@ test.describe("Docker authenticated onboarding smoke", () => {
     await expect(
       page.locator("h3", { hasText: /^(Ready to launch|准备启动)$/ })
     ).toBeVisible({ timeout: 10_000 });
-    await expect(page.getByText(COMPANY_NAME)).toBeVisible();
-    await expect(page.getByText(AGENT_NAME)).toBeVisible();
-    await expect(page.getByText(TASK_TITLE)).toBeVisible();
+    await expect(page.getByText(COMPANY_NAME).first()).toBeVisible();
+    await expect(page.getByText(AGENT_NAME).first()).toBeVisible();
+    await expect(page.getByText(TASK_TITLE).first()).toBeVisible();
 
     await page.getByRole("button", { name: /^(Create & Open Issue|创建并打开任务)$/ }).click();
     await expect(page).toHaveURL(/\/issues\//, { timeout: 10_000 });
