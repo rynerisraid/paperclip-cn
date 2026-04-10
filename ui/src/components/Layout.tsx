@@ -18,6 +18,7 @@ import { ToastViewport } from "./ToastViewport";
 import { MobileBottomNav } from "./MobileBottomNav";
 import { WorktreeBanner } from "./WorktreeBanner";
 import { DevRestartBanner } from "./DevRestartBanner";
+import { LanguageSwitcher } from "./LanguageSwitcher";
 import { useDialog } from "../context/DialogContext";
 import { GeneralSettingsProvider } from "../context/GeneralSettingsContext";
 import { usePanel } from "../context/PanelContext";
@@ -355,6 +356,7 @@ export function Layout() {
                     <TooltipContent>v{health.version}</TooltipContent>
                   </Tooltip>
                 )}
+                <LanguageSwitcher />
                 <Button variant="ghost" size="icon-sm" className="text-muted-foreground shrink-0" asChild>
                   <Link
                     to={instanceSettingsTarget}
@@ -418,6 +420,7 @@ export function Layout() {
                     <TooltipContent>v{health.version}</TooltipContent>
                   </Tooltip>
                 )}
+                <LanguageSwitcher />
                 <Button variant="ghost" size="icon-sm" className="text-muted-foreground shrink-0" asChild>
                   <Link
                     to={instanceSettingsTarget}

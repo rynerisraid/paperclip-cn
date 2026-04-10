@@ -44,6 +44,27 @@ vi.mock("@assistant-ui/react", () => ({
   }),
 }));
 
+vi.mock("react-i18next", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("react-i18next")>();
+  return {
+    ...actual,
+    useTranslation: () => ({
+      t: (key: string, options?: Record<string, unknown>) =>
+        typeof options?.defaultValue === "string"
+          ? options.defaultValue.replace(/\{\{(\w+)\}\}/g, (_match, token) => String(options?.[token] ?? ""))
+          : key.replace(/\{\{(\w+)\}\}/g, (_match, token) => String(options?.[token] ?? "")),
+    }),
+  };
+});
+
+vi.mock("../i18n", () => ({
+  translateInstant: (key: string, options?: Record<string, unknown>) =>
+    typeof options?.defaultValue === "string"
+      ? options.defaultValue.replace(/\{\{(\w+)\}\}/g, (_match, token) => String(options?.[token] ?? ""))
+      : key,
+  getCurrentLocale: () => "en",
+}));
+
 vi.mock("./transcript/useLiveRunTranscripts", () => ({
   useLiveRunTranscripts: () => ({
     transcriptByRun: new Map(),

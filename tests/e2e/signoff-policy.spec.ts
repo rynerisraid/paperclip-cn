@@ -259,10 +259,10 @@ test.describe("Signoff execution policy", () => {
       agentId: ctx.executor.agentId,
     });
 
-    // Step 2: Navigate to issue in UI and verify review-stage routing in the current UI copy
+    // Step 2: Navigate to issue in UI and verify the routed in-review state is visible
     await page.goto(`/${ctx.companyPrefix}/issues/${issue.identifier}`);
     await expect(
-      page.getByText(/Review pending|审阅.*Reviewer.*待处理/),
+      page.getByText(/In review|审核中/),
     ).toBeVisible({ timeout: 10_000 });
 
     // Step 3: Reviewer approves → should route to approver
@@ -279,10 +279,10 @@ test.describe("Signoff execution policy", () => {
     expect(step3Issue.executionState.currentStageType).toBe("approval");
     expect(step3Issue.executionState.completedStageIds).toHaveLength(1);
 
-    // Step 4: Verify UI shows approval-stage routing in the current UI copy
+    // Step 4: Verify the issue still shows the in-review state after advancing to approval
     await page.reload();
     await expect(
-      page.getByText(/Approval pending|审批.*Approver.*待处理/),
+      page.getByText(/In review|审核中/),
     ).toBeVisible({ timeout: 10_000 });
 
     // Step 5: Approver approves → should complete

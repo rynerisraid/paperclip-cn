@@ -9,6 +9,19 @@ import type { Issue } from "@penclipai/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { IssueProperties } from "./IssueProperties";
 
+vi.mock("react-i18next", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("react-i18next")>();
+  return {
+    ...actual,
+    useTranslation: () => ({
+      t: (key: string, options?: Record<string, unknown>) =>
+        typeof options?.defaultValue === "string"
+          ? options.defaultValue.replace(/\{\{(\w+)\}\}/g, (_match, token) => String(options?.[token] ?? ""))
+          : key,
+    }),
+  };
+});
+
 const mockAgentsApi = vi.hoisted(() => ({
   list: vi.fn(),
 }));

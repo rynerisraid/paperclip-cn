@@ -32,7 +32,9 @@ vi.mock("react-i18next", async (importOriginal) => {
     ...actual,
     useTranslation: () => ({
       t: (key: string, options?: Record<string, unknown>) => {
-        if (typeof options?.defaultValue === "string") return options.defaultValue;
+        if (typeof options?.defaultValue === "string") {
+          return options.defaultValue.replace(/\{\{(\w+)\}\}/g, (_match, token) => String(options?.[token] ?? ""));
+        }
         return key.replace(/\{\{(\w+)\}\}/g, (_match, token) => String(options?.[token] ?? ""));
       },
     }),
