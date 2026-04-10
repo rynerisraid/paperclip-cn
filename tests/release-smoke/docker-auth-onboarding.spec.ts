@@ -19,15 +19,15 @@ async function signIn(page: Page) {
 
   await page.locator('input[type="email"]').fill(ADMIN_EMAIL);
   await page.locator('input[type="password"]').fill(ADMIN_PASSWORD);
-  await page.getByRole("button", { name: "Sign In" }).click();
+  await page.getByRole("button", { name: /^(Sign In|登录)$/ }).click();
 
   await expect(page).not.toHaveURL(/\/auth/, { timeout: 20_000 });
 }
 
 async function openOnboarding(page: Page) {
-  const wizardHeading = page.locator("h3", { hasText: "Name your company" });
-  const startButton = page.getByRole("button", { name: "Start Onboarding" });
-  const newCompanyButton = page.getByRole("button", { name: "New Company" });
+  const wizardHeading = page.locator("h3", { hasText: /^(Name your company|为你的公司命名)$/ });
+  const startButton = page.getByRole("button", { name: /^(Start Onboarding|开始引导)$/ });
+  const newCompanyButton = page.getByRole("button", { name: /^(New Company|新建公司)$/ });
 
   await Promise.any([
     wizardHeading.waitFor({ state: "visible", timeout: 20_000 }),
@@ -53,32 +53,32 @@ test.describe("Docker authenticated onboarding smoke", () => {
     await signIn(page);
     await openOnboarding(page);
 
-    await page.locator('input[placeholder="Acme Corp"]').fill(COMPANY_NAME);
-    await page.getByRole("button", { name: "Next" }).click();
+    await page.locator('input[placeholder="Acme Corp"], input[placeholder="示例公司"]').fill(COMPANY_NAME);
+    await page.getByRole("button", { name: /^(Next|下一步)$/ }).click();
 
     await expect(
-      page.locator("h3", { hasText: "Create your first agent" })
+      page.locator("h3", { hasText: /^(Create your first agent|创建首个智能体)$/ })
     ).toBeVisible({ timeout: 10_000 });
 
     await expect(page.locator('input[placeholder="CEO"]')).toHaveValue(AGENT_NAME);
-    await page.getByRole("button", { name: "Next" }).click();
+    await page.getByRole("button", { name: /^(Next|下一步)$/ }).click();
 
     await expect(
-      page.locator("h3", { hasText: "Give it something to do" })
+      page.locator("h3", { hasText: /^(Give it something to do|给它一项任务)$/ })
     ).toBeVisible({ timeout: 10_000 });
     await page
-      .locator('input[placeholder="e.g. Research competitor pricing"]')
+      .locator('input[placeholder="e.g. Research competitor pricing"], input[placeholder="例如：调研竞品定价"]')
       .fill(TASK_TITLE);
-    await page.getByRole("button", { name: "Next" }).click();
+    await page.getByRole("button", { name: /^(Next|下一步)$/ }).click();
 
     await expect(
-      page.locator("h3", { hasText: "Ready to launch" })
+      page.locator("h3", { hasText: /^(Ready to launch|准备启动)$/ })
     ).toBeVisible({ timeout: 10_000 });
     await expect(page.getByText(COMPANY_NAME)).toBeVisible();
     await expect(page.getByText(AGENT_NAME)).toBeVisible();
     await expect(page.getByText(TASK_TITLE)).toBeVisible();
 
-    await page.getByRole("button", { name: "Create & Open Issue" }).click();
+    await page.getByRole("button", { name: /^(Create & Open Issue|创建并打开任务)$/ }).click();
     await expect(page).toHaveURL(/\/issues\//, { timeout: 10_000 });
 
     const baseUrl = new URL(page.url()).origin;
