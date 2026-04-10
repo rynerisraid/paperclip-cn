@@ -3,10 +3,24 @@
 import { act } from "react";
 import type { ComponentProps, ReactNode } from "react";
 import { createRoot } from "react-dom/client";
+import type { IssueExecutionPolicy, IssueExecutionState } from "@penclipai/shared";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { Issue } from "@penclipai/shared";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { IssueProperties } from "./IssueProperties";
+
+vi.mock("react-i18next", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("react-i18next")>();
+  return {
+    ...actual,
+    useTranslation: () => ({
+      t: (key: string, options?: Record<string, unknown>) =>
+        typeof options?.defaultValue === "string"
+          ? options.defaultValue.replace(/\{\{(\w+)\}\}/g, (_match, token) => String(options?.[token] ?? ""))
+          : key,
+    }),
+  };
+});
 
 const mockAgentsApi = vi.hoisted(() => ({
   list: vi.fn(),
@@ -45,18 +59,6 @@ vi.mock("../api/issues", () => ({
 vi.mock("../api/auth", () => ({
   authApi: mockAuthApi,
 }));
-
-vi.mock("react-i18next", async () => {
-  const actual = await vi.importActual<typeof import("react-i18next")>("react-i18next");
-  return {
-    ...actual,
-    useTranslation: () => ({
-      t: (key: string, options?: { defaultValue?: string }) => options?.defaultValue ?? key,
-      i18n: {} as never,
-      ready: true,
-    }),
-  };
-});
 
 vi.mock("../hooks/useProjectOrder", () => ({
   useProjectOrder: ({ projects }: { projects: unknown[] }) => ({
@@ -107,6 +109,12 @@ vi.mock("@/components/ui/popover", () => ({
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
 
+async function flush() {
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 0));
+  });
+}
+
 function createIssue(overrides: Partial<Issue> = {}): Issue {
   return {
     id: "issue-1",
@@ -149,20 +157,43 @@ function createIssue(overrides: Partial<Issue> = {}): Issue {
   };
 }
 
-async function renderProperties(container: HTMLDivElement, props: ComponentProps<typeof IssueProperties>) {
+function createExecutionPolicy(overrides: Partial<IssueExecutionPolicy> = {}): IssueExecutionPolicy {
+  return {
+    mode: "normal",
+    commentRequired: true,
+    stages: [],
+    ...overrides,
+  };
+}
+
+function createExecutionState(overrides: Partial<IssueExecutionState> = {}): IssueExecutionState {
+  return {
+    status: "changes_requested",
+    currentStageId: "stage-1",
+    currentStageIndex: 0,
+    currentStageType: "review",
+    currentParticipant: { type: "agent", agentId: "agent-1", userId: null },
+    returnAssignee: { type: "agent", agentId: "agent-2", userId: null },
+    completedStageIds: [],
+    lastDecisionId: null,
+    lastDecisionOutcome: "changes_requested",
+    ...overrides,
+  };
+}
+
+function renderProperties(container: HTMLDivElement, props: ComponentProps<typeof IssueProperties>) {
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: { retry: false },
     },
   });
   const root = createRoot(container);
-  await act(async () => {
+  act(() => {
     root.render(
       <QueryClientProvider client={queryClient}>
         <IssueProperties {...props} />
       </QueryClientProvider>,
     );
-    await Promise.resolve();
   });
   return root;
 }
@@ -185,19 +216,19 @@ describe("IssueProperties", () => {
 
   it("always exposes the add sub-issue action", async () => {
     const onAddSubIssue = vi.fn();
-    const root = await renderProperties(container, {
+    const root = renderProperties(container, {
       issue: createIssue(),
       childIssues: [],
       onAddSubIssue,
       onUpdate: vi.fn(),
     });
+    await flush();
 
-    const renderedText = container.textContent ?? "";
-    expect(renderedText).toMatch(/Sub-issues|子任务/);
-    expect(renderedText).toMatch(/Add sub-issue|添加子任务/);
+    expect(container.textContent).toContain("Sub-issues");
+    expect(container.textContent).toContain("Add sub-issue");
 
     const addButton = Array.from(container.querySelectorAll("button"))
-      .find((button) => /Add sub-issue|添加子任务/.test(button.textContent ?? ""));
+      .find((button) => button.textContent?.includes("Add sub-issue"));
     expect(addButton).not.toBeUndefined();
 
     await act(async () => {
@@ -205,6 +236,121 @@ describe("IssueProperties", () => {
     });
 
     expect(onAddSubIssue).toHaveBeenCalledTimes(1);
+
+    act(() => root.unmount());
+  });
+
+  it("shows a run review action after reviewers are configured and starts execution explicitly when clicked", async () => {
+    const onUpdate = vi.fn();
+    const root = renderProperties(container, {
+      issue: createIssue({
+        executionPolicy: createExecutionPolicy({
+          stages: [
+            {
+              id: "review-stage",
+              type: "review",
+              approvalsNeeded: 1,
+              participants: [{ id: "participant-1", type: "agent", agentId: "agent-1", userId: null }],
+            },
+          ],
+        }),
+      }),
+      childIssues: [],
+      onUpdate,
+    });
+    await flush();
+
+    const runReviewButton = Array.from(container.querySelectorAll("button"))
+      .find((button) => button.textContent?.includes("Run review now"));
+    expect(runReviewButton).not.toBeUndefined();
+
+    await act(async () => {
+      runReviewButton!.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+    expect(onUpdate).toHaveBeenCalledWith({ status: "in_review" });
+
+    act(() => root.unmount());
+  });
+
+  it("shows a run approval action when approval is the next runnable stage", async () => {
+    const root = renderProperties(container, {
+      issue: createIssue({
+        executionPolicy: createExecutionPolicy({
+          stages: [
+            {
+              id: "approval-stage",
+              type: "approval",
+              approvalsNeeded: 1,
+              participants: [{ id: "participant-2", type: "user", agentId: null, userId: "user-1" }],
+            },
+          ],
+        }),
+      }),
+      childIssues: [],
+      onUpdate: vi.fn(),
+    });
+    await flush();
+
+    expect(container.textContent).toContain("Run approval now");
+    expect(container.textContent).not.toContain("Run review now");
+
+    act(() => root.unmount());
+  });
+
+  it("keeps the run review action available after changes are requested", async () => {
+    const root = renderProperties(container, {
+      issue: createIssue({
+        status: "in_progress",
+        executionPolicy: createExecutionPolicy({
+          stages: [
+            {
+              id: "review-stage",
+              type: "review",
+              approvalsNeeded: 1,
+              participants: [{ id: "participant-1", type: "agent", agentId: "agent-1", userId: null }],
+            },
+          ],
+        }),
+        executionState: createExecutionState(),
+      }),
+      childIssues: [],
+      onUpdate: vi.fn(),
+    });
+    await flush();
+
+    expect(container.textContent).toContain("Run review now");
+
+    act(() => root.unmount());
+  });
+
+  it("hides the run action while an execution stage is already pending", async () => {
+    const root = renderProperties(container, {
+      issue: createIssue({
+        status: "in_review",
+        executionPolicy: createExecutionPolicy({
+          stages: [
+            {
+              id: "review-stage",
+              type: "review",
+              approvalsNeeded: 1,
+              participants: [{ id: "participant-1", type: "agent", agentId: "agent-1", userId: null }],
+            },
+          ],
+        }),
+        executionState: createExecutionState({
+          status: "pending",
+          currentStageType: "review",
+          lastDecisionOutcome: null,
+        }),
+      }),
+      childIssues: [],
+      onUpdate: vi.fn(),
+    });
+    await flush();
+
+    expect(container.textContent).not.toContain("Run review now");
+    expect(container.textContent).not.toContain("Run approval now");
 
     act(() => root.unmount());
   });

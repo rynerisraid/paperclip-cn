@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { pickTextColorForPillBg } from "@/lib/color-contrast";
 import { Link } from "@/lib/router";
 import type { Issue } from "@penclipai/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useTranslation } from "react-i18next";
 import { agentsApi } from "../api/agents";
 import { authApi } from "../api/auth";
 import { issuesApi } from "../api/issues";
@@ -23,9 +23,9 @@ import { Separator } from "@/components/ui/separator";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { User, Hexagon, ArrowUpRight, Tag, Plus, Trash2, GitBranch, FolderOpen, Copy, Check } from "lucide-react";
 import { AgentIcon } from "./AgentIconPicker";
-import { translateInstant } from "../i18n";
 
 function TruncatedCopyable({ value, icon: Icon }: { value: string; icon: React.ComponentType<{ className?: string }> }) {
+  const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   useEffect(() => () => clearTimeout(timerRef.current), []);
@@ -49,8 +49,8 @@ function TruncatedCopyable({ value, icon: Icon }: { value: string; icon: React.C
         className="shrink-0 p-0.5 rounded hover:bg-accent/50 transition-colors text-muted-foreground hover:text-foreground"
         onClick={handleCopy}
         title={copied
-          ? translateInstant("Copied!", { defaultValue: "Copied!" })
-          : translateInstant("Copy", { defaultValue: "Copy" })}
+          ? t("Copied!", { defaultValue: "Copied!" })
+          : t("Copy", { defaultValue: "Copy" })}
       >
         {copied ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
       </button>
@@ -253,7 +253,7 @@ export function IssueProperties({
   };
 
   const projectName = (id: string | null) => {
-    if (!id) return id?.slice(0, 8) ?? t("None", { defaultValue: "None" });
+    if (!id) return id?.slice(0, 8) ?? "None";
     const project = orderedProjects.find((p) => p.id === id);
     return project?.name ?? id.slice(0, 8);
   };
@@ -314,11 +314,33 @@ export function IssueProperties({
   const approverTrigger = approverValues.length > 0
     ? <span className="text-sm truncate">{approverValues.map((value) => executionParticipantLabel(value)).join(", ")}</span>
     : <span className="text-sm text-muted-foreground">{t("None", { defaultValue: "None" })}</span>;
+  const nextRunnableExecutionStage = (() => {
+    if (issue.executionState?.status === "changes_requested" && issue.executionState.currentStageType) {
+      return issue.executionState.currentStageType;
+    }
+    if (issue.executionState) return null;
+    if (reviewerValues.length > 0) return "review";
+    if (approverValues.length > 0) return "approval";
+    return null;
+  })();
+  const runExecutionButton = (stageType: "review" | "approval") => (
+    <PropertyRow label="">
+      <button
+        type="button"
+        className="inline-flex items-center rounded-full border border-border px-2 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
+        onClick={() => onUpdate({ status: "in_review" })}
+      >
+        {stageType === "review"
+          ? t("Run review now", { defaultValue: "Run review now" })
+          : t("Run approval now", { defaultValue: "Run approval now" })}
+      </button>
+    </PropertyRow>
+  );
   const currentExecutionLabel = (() => {
     if (!issue.executionState?.currentStageType) return null;
-    const stageLabel = issue.executionState.currentStageType === "review"
-      ? t("Review", { defaultValue: "Review" })
-      : t("Approval", { defaultValue: "Approval" });
+      const stageLabel = issue.executionState.currentStageType === "review"
+        ? t("Review", { defaultValue: "Review" })
+        : t("Approval", { defaultValue: "Approval" });
     const participant = issue.executionState.currentParticipant;
     const participantLabel = participant
       ? (participant.type === "agent"
@@ -326,17 +348,9 @@ export function IssueProperties({
         : userLabel(participant.userId ?? null))
       : null;
     if (issue.executionState.status === "changes_requested") {
-      return t("{{stage}} requested changes{{suffix}}", {
-        defaultValue: "{{stage}} requested changes{{suffix}}",
-        stage: stageLabel,
-        suffix: participantLabel ? ` ${t("by", { defaultValue: "by" })} ${participantLabel}` : "",
-      });
+      return `${stageLabel} requested changes${participantLabel ? ` by ${participantLabel}` : ""}`;
     }
-    return t("{{stage}} pending{{suffix}}", {
-      defaultValue: "{{stage}} pending{{suffix}}",
-      stage: stageLabel,
-      suffix: participantLabel ? ` ${t("with", { defaultValue: "with" })} ${participantLabel}` : "",
-    });
+    return `${stageLabel} pending${participantLabel ? ` with ${participantLabel}` : ""}`;
   })();
 
   const labelsTrigger = (issue.labels ?? []).length > 0 ? (
@@ -398,7 +412,7 @@ export function IssueProperties({
                   type="button"
                   className="p-1 text-muted-foreground hover:text-destructive rounded"
                   onClick={() => deleteLabel.mutate(label.id)}
-                  title={t("Delete {{name}}", { defaultValue: "Delete {{name}}", name: label.name })}
+                  title={`Delete ${label.name}`}
                 >
                   <Trash2 className="h-3 w-3" />
                 </button>
@@ -432,7 +446,9 @@ export function IssueProperties({
           }
         >
           <Plus className="h-3 w-3" />
-          {createLabel.isPending ? t("Creating…", { defaultValue: "Creating…" }) : t("Create label", { defaultValue: "Create label" })}
+          {createLabel.isPending
+            ? t("Creating…", { defaultValue: "Creating…" })
+            : t("Create label", { defaultValue: "Create label" })}
         </button>
       </div>
     </>
@@ -536,10 +552,7 @@ export function IssueProperties({
     <>
       <input
         className="w-full px-2 py-1.5 text-xs bg-transparent outline-none border-b border-border mb-1 placeholder:text-muted-foreground/50"
-        placeholder={t(
-          stageType === "review" ? "Search reviewers..." : "Search approvers...",
-          { defaultValue: stageType === "review" ? "Search reviewers..." : "Search approvers..." },
-        )}
+        placeholder={`Search ${stageType === "review" ? "reviewers" : "approvers"}...`}
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         autoFocus={!inline}
@@ -552,10 +565,9 @@ export function IssueProperties({
           )}
           onClick={onClear}
         >
-          {t(
-            stageType === "review" ? "No reviewers found." : "No approvers found.",
-            { defaultValue: stageType === "review" ? "No reviewers found." : "No approvers found." },
-          )}
+          {stageType === "review"
+            ? t("No reviewers", { defaultValue: "No reviewers" })
+            : t("No approvers", { defaultValue: "No approvers" })}
         </button>
         {currentUserId && (
           <button
@@ -869,15 +881,13 @@ export function IssueProperties({
                 </Link>
               ))}
             </div>
-          ) : (
-            <span className="text-sm text-muted-foreground">{t("None", { defaultValue: "None" })}</span>
-          )}
+          ) : null}
         </PropertyRow>
 
         <PropertyRow label={t("Sub-issues", { defaultValue: "Sub-issues" })}>
           <div className="flex flex-wrap items-center gap-1.5">
-            {childIssues.length > 0 ? (
-              childIssues.map((child) => (
+            {childIssues.length > 0
+              ? childIssues.map((child) => (
                 <Link
                   key={child.id}
                   to={`/issues/${child.identifier ?? child.id}`}
@@ -886,9 +896,7 @@ export function IssueProperties({
                   {child.identifier ?? child.title}
                 </Link>
               ))
-            ) : (
-              <span className="text-sm text-muted-foreground">{t("None", { defaultValue: "None" })}</span>
-            )}
+              : null}
             {onAddSubIssue ? (
               <button
                 type="button"
@@ -919,6 +927,7 @@ export function IssueProperties({
             () => updateExecutionPolicy([], approverValues),
           )}
         </PropertyPicker>
+        {nextRunnableExecutionStage === "review" && reviewerValues.length > 0 ? runExecutionButton("review") : null}
 
         <PropertyPicker
           inline={inline}
@@ -937,6 +946,7 @@ export function IssueProperties({
             () => updateExecutionPolicy(reviewerValues, []),
           )}
         </PropertyPicker>
+        {nextRunnableExecutionStage === "approval" && approverValues.length > 0 ? runExecutionButton("approval") : null}
 
         {currentExecutionLabel && (
           <PropertyRow label={t("Execution", { defaultValue: "Execution" })}>

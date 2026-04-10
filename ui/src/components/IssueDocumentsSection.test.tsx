@@ -32,7 +32,9 @@ vi.mock("react-i18next", async (importOriginal) => {
     ...actual,
     useTranslation: () => ({
       t: (key: string, options?: Record<string, unknown>) => {
-        if (typeof options?.defaultValue === "string") return options.defaultValue;
+        if (typeof options?.defaultValue === "string") {
+          return options.defaultValue.replace(/\{\{(\w+)\}\}/g, (_match, token) => String(options?.[token] ?? ""));
+        }
         return key.replace(/\{\{(\w+)\}\}/g, (_match, token) => String(options?.[token] ?? ""));
       },
     }),
@@ -358,6 +360,53 @@ describe("IssueDocumentsSection", () => {
 
     expect(container.textContent).toContain("Loaded plan body");
     expect(container.textContent).not.toContain("Markdown body");
+
+    await act(async () => {
+      root.unmount();
+    });
+    queryClient.clear();
+  });
+
+  it("wraps the documents header actions so mobile layouts do not overflow", async () => {
+    const issue = createIssue();
+    const root = createRoot(container);
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: {
+          retry: false,
+        },
+        mutations: {
+          retry: false,
+        },
+      },
+    });
+
+    mockIssuesApi.listDocuments.mockResolvedValue([createIssueDocument()]);
+
+    await act(async () => {
+      root.render(
+        <QueryClientProvider client={queryClient}>
+          <IssueDocumentsSection
+            issue={issue}
+            canDeleteDocuments={false}
+            extraActions={(
+              <>
+                <button type="button">Upload</button>
+                <button type="button">Sub-issue</button>
+              </>
+            )}
+          />
+        </QueryClientProvider>,
+      );
+    });
+
+    await flush();
+    await flush();
+
+    const heading = container.querySelector("h3");
+    expect(heading).toBeTruthy();
+    expect(heading?.parentElement?.className).toContain("flex-wrap");
+    expect(heading?.nextElementSibling?.className).toContain("flex-wrap");
 
     await act(async () => {
       root.unmount();

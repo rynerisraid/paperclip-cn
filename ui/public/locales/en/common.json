@@ -641,6 +641,9 @@
   "No {{name}} input": "No {{name}} input",
   "Never": "Never",
   "None": "None",
+  "No default agent": "No default agent",
+  "Off": "Off",
+  "On": "On",
   "Not Found": "Not Found",
   "Not found": "Not found",
   "Not installed": "Not installed",
@@ -807,13 +810,18 @@
   "Role": "Role",
   "Rotate secret": "Rotate secret",
   "Routine": "Routine",
+  "Default agent required": "Default agent required",
+  "Draft": "Draft",
+  "Draft saved. Add a default agent before enabling automation.": "Draft saved. Add a default agent before enabling automation.",
   "Routine not found": "Routine not found",
   "Routine run failed": "Routine run failed",
   "Routine run started": "Routine run started",
   "Routine saved": "Routine saved",
   "Routine title": "Routine title",
+  "routines.afterCreateHint": "After creation, Paperclip takes you straight to trigger setup. Draft routines stay paused until you add a default agent.",
   "routines.count_one": "{{count}} routine",
   "routines.count_other": "{{count}} routines",
+  "routines.defineRecurringWorkFirst": "Define the recurring work first. Default project and agent are optional for draft routines.",
   "Routines": "Routines",
   "Run": "Run",
   "Run Activity": "Run Activity",
@@ -876,6 +884,7 @@
   "Select status": "Select status",
   "Separator": "Separator",
   "Session": "Session",
+  "Set a default agent before enabling routine automation.": "Set a default agent before enabling routine automation.",
   "Set up CI/CD pipeline": "Set up CI/CD pipeline",
   "Settings": "Settings",
   "Sheet": "Sheet",
@@ -2244,4 +2253,31 @@
   ,"issuesList.sort": "Sort"
   ,"issuesList.group": "Group"
   ,"issuesList.live": "Live"
+  ,"issuesList.columns": "Columns"
+  ,"issuesList.chooseVisibleColumns": "Choose which issue columns stay visible"
+  ,"issuesList.defaultColumnsSummary": "status, id, updated"
+  ,"issuesList.updatedAtTime": "Updated {{time}}"
+  ,"Disable parent-child nesting": "Disable parent-child nesting"
+  ,"Enable parent-child nesting": "Enable parent-child nesting"
+  ,"Type": "Type"
+  ,"Load earlier comments": "Load earlier comments"
+  ,"Loading earlier comments...": "Loading earlier comments..."
+  ,"issueDocuments.documentKey": "Document key"
+  ,"issueChat.fallbackErrorTitle": "Chat renderer hit an internal state error."
+  ,"issueChat.fallbackErrorBody": "Showing a safe fallback transcript instead of crashing the issues page."
+  ,"issueChat.emptyConversation": "This issue conversation is empty. Start with a message below."
+  ,"issueDocuments.historicalPreviewNotice": "This is a historical preview. Restoring it creates a new latest revision and keeps history append-only."
+  ,"issueDocuments.remoteChangedNotice": "This document changed while you were editing. Your local draft is preserved and autosave is paused."
+  ,"issueDocuments.confirmDelete": "Delete this document? This cannot be undone."
+  ,"No message content.": "No message content."
+  ,"False": "False"
+  ,"True": "True"
+  ,"Variables": "Variables"
+  ,"routineVariables.defaultOption": "Default option"
+  ,"routineVariables.defaultValue": "Default value"
+  ,"routineVariables.detectedFromPlaceholders": "Detected from `{{placeholder}}` placeholders in the routine title and instructions."
+  ,"routineVariables.noDefault": "No default"
+  ,"routineVariables.options": "Options"
+  ,"routineVariables.promptBeforeRun": "Prompt the user for this value before each manual run."
+  ,"routineVariables.usePlaceholderHint": "Use `{{placeholder}}` placeholders in the instructions to prompt for inputs when the routine runs."
 }

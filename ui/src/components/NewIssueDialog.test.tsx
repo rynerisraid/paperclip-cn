@@ -7,16 +7,13 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NewIssueDialog } from "./NewIssueDialog";
 
-vi.mock("react-i18next", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("react-i18next")>();
+vi.mock("react-i18next", async () => {
+  const actual = await vi.importActual<typeof import("react-i18next")>("react-i18next");
   return {
     ...actual,
-    initReactI18next: { type: "3rdParty", init: () => {} },
     useTranslation: () => ({
-      t: (key: string, options?: Record<string, unknown>) => {
-        const template = typeof options?.defaultValue === "string" ? options.defaultValue : key;
-        return template.replace(/\{\{(\w+)\}\}/g, (_match, token) => String(options?.[token] ?? ""));
-      },
+      t: (key: string, options?: { defaultValue?: string }) => options?.defaultValue ?? key,
+      i18n: { language: "en", resolvedLanguage: "en" },
     }),
   };
 });
@@ -236,20 +233,16 @@ async function flush() {
   });
 }
 
-async function waitForAssertion(assertion: () => void, attempts = 20) {
-  let lastError: unknown;
-
+async function waitForValue<T>(getValue: () => T | null | undefined, attempts = 10): Promise<T> {
   for (let attempt = 0; attempt < attempts; attempt += 1) {
-    try {
-      assertion();
-      return;
-    } catch (error) {
-      lastError = error;
-      await flush();
+    const value = getValue();
+    if (value != null) {
+      return value;
     }
+    await flush();
   }
 
-  throw lastError;
+  throw new Error("Timed out waiting for value");
 }
 
 function renderDialog(container: HTMLDivElement) {
@@ -402,6 +395,24 @@ describe("NewIssueDialog", () => {
     act(() => root.unmount());
   });
 
+  it("keeps the mobile dialog bounded with an internal flexible scroll region", async () => {
+    const { root } = renderDialog(container);
+    await flush();
+
+    const dialogContent = Array.from(container.querySelectorAll("div")).find((element) =>
+      typeof element.className === "string" && element.className.includes("max-h-[calc(100dvh-2rem)]"),
+    );
+    expect(dialogContent?.className).toContain("h-[calc(100dvh-2rem)]");
+    expect(dialogContent?.className).toContain("overflow-hidden");
+
+    const descriptionInput = container.querySelector('textarea[aria-label="Add description..."]');
+    const descriptionScrollRegion = descriptionInput?.parentElement?.parentElement;
+    expect(descriptionScrollRegion?.className).toContain("flex-1");
+    expect(descriptionScrollRegion?.className).toContain("overflow-y-auto");
+
+    act(() => root.unmount());
+  });
+
   it("warns when a sub-issue stops matching the parent workspace", async () => {
     mockProjectsApi.list.mockResolvedValue([
       {
@@ -447,23 +458,23 @@ describe("NewIssueDialog", () => {
     };
 
     const { root } = renderDialog(container);
-    await waitForAssertion(() => {
-      expect(document.body.textContent).not.toContain("will no longer use the parent issue workspace");
-      const selects = Array.from(document.querySelectorAll("select"));
-      expect(selects[0]).toBeDefined();
-    });
+    await flush();
+    await flush();
 
-    const selects = Array.from(document.querySelectorAll("select"));
-    const modeSelect = selects[0] as HTMLSelectElement;
+    expect(container.textContent).not.toContain("will no longer use the parent issue workspace");
+
+    const modeSelect = await waitForValue(
+      () => container.querySelector("select") as HTMLSelectElement | null,
+    );
 
     await act(async () => {
       modeSelect.value = "shared_workspace";
       modeSelect.dispatchEvent(new Event("change", { bubbles: true }));
     });
-    await waitForAssertion(() => {
-      expect(document.body.textContent).toContain("will no longer use the parent issue workspace");
-      expect(document.body.textContent).toContain("Parent workspace");
-    });
+    await flush();
+
+    expect(container.textContent).toContain("will no longer use the parent issue workspace");
+    expect(container.textContent).toContain("Parent workspace");
 
     act(() => root.unmount());
   });

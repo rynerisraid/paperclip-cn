@@ -83,8 +83,13 @@ export function Issues() {
   }, [issuesLabel, setBreadcrumbs]);
 
   const { data: issues, isLoading, error } = useQuery({
-    queryKey: [...queryKeys.issues.list(selectedCompanyId!), "participant-agent", participantAgentId ?? "__all__"],
-    queryFn: () => issuesApi.list(selectedCompanyId!, { participantAgentId }),
+    queryKey: [
+      ...queryKeys.issues.list(selectedCompanyId!),
+      "participant-agent",
+      participantAgentId ?? "__all__",
+      "with-routine-executions",
+    ],
+    queryFn: () => issuesApi.list(selectedCompanyId!, { participantAgentId, includeRoutineExecutions: true }),
     enabled: !!selectedCompanyId,
   });
 
@@ -113,6 +118,7 @@ export function Issues() {
       initialAssignees={searchParams.get("assignee") ? [searchParams.get("assignee")!] : undefined}
       initialSearch={initialSearch}
       onSearchChange={handleSearchChange}
+      enableRoutineVisibilityFilter
       onUpdateIssue={(id, data) => updateIssue.mutate({ id, data })}
       searchFilters={participantAgentId ? { participantAgentId } : undefined}
     />

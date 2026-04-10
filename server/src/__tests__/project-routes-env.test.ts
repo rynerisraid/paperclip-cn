@@ -19,18 +19,7 @@ const mockSecretService = vi.hoisted(() => ({
 }));
 const mockWorkspaceOperationService = vi.hoisted(() => ({}));
 const mockLogActivity = vi.hoisted(() => vi.fn());
-const mockTrackProjectCreated = vi.hoisted(() => vi.fn());
 const mockGetTelemetryClient = vi.hoisted(() => vi.fn());
-
-vi.mock("@penclipai/shared/telemetry", async () => {
-  const actual = await vi.importActual<typeof import("@penclipai/shared/telemetry")>(
-    "@penclipai/shared/telemetry",
-  );
-  return {
-    ...actual,
-    trackProjectCreated: mockTrackProjectCreated,
-  };
-});
 
 vi.mock("../telemetry.js", () => ({
   getTelemetryClient: mockGetTelemetryClient,

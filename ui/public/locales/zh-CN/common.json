@@ -114,6 +114,7 @@
   "Browse skills.sh": "浏览 skills.sh",
   "Budget": "预算",
   "Budget Override": "预算特许",
+  "Board Approval": "董事会审批",
   "Budget amount": "预算金额",
   "Budget at": "预算为",
   "Budget control plane": "预算管控",
@@ -735,6 +736,7 @@
   "No {{name}} input": "{{name}} 没有输入",
   "Never": "从未",
   "None": "无",
+  "No default agent": "无默认智能体",
   "Not Found": "未找到",
   "Not found": "未找到",
   "Not installed": "未安装",
@@ -927,13 +929,18 @@
   "Rotate secret": "轮换密钥",
   "Routine": "例行任务",
   "Routine created": "例行任务已创建",
+  "Default agent required": "需要默认智能体",
+  "Draft": "草稿",
+  "Draft saved. Add a default agent before enabling automation.": "草稿已保存。添加默认智能体后才能启用自动化。",
   "Routine not found": "未找到例行任务",
   "Routine run failed": "例行任务运行失败",
   "Routine run started": "已启动例行任务运行",
   "Routine saved": "例行任务已保存",
   "Routine title": "例行任务标题",
+  "routines.afterCreateHint": "创建后，Paperclip 会直接带你进入触发器设置。草稿例行任务在添加默认智能体前会保持暂停。",
   "routines.count_one": "{{count}} 个例行任务",
   "routines.count_other": "{{count}} 个例行任务",
+  "routines.defineRecurringWorkFirst": "先定义重复性工作内容。草稿例行任务可以暂不设置默认项目和智能体。",
   "Routines": "例行任务",
   "Run": "运行",
   "Run Activity": "运行活动",
@@ -1005,6 +1012,7 @@
   "Separator": "分隔线",
   "Session": "会话",
   "Set budget": "设置预算",
+  "Set a default agent before enabling routine automation.": "启用例行任务自动化前，请先设置默认智能体。",
   "Set up CI/CD pipeline": "搭建 CI/CD 流水线",
   "Settings": "设置",
   "Sheet": "侧边面板",
@@ -1599,7 +1607,7 @@
   "instanceGeneralSettings.keyboardShortcutsTitle": "键盘快捷键",
   "instanceGeneralSettings.keyboardShortcutsToggle": "切换键盘快捷键",
   "instanceGeneralSettings.runtimeDefaultLocaleDescription": "选择当唤醒请求没有显式 UI 语言时，Paperclip 运行时提示和面向 agent 的自然语言说明默认使用的语言。这个设置不会改变每个操作者自己的 UI 语言偏好。",
-  "instanceGeneralSettings.runtimeDefaultLocaleEn": "English",
+  "instanceGeneralSettings.runtimeDefaultLocaleEn": "英文",
   "instanceGeneralSettings.runtimeDefaultLocaleEnDescription": "当 run 在没有显式请求语言时，默认使用英文。",
   "instanceGeneralSettings.runtimeDefaultLocaleTitle": "运行时默认语言",
   "instanceGeneralSettings.runtimeDefaultLocaleZhCn": "简体中文",
@@ -2417,4 +2425,31 @@
   ,"issuesList.sort": "排序"
   ,"issuesList.group": "分组"
   ,"issuesList.live": "实时"
+  ,"issuesList.columns": "列"
+  ,"issuesList.chooseVisibleColumns": "选择要显示的任务列"
+  ,"issuesList.defaultColumnsSummary": "状态、编号、更新时间"
+  ,"issuesList.updatedAtTime": "更新于 {{time}}"
+  ,"Disable parent-child nesting": "关闭父子任务嵌套"
+  ,"Enable parent-child nesting": "开启父子任务嵌套"
+  ,"Type": "类型"
+  ,"Load earlier comments": "加载更早的评论"
+  ,"Loading earlier comments...": "正在加载更早的评论..."
+  ,"issueDocuments.documentKey": "文档 key"
+  ,"issueChat.fallbackErrorTitle": "聊天渲染器进入了异常状态。"
+  ,"issueChat.fallbackErrorBody": "已显示安全降级的对话回退视图，避免任务页面直接崩溃。"
+  ,"issueChat.emptyConversation": "这个任务对话还是空的。请从下面发送第一条消息。"
+  ,"issueDocuments.historicalPreviewNotice": "这是历史版本预览。恢复后会创建一个新的最新修订，并保持历史只追加不覆盖。"
+  ,"issueDocuments.remoteChangedNotice": "你编辑期间这份文档已在远端发生变化。你的本地草稿仍会保留，自动保存也会暂停。"
+  ,"issueDocuments.confirmDelete": "确认删除这份文档吗？此操作无法撤销。"
+  ,"No message content.": "没有消息内容。"
+  ,"False": "否"
+  ,"True": "是"
+  ,"Variables": "变量"
+  ,"routineVariables.defaultOption": "默认选项"
+  ,"routineVariables.defaultValue": "默认值"
+  ,"routineVariables.detectedFromPlaceholders": "从例行任务标题和说明中的 `{{placeholder}}` 占位符检测到。"
+  ,"routineVariables.noDefault": "无默认值"
+  ,"routineVariables.options": "选项"
+  ,"routineVariables.promptBeforeRun": "每次手动运行前都会向用户询问这个值。"
+  ,"routineVariables.usePlaceholderHint": "在说明中使用 `{{placeholder}}` 占位符，可在例行任务运行时提示输入。"
 }
