@@ -43,7 +43,7 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: 24
-          cache: pnpm
+          package-manager-cache: false
           registry-url: https://registry.npmjs.org
 
       - name: Setup pnpm
@@ -83,7 +83,7 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: 24
-          cache: pnpm
+          package-manager-cache: false
           registry-url: https://registry.npmjs.org
           always-auth: true
 
@@ -156,7 +156,7 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: 24
-          cache: pnpm
+          package-manager-cache: false
           registry-url: https://registry.npmjs.org
 
       - name: Setup pnpm
@@ -195,7 +195,7 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: 24
-          cache: pnpm
+          package-manager-cache: false
 
       - name: Setup pnpm
         run: |
@@ -236,7 +236,7 @@ jobs:
         uses: actions/setup-node@v5
         with:
           node-version: 24
-          cache: pnpm
+          package-manager-cache: false
           registry-url: https://registry.npmjs.org
           always-auth: true
 
