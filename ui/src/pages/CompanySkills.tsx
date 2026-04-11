@@ -834,7 +834,7 @@ function SkillPane({
           )
         ) : file.markdown && viewMode === "preview" ? (
           <div data-e2e-ignore-i18n>
-            <MarkdownBody>{body}</MarkdownBody>
+            <MarkdownBody softBreaks={false} linkIssueReferences={false}>{body}</MarkdownBody>
           </div>
         ) : (
           <pre data-e2e-ignore-i18n className="overflow-x-auto whitespace-pre-wrap break-words border-0 bg-transparent p-0 font-mono text-sm text-foreground">

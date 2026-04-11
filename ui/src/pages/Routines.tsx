@@ -2,7 +2,7 @@ import { startTransition, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import type { TFunction } from "i18next";
-import { useNavigate, useSearchParams } from "@/lib/router";
+import { Link, useNavigate, useSearchParams } from "@/lib/router";
 import { Check, ChevronDown, ChevronRight, Layers, MoreHorizontal, Plus, Repeat } from "lucide-react";
 import { routinesApi } from "../api/routines";
 import { agentsApi } from "../api/agents";
@@ -204,7 +204,7 @@ function RoutineListRow({
   agentById,
   runningRoutineId,
   statusMutationRoutineId,
-  onNavigate,
+  href,
   onRunNow,
   onToggleEnabled,
   onToggleArchived,
@@ -214,7 +214,7 @@ function RoutineListRow({
   agentById: Map<string, { name: string; icon?: string | null }>;
   runningRoutineId: string | null;
   statusMutationRoutineId: string | null;
-  onNavigate: (routineId: string) => void;
+  href: string;
   onRunNow: (routine: RoutineListItem) => void;
   onToggleEnabled: (routine: RoutineListItem, enabled: boolean) => void;
   onToggleArchived: (routine: RoutineListItem) => void;
@@ -228,9 +228,9 @@ function RoutineListRow({
   const isDraft = !isArchived && !routine.assigneeAgentId;
 
   return (
-    <div
-      className="group flex cursor-pointer flex-col gap-3 border-b border-border px-3 py-3 transition-colors hover:bg-accent/50 last:border-b-0 sm:flex-row sm:items-center"
-      onClick={() => onNavigate(routine.id)}
+    <Link
+      to={href}
+      className="group flex flex-col gap-3 border-b border-border px-3 py-3 transition-colors hover:bg-accent/50 last:border-b-0 sm:flex-row sm:items-center no-underline text-inherit"
     >
       <div className="min-w-0 flex-1 space-y-1.5">
         <div className="flex flex-wrap items-center gap-2">
@@ -274,7 +274,7 @@ function RoutineListRow({
         </div>
       </div>
 
-      <div className="flex items-center gap-3" onClick={(event) => event.stopPropagation()}>
+      <div className="flex items-center gap-3" onClick={(event) => { event.preventDefault(); event.stopPropagation(); }}>
         <div className="flex items-center gap-3">
           <ToggleSwitch
             size="lg"
@@ -307,8 +307,8 @@ function RoutineListRow({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => onNavigate(routine.id)}>
-              {t("Edit", { defaultValue: "Edit" })}
+            <DropdownMenuItem asChild>
+              <Link to={href}>{t("Edit", { defaultValue: "Edit" })}</Link>
             </DropdownMenuItem>
             <DropdownMenuItem
               disabled={runningRoutineId === routine.id || isArchived}
@@ -336,7 +336,7 @@ function RoutineListRow({
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-    </div>
+    </Link>
   );
 }
 
@@ -1063,7 +1063,7 @@ export function Routines() {
                         agentById={agentById}
                         runningRoutineId={runningRoutineId}
                         statusMutationRoutineId={statusMutationRoutineId}
-                        onNavigate={(routineId) => navigate(`/routines/${routineId}`)}
+                        href={`/routines/${routine.id}`}
                         onRunNow={handleRunNow}
                         onToggleEnabled={handleToggleEnabled}
                         onToggleArchived={handleToggleArchived}

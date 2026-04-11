@@ -71,7 +71,7 @@ function saveFoldedDocumentKeys(issueId: string, keys: string[]) {
 }
 
 function renderBody(body: string, className?: string) {
-  return <MarkdownBody className={className}>{body}</MarkdownBody>;
+  return <MarkdownBody className={className} softBreaks={false}>{body}</MarkdownBody>;
 }
 
 function isPlanKey(key: string) {

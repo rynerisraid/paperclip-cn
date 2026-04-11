@@ -233,18 +233,6 @@ async function flush() {
   });
 }
 
-async function waitForValue<T>(getValue: () => T | null | undefined, attempts = 10): Promise<T> {
-  for (let attempt = 0; attempt < attempts; attempt += 1) {
-    const value = getValue();
-    if (value != null) {
-      return value;
-    }
-    await flush();
-  }
-
-  throw new Error("Timed out waiting for value");
-}
-
 function renderDialog(container: HTMLDivElement) {
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -406,9 +394,12 @@ describe("NewIssueDialog", () => {
     expect(dialogContent?.className).toContain("overflow-hidden");
 
     const descriptionInput = container.querySelector('textarea[aria-label="Add description..."]');
-    const descriptionScrollRegion = descriptionInput?.parentElement?.parentElement;
-    expect(descriptionScrollRegion?.className).toContain("flex-1");
-    expect(descriptionScrollRegion?.className).toContain("overflow-y-auto");
+    const bodyScrollRegion = Array.from(container.querySelectorAll("div")).find((element) =>
+      typeof element.className === "string" && element.className.includes("overscroll-contain"),
+    );
+    expect(bodyScrollRegion?.className).toContain("flex-1");
+    expect(bodyScrollRegion?.className).toContain("overflow-y-auto");
+    expect(bodyScrollRegion?.contains(descriptionInput ?? null)).toBe(true);
 
     act(() => root.unmount());
   });
@@ -463,13 +454,13 @@ describe("NewIssueDialog", () => {
 
     expect(container.textContent).not.toContain("will no longer use the parent issue workspace");
 
-    const modeSelect = await waitForValue(
-      () => container.querySelector("select") as HTMLSelectElement | null,
-    );
+    const selects = Array.from(container.querySelectorAll("select"));
+    const modeSelect = selects[0] as HTMLSelectElement | undefined;
+    expect(modeSelect).not.toBeUndefined();
 
     await act(async () => {
-      modeSelect.value = "shared_workspace";
-      modeSelect.dispatchEvent(new Event("change", { bubbles: true }));
+      modeSelect!.value = "shared_workspace";
+      modeSelect!.dispatchEvent(new Event("change", { bubbles: true }));
     });
     await flush();
 
