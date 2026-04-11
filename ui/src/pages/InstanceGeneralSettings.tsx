@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { PatchInstanceGeneralSettings } from "@penclipai/shared";
+import type { PatchInstanceGeneralSettings, BackupRetentionPolicy } from "@penclipai/shared";
+import {
+  DAILY_RETENTION_PRESETS,
+  WEEKLY_RETENTION_PRESETS,
+  MONTHLY_RETENTION_PRESETS,
+  DEFAULT_BACKUP_RETENTION,
+} from "@penclipai/shared";
 import { LogOut, SlidersHorizontal } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { authApi } from "@/api/auth";
@@ -90,6 +96,7 @@ export function InstanceGeneralSettings() {
       description: t("instanceGeneralSettings.runtimeDefaultLocaleEnDescription"),
     },
   ];
+  const backupRetention: BackupRetentionPolicy = generalQuery.data?.backupRetention ?? DEFAULT_BACKUP_RETENTION;
 
   return (
     <div className="max-w-4xl space-y-6">
@@ -151,6 +158,123 @@ export function InstanceGeneralSettings() {
             disabled={updateGeneralMutation.isPending}
             aria-label={t("instanceGeneralSettings.keyboardShortcutsToggle", { defaultValue: "Toggle keyboard shortcuts" })}
           />
+        </div>
+      </section>
+
+      <section className="rounded-xl border border-border bg-card p-5">
+        <div className="space-y-5">
+          <div className="space-y-1.5">
+            <h2 className="text-sm font-semibold">{t("instanceGeneralSettings.backupRetentionTitle")}</h2>
+            <p className="max-w-2xl text-sm text-muted-foreground">
+              {t("instanceGeneralSettings.backupRetentionDescription")}
+            </p>
+          </div>
+
+          <div className="space-y-1.5">
+            <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+              {t("instanceGeneralSettings.backupRetentionDaily")}
+            </h3>
+            <div className="flex flex-wrap gap-2">
+              {DAILY_RETENTION_PRESETS.map((days) => {
+                const active = backupRetention.dailyDays === days;
+                return (
+                  <button
+                    key={days}
+                    type="button"
+                    disabled={updateGeneralMutation.isPending}
+                    className={cn(
+                      "rounded-lg border px-3 py-2 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-60",
+                      active
+                        ? "border-foreground bg-accent text-foreground"
+                        : "border-border bg-background hover:bg-accent/50",
+                    )}
+                    onClick={() =>
+                      updateGeneralMutation.mutate({
+                        backupRetention: { ...backupRetention, dailyDays: days },
+                      })
+                    }
+                  >
+                    <div className="text-sm font-medium">
+                      {t("instanceGeneralSettings.backupRetentionDaysCount", {
+                        count: days,
+                        defaultValue: `${days} days`,
+                      })}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+              {t("instanceGeneralSettings.backupRetentionWeekly")}
+            </h3>
+            <div className="flex flex-wrap gap-2">
+              {WEEKLY_RETENTION_PRESETS.map((weeks) => {
+                const active = backupRetention.weeklyWeeks === weeks;
+                const label = t("instanceGeneralSettings.backupRetentionWeeksCount", {
+                  count: weeks,
+                  defaultValue: weeks === 1 ? "1 week" : `${weeks} weeks`,
+                });
+                return (
+                  <button
+                    key={weeks}
+                    type="button"
+                    disabled={updateGeneralMutation.isPending}
+                    className={cn(
+                      "rounded-lg border px-3 py-2 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-60",
+                      active
+                        ? "border-foreground bg-accent text-foreground"
+                        : "border-border bg-background hover:bg-accent/50",
+                    )}
+                    onClick={() =>
+                      updateGeneralMutation.mutate({
+                        backupRetention: { ...backupRetention, weeklyWeeks: weeks },
+                      })
+                    }
+                  >
+                    <div className="text-sm font-medium">{label}</div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+              {t("instanceGeneralSettings.backupRetentionMonthly")}
+            </h3>
+            <div className="flex flex-wrap gap-2">
+              {MONTHLY_RETENTION_PRESETS.map((months) => {
+                const active = backupRetention.monthlyMonths === months;
+                const label = t("instanceGeneralSettings.backupRetentionMonthsCount", {
+                  count: months,
+                  defaultValue: months === 1 ? "1 month" : `${months} months`,
+                });
+                return (
+                  <button
+                    key={months}
+                    type="button"
+                    disabled={updateGeneralMutation.isPending}
+                    className={cn(
+                      "rounded-lg border px-3 py-2 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-60",
+                      active
+                        ? "border-foreground bg-accent text-foreground"
+                        : "border-border bg-background hover:bg-accent/50",
+                    )}
+                    onClick={() =>
+                      updateGeneralMutation.mutate({
+                        backupRetention: { ...backupRetention, monthlyMonths: months },
+                      })
+                    }
+                  >
+                    <div className="text-sm font-medium">{label}</div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </div>
       </section>
 
