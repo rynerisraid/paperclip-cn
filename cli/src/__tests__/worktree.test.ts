@@ -825,9 +825,18 @@ describe("worktree helpers", () => {
       const sourceHooksDir = path.join(repoRoot, ".git", "hooks");
       const sourceHookPath = path.join(sourceHooksDir, "pre-commit");
       const sourceTokensPath = path.join(sourceHooksDir, "forbidden-tokens.txt");
+      const sourceSharedDir = path.join(tempRoot, "shared-hook-data");
+      const sourceLinkedDirPath = path.join(sourceHooksDir, "shared-hook-data");
       fs.writeFileSync(sourceHookPath, "#!/usr/bin/env bash\nexit 0\n", { encoding: "utf8", mode: 0o755 });
       fs.chmodSync(sourceHookPath, 0o755);
       fs.writeFileSync(sourceTokensPath, "secret-token\n", "utf8");
+      fs.mkdirSync(sourceSharedDir, { recursive: true });
+      fs.writeFileSync(path.join(sourceSharedDir, "config.txt"), "shared-hook-config\n", "utf8");
+      fs.symlinkSync(
+        sourceSharedDir,
+        sourceLinkedDirPath,
+        process.platform === "win32" ? "junction" : "dir",
+      );
 
       execFileSync("git", ["worktree", "add", "--detach", worktreePath], { cwd: repoRoot, stdio: "ignore" });
 
@@ -841,17 +850,19 @@ describe("worktree helpers", () => {
       const resolvedTargetHooksDir = fs.realpathSync(path.resolve(worktreePath, worktreeGitDir, "hooks"));
       const targetHookPath = path.join(resolvedTargetHooksDir, "pre-commit");
       const targetTokensPath = path.join(resolvedTargetHooksDir, "forbidden-tokens.txt");
+      const targetLinkedDirPath = path.join(resolvedTargetHooksDir, "shared-hook-data");
 
-      expect(copied).toMatchObject({
-        sourceHooksPath: resolvedSourceHooksDir,
-        targetHooksPath: resolvedTargetHooksDir,
-        copied: true,
-      });
+      expect(copied?.copied).toBe(true);
+      expect(fs.existsSync(copied!.sourceHooksPath)).toBe(true);
+      expect(path.basename(copied!.sourceHooksPath)).toBe("hooks");
+      expect(fs.realpathSync(copied!.targetHooksPath)).toBe(resolvedTargetHooksDir);
       expect(fs.readFileSync(targetHookPath, "utf8")).toBe("#!/usr/bin/env bash\nexit 0\n");
       if (process.platform !== "win32") {
         expect(fs.statSync(targetHookPath).mode & 0o111).not.toBe(0);
       }
       expect(fs.readFileSync(targetTokensPath, "utf8")).toBe("secret-token\n");
+      expect(fs.realpathSync(targetLinkedDirPath)).toBe(fs.realpathSync(sourceSharedDir));
+      expect(fs.readFileSync(path.join(targetLinkedDirPath, "config.txt"), "utf8")).toBe("shared-hook-config\n");
     } finally {
       execFileSync("git", ["worktree", "remove", "--force", worktreePath], { cwd: repoRoot, stdio: "ignore" });
       fs.rmSync(tempRoot, { recursive: true, force: true });
