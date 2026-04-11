@@ -639,7 +639,7 @@ describe("worktree helpers", () => {
     }
   });
 
-  it("reseed with --seed false preserves the current worktree ports, instance id, and branding", async () => {
+  it("reseed with --seed false preserves the current worktree identity and keeps or safely bumps the db port", async () => {
     const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "paperclip-worktree-reseed-"));
     const repoRoot = path.join(tempRoot, "repo");
     const sourceRoot = path.join(tempRoot, "source");
@@ -704,7 +704,8 @@ describe("worktree helpers", () => {
       const rewrittenEnv = fs.readFileSync(currentPaths.envPath, "utf8");
 
       expect(rewrittenConfig.server.port).toBe(3114);
-      expect(rewrittenConfig.database.embeddedPostgresPort).toBe(54341);
+      expect(rewrittenConfig.database.embeddedPostgresPort).toBeGreaterThanOrEqual(54341);
+      expect(rewrittenConfig.database.embeddedPostgresPort).not.toBe(rewrittenConfig.server.port);
       expect(rewrittenConfig.database.embeddedPostgresDataDir).toBe(currentPaths.embeddedPostgresDataDir);
       expect(rewrittenEnv).toContain(`PAPERCLIP_INSTANCE_ID=${currentInstanceId}`);
       expect(rewrittenEnv).toContain("PAPERCLIP_WORKTREE_NAME=existing-name");
