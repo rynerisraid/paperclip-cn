@@ -3,6 +3,7 @@ import { companies, instanceSettings } from "@penclipai/db";
 import {
   DEFAULT_UI_LOCALE,
   DEFAULT_FEEDBACK_DATA_SHARING_PREFERENCE,
+  DEFAULT_BACKUP_RETENTION,
   instanceGeneralSettingsSchema,
   type InstanceGeneralSettings,
   instanceExperimentalSettingsSchema,
@@ -24,6 +25,7 @@ function normalizeGeneralSettings(raw: unknown): InstanceGeneralSettings {
       feedbackDataSharingPreference:
         parsed.data.feedbackDataSharingPreference ?? DEFAULT_FEEDBACK_DATA_SHARING_PREFERENCE,
       runtimeDefaultLocale: parsed.data.runtimeDefaultLocale ?? DEFAULT_UI_LOCALE,
+      backupRetention: parsed.data.backupRetention ?? DEFAULT_BACKUP_RETENTION,
     };
   }
   return {
@@ -31,6 +33,7 @@ function normalizeGeneralSettings(raw: unknown): InstanceGeneralSettings {
     keyboardShortcuts: false,
     feedbackDataSharingPreference: DEFAULT_FEEDBACK_DATA_SHARING_PREFERENCE,
     runtimeDefaultLocale: DEFAULT_UI_LOCALE,
+    backupRetention: DEFAULT_BACKUP_RETENTION,
   };
 }
 
