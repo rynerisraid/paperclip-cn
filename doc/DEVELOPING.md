@@ -75,6 +75,12 @@ What they do:
 - `pnpm smoke:desktop:acceptance` runs the faster `core` dev acceptance flow: desktop business pages + bundled example plugin validation
 - `pnpm smoke:desktop:acceptance:full` runs the slower full dev acceptance flow: `core` coverage plus multi-agent orchestration, real Claude CLI output capture, and third-party plugin installation
 
+For a release-shaped local installer build, inject the stable version explicitly instead of using the package's placeholder `0.0.1`:
+
+```sh
+PAPERCLIP_DESKTOP_RELEASE_VERSION=2026.413.0 pnpm desktop:dist:win
+```
+
 Current scope and notes:
 
 - this pass only supports Windows packaging

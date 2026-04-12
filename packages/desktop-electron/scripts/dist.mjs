@@ -21,11 +21,35 @@ const packagedRuntimeNodeModulesDir = path.resolve(packagedRuntimeDir, "node_mod
 const packagedRuntimeSkillsDir = path.resolve(packagedRuntimeDir, "skills");
 const prepareStageScript = path.resolve(packageDir, "scripts", "prepare-stage.mjs");
 const expectedExecutablePath = path.resolve(winUnpackedDir, "Paperclip CN.exe");
+const desktopReleaseVersion = process.env.PAPERCLIP_DESKTOP_RELEASE_VERSION?.trim() ?? "";
 
 function parseArgs(argv) {
   return {
     dirOnly: argv.includes("--dir-only"),
   };
+}
+
+function validateDesktopReleaseVersion(version) {
+  if (version.length === 0) {
+    return;
+  }
+
+  if (!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(version)) {
+    throw new Error(
+      `Invalid PAPERCLIP_DESKTOP_RELEASE_VERSION "${version}". Expected a semver-safe version such as 2026.413.0.`,
+    );
+  }
+}
+
+function electronBuilderVersionArgs() {
+  validateDesktopReleaseVersion(desktopReleaseVersion);
+
+  if (desktopReleaseVersion.length === 0) {
+    return [];
+  }
+
+  console.log(`[desktop-dist] Overriding desktop build version to ${desktopReleaseVersion}.`);
+  return [`-c.extraMetadata.version=${desktopReleaseVersion}`];
 }
 
 function listRequiredTopLevelPackages(nodeModulesDir) {
@@ -242,7 +266,17 @@ function cleanReleaseArtifacts() {
 
 function buildUnpackedWindowsApp() {
   runPnpm(
-    ["exec", "electron-builder", "--config", "electron-builder.yml", "--dir", "--win", "--publish", "never"],
+    [
+      "exec",
+      "electron-builder",
+      "--config",
+      "electron-builder.yml",
+      "--dir",
+      "--win",
+      "--publish",
+      "never",
+      ...electronBuilderVersionArgs(),
+    ],
     { cwd: packageDir },
   );
 }
@@ -260,6 +294,7 @@ function buildWindowsInstallerFromPrepackagedApp() {
       winUnpackedDir,
       "--publish",
       "never",
+      ...electronBuilderVersionArgs(),
     ],
     { cwd: packageDir },
   );

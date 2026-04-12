@@ -89,6 +89,10 @@ Windows 兼容层：
   - Electron 桌面默认 `userData` 目录使用无空格 slug `penclip`
   - 可见品牌名仍是 `Paperclip CN`
   - CLI/server 默认 home 仍是 `~/.paperclip`
+- fork 自维护的 Windows 桌面发布链路
+  - `.github/workflows/desktop-release.yml` 负责 Windows 安装包构建
+  - `.github/workflows/release.yml` 的 stable live 路径会把桌面安装包挂到同一个 GitHub Release
+  - `packages/desktop-electron/scripts/dist.mjs` 通过 `PAPERCLIP_DESKTOP_RELEASE_VERSION` 注入真实 release 版本，不能回退成固定 `0.0.1`
 
 ### 4.4 范围基线
 
@@ -212,6 +216,12 @@ git merge <upstream remote>/master
 - 不要把 repo-local `.paperclip/`、`PAPERCLIP_HOME`、`PAPERCLIP_CONTEXT` 这类技术标识当成“需要品牌替换”的文案
 
 如果上游改动触及 `packages/desktop-electron/src/runtime.ts`、`packages/desktop-electron/src/main.ts`、`cli/src/config/home.ts`、`server/src/home-paths.ts` 或配置/环境文件读写逻辑，必须额外确认上面三条边界仍然成立。
+
+如果上游改动触及 `.github/workflows/release.yml`、桌面打包脚本或 `packages/desktop-electron/electron-builder.yml`，还要额外确认：
+
+- stable GitHub Release 仍会附带 Windows 安装包
+- canary 不会意外发布桌面资产
+- 桌面包版本仍来自 stable release 版本，而不是 `packages/desktop-electron/package.json` 里的占位版本
 
 ### 7.4 lockfile
 

@@ -220,6 +220,9 @@ jobs:
     needs: verify_stable
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    outputs:
+      version: ${{ steps.release_meta.outputs.version }}
+      tag: ${{ steps.release_meta.outputs.tag }}
     environment: npm-stable
     permissions:
       contents: write
@@ -298,6 +301,31 @@ jobs:
             exit 1
           fi
           ./scripts/create-github-release.sh "$version"
+
+      - name: Capture stable release metadata
+        id: release_meta
+        run: |
+          tag="$(git tag --points-at HEAD | grep '^v' | head -1)"
+          if [ -z "$tag" ]; then
+            echo "Error: no v* tag points at HEAD after stable release." >&2
+            exit 1
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "version=${tag#v}" >> "$GITHUB_OUTPUT"
+
+  desktop_stable:
+    if: github.event_name == 'workflow_dispatch' && !inputs.dry_run
+    needs: publish_stable
+    permissions:
+      contents: write
+    uses: ./.github/workflows/desktop-release.yml
+    with:
+      source_ref: ${{ inputs.source_ref }}
+      release_version: ${{ needs.publish_stable.outputs.version }}
+      artifact_name: desktop-release-stable
+      upload_to_release: true
+      github_release_tag: ${{ needs.publish_stable.outputs.tag }}
+    secrets: inherit
 
   smoke_stable:
     if: github.event_name == 'workflow_dispatch' && !inputs.dry_run
