@@ -12,6 +12,8 @@ import {
   getDevServiceControlFilePath,
   repoRoot,
 } from "./dev-service-profile.ts";
+import { bootstrapDevRunnerWorktreeEnv } from "../server/src/dev-runner-worktree.ts";
+import { bootstrapDevRunnerWorktreeEnv } from "../server/src/dev-runner-worktree.ts";
 import {
   findAdoptableLocalService,
   removeLocalServiceRegistryRecord,
@@ -24,6 +26,14 @@ import {
 // tsx context without requiring workspace package resolution first.
 const BIND_MODES = ["loopback", "lan", "tailnet", "custom"] as const;
 type BindMode = (typeof BIND_MODES)[number];
+
+const worktreeEnvBootstrap = bootstrapDevRunnerWorktreeEnv(repoRoot, process.env);
+if (worktreeEnvBootstrap.missingEnv) {
+  console.error(
+    `[paperclip] linked git worktree at ${repoRoot} is missing ${path.relative(repoRoot, worktreeEnvBootstrap.envPath)}. Run \`penclip worktree init\` in this worktree before \`pnpm dev\`.`,
+  );
+  process.exit(1);
+}
 
 const mode = process.argv[2] === "watch" ? "watch" : "dev";
 const cliArgs = process.argv.slice(3);

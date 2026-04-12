@@ -99,6 +99,7 @@ import {
   getArchivedInboxSearchIssues,
   getInboxWorkItems,
   getInboxKeyboardSelectionIndex,
+  getInboxSearchSupplementIssues,
   getLatestFailedRunsByAgent,
   matchesInboxIssueSearch,
   getRecentTouchedIssues,
@@ -663,6 +664,7 @@ export function Inbox() {
     retry: false,
   });
   const [searchQuery, setSearchQuery] = useState("");
+  const normalizedSearchQuery = searchQuery.trim();
   const [filterPreferences, setFilterPreferences] = useState<InboxFilterPreferences>(
     () => loadInboxFilterPreferences(selectedCompanyId),
   );
@@ -966,7 +968,7 @@ export function Inbox() {
   );
 
   const filteredWorkItems = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
+    const q = normalizedSearchQuery.toLowerCase();
     if (!q) return workItemsToRender;
     return workItemsToRender.filter((item) => {
       if (item.kind === "issue") {
@@ -1008,12 +1010,12 @@ export function Inbox() {
     });
   }, [
     workItemsToRender,
-    searchQuery,
     agentById,
     defaultProjectWorkspaceIdByProjectId,
     executionWorkspaceById,
     issueById,
     isolatedWorkspacesEnabled,
+    normalizedSearchQuery,
     projectWorkspaceById,
   ]);
 
@@ -1023,7 +1025,7 @@ export function Inbox() {
         ? getArchivedInboxSearchIssues({
           visibleIssues: visibleMineIssues,
           searchableIssues: visibleTouchedIssues,
-          query: searchQuery,
+          query: normalizedSearchQuery,
           isolatedWorkspacesEnabled,
           executionWorkspaceById,
           projectWorkspaceById,
@@ -1034,12 +1036,59 @@ export function Inbox() {
       defaultProjectWorkspaceIdByProjectId,
       executionWorkspaceById,
       isolatedWorkspacesEnabled,
+      normalizedSearchQuery,
       projectWorkspaceById,
-      searchQuery,
       tab,
       visibleMineIssues,
       visibleTouchedIssues,
     ],
+  );
+  const shouldUseIssueSearchSupplement =
+    !!selectedCompanyId
+    && normalizedSearchQuery.length > 0;
+  const { data: remoteIssueSearchResults = [] } = useQuery({
+    queryKey: [
+      ...queryKeys.issues.search(selectedCompanyId!, normalizedSearchQuery, undefined, 25),
+      "inbox-supplement",
+    ],
+    queryFn: () =>
+      issuesApi.list(selectedCompanyId!, {
+        q: normalizedSearchQuery,
+        limit: 25,
+        includeRoutineExecutions: true,
+      }),
+    enabled: shouldUseIssueSearchSupplement,
+    placeholderData: (previousData) => previousData,
+  });
+  const issueSearchSupplementResults = useMemo(
+    () =>
+      getInboxSearchSupplementIssues({
+        query: normalizedSearchQuery,
+        filteredWorkItems,
+        archivedSearchIssues,
+        remoteIssues: remoteIssueSearchResults,
+        issueFilters,
+        currentUserId,
+        enableRoutineVisibilityFilter: true,
+      }),
+    [
+      archivedSearchIssues,
+      currentUserId,
+      filteredWorkItems,
+      issueFilters,
+      normalizedSearchQuery,
+      remoteIssueSearchResults,
+    ],
+  );
+  const effectiveWorkItems = useMemo(
+    () =>
+      issueSearchSupplementResults.length > 0
+        ? [
+          ...filteredWorkItems,
+          ...getInboxWorkItems({ issues: issueSearchSupplementResults, approvals: [] }),
+        ]
+        : filteredWorkItems,
+    [filteredWorkItems, issueSearchSupplementResults],
   );
   const archivedSearchIssueIds = useMemo(
     () => new Set(archivedSearchIssues.map((issue) => issue.id)),
@@ -1058,14 +1107,14 @@ export function Inbox() {
   }, []);
   const [collapsedInboxParents, setCollapsedInboxParents] = useState<Set<string>>(new Set());
   const groupedSections = useMemo<InboxGroupedSection[]>(() => [
-    ...buildGroupedInboxSections(filteredWorkItems, groupBy, nestingEnabled),
+    ...buildGroupedInboxSections(effectiveWorkItems, groupBy, nestingEnabled),
     ...buildGroupedInboxSections(
       getInboxWorkItems({ issues: archivedSearchIssues, approvals: [] }),
       groupBy,
       nestingEnabled,
       { keyPrefix: "archived-search:", isArchivedSearch: true },
     ),
-  ], [archivedSearchIssues, filteredWorkItems, groupBy, nestingEnabled]);
+  ], [archivedSearchIssues, effectiveWorkItems, groupBy, nestingEnabled]);
   const totalVisibleWorkItems = useMemo(
     () => groupedSections.reduce((count, group) => count + group.displayItems.length, 0),
     [groupedSections],
