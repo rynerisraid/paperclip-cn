@@ -21,6 +21,10 @@ export const DESKTOP_PREFERENCES_FILENAME = "desktop-preferences.json";
 export const DESKTOP_USER_DATA_DIRNAME = "penclip";
 const DESKTOP_TEMP_INSTANCE_PATH_RE = /paperclip-desktop-(?:smoke|acceptance)-/i;
 
+function isWindowsAbsolutePath(value: string): boolean {
+  return /^[A-Za-z]:[\\/]/.test(value) || value.startsWith("\\\\");
+}
+
 export type DesktopTitlebarThemeConfig = {
   version: 1;
   fontFamily: string;
@@ -130,6 +134,9 @@ function resolveDesktopPaperclipContextPath(paperclipHome: string): string {
 export function resolveDesktopUserDataDir(defaultUserDataDir: string): string {
   const override = process.env.PAPERCLIP_DESKTOP_USER_DATA_DIR?.trim();
   if (override) return path.resolve(override);
+  if (isWindowsAbsolutePath(defaultUserDataDir)) {
+    return path.win32.resolve(path.win32.dirname(defaultUserDataDir), DESKTOP_USER_DATA_DIRNAME);
+  }
   return path.resolve(path.dirname(defaultUserDataDir), DESKTOP_USER_DATA_DIRNAME);
 }
 
