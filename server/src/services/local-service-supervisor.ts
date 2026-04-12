@@ -261,6 +261,17 @@ export async function forceKillLocalServiceProcessTree(
   }
 }
 
+export function isProcessGroupAlive(processGroupId: number | null | undefined) {
+  if (process.platform === "win32") return false;
+  if (typeof processGroupId !== "number" || !Number.isInteger(processGroupId) || processGroupId <= 0) return false;
+  try {
+    process.kill(-processGroupId, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 async function isLikelyMatchingCommand(record: LocalServiceRegistryRecord) {
   if (process.platform === "win32") return true;
   try {
@@ -339,13 +350,20 @@ export async function terminateLocalService(
 
   const deadline = Date.now() + forceAfterMs;
   while (Date.now() < deadline) {
-    if (!isPidAlive(record.pid)) {
+    const targetAlive = targetProcessGroup
+      ? isProcessGroupAlive(record.processGroupId)
+      : isPidAlive(record.pid);
+    if (!targetAlive) {
       return;
     }
     await delay(100);
   }
 
   if (!isPidAlive(record.pid)) return;
+  const stillAlive = targetProcessGroup
+    ? isProcessGroupAlive(record.processGroupId)
+    : isPidAlive(record.pid);
+  if (!stillAlive) return;
   await forceKillLocalServiceProcessTree(record);
 }
 

@@ -1,4 +1,5 @@
 import type { Agent } from "@penclipai/shared";
+import { translateInstant } from "../i18n";
 
 type ActivityDetails = Record<string, unknown> | null | undefined;
 
@@ -84,6 +85,48 @@ const ISSUE_ACTIVITY_LABELS: Record<string, string> = {
   "approval.rejected": "rejected",
 };
 
+const STATUS_TRANSLATION_KEYS: Record<string, string> = {
+  active: "status.active",
+  approved: "status.approved",
+  archived: "status.archived",
+  backlog: "status.backlog",
+  blocked: "status.blocked",
+  cancelled: "status.cancelled",
+  done: "status.done",
+  error: "status.error",
+  failed: "status.failed",
+  queued: "status.queued",
+  idle: "status.idle",
+  in_progress: "status.inProgress",
+  in_review: "status.inReview",
+  paused: "status.paused",
+  pending: "status.pending",
+  pending_approval: "status.pendingApproval",
+  rejected: "status.rejected",
+  revision_requested: "status.revisionRequested",
+  running: "status.running",
+  skipped: "status.skipped",
+  starting: "status.starting",
+  succeeded: "status.succeeded",
+  timed_out: "status.timedOut",
+  terminated: "status.terminated",
+  todo: "status.todo",
+};
+
+const PRIORITY_TRANSLATION_KEYS: Record<string, string> = {
+  critical: "priority.critical",
+  high: "priority.high",
+  medium: "priority.medium",
+  low: "priority.low",
+};
+
+function translateActivityText(
+  key: string,
+  options?: Record<string, string | number | boolean | null | undefined>,
+): string {
+  return translateInstant(key, { defaultValue: key, ...options });
+}
+
 function asRecord(value: unknown): Record<string, unknown> | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   return value as Record<string, unknown>;
@@ -92,6 +135,16 @@ function asRecord(value: unknown): Record<string, unknown> | null {
 function humanizeValue(value: unknown): string {
   if (typeof value !== "string") return String(value ?? "none");
   return value.replace(/_/g, " ");
+}
+
+function humanizeStatusValue(value: unknown): string {
+  if (typeof value !== "string") return humanizeValue(value);
+  return translateInstant(STATUS_TRANSLATION_KEYS[value] ?? value, { defaultValue: humanizeValue(value) });
+}
+
+function humanizePriorityValue(value: unknown): string {
+  if (typeof value !== "string") return humanizeValue(value);
+  return translateInstant(PRIORITY_TRANSLATION_KEYS[value] ?? value, { defaultValue: humanizeValue(value) });
 }
 
 function isActivityParticipant(value: unknown): value is ActivityParticipant {
@@ -117,15 +170,18 @@ function readIssueReferences(details: ActivityDetails, key: string): ActivityIss
 }
 
 function formatUserLabel(userId: string | null | undefined, currentUserId?: string | null): string {
-  if (!userId || userId === "local-board") return "Board";
-  if (currentUserId && userId === currentUserId) return "You";
-  return `user ${userId.slice(0, 5)}`;
+  if (!userId || userId === "local-board") return translateActivityText("Board");
+  if (currentUserId && userId === currentUserId) return translateActivityText("You");
+  return translateInstant("activityFormat.userLabel", {
+    id: userId.slice(0, 5),
+    defaultValue: `user ${userId.slice(0, 5)}`,
+  });
 }
 
 function formatParticipantLabel(participant: ActivityParticipant, options: ActivityFormatOptions): string {
   if (participant.type === "agent") {
     const agentId = participant.agentId ?? "";
-    return options.agentMap?.get(agentId)?.name ?? "agent";
+    return options.agentMap?.get(agentId)?.name ?? translateActivityText("agent");
   }
   return formatUserLabel(participant.userId, options.currentUserId);
 }
@@ -134,7 +190,7 @@ function formatIssueReferenceLabel(reference: ActivityIssueReference): string {
   if (reference.identifier) return reference.identifier;
   if (reference.title) return reference.title;
   if (reference.id) return reference.id.slice(0, 8);
-  return "issue";
+  return translateActivityText("issue");
 }
 
 function formatChangedEntityLabel(
@@ -142,9 +198,21 @@ function formatChangedEntityLabel(
   plural: string,
   labels: string[],
 ): string {
-  if (labels.length <= 0) return plural;
-  if (labels.length === 1) return `${singular} ${labels[0]}`;
-  return `${labels.length} ${plural}`;
+  const singularLabel = translateActivityText(singular);
+  const pluralLabel = translateActivityText(plural);
+  if (labels.length <= 0) return pluralLabel;
+  if (labels.length === 1) {
+    return translateInstant("activityFormat.namedEntity", {
+      entity: singularLabel,
+      label: labels[0],
+      defaultValue: `${singularLabel} ${labels[0]}`,
+    });
+  }
+  return translateInstant("activityFormat.countedEntity", {
+    count: labels.length,
+    entity: pluralLabel,
+    defaultValue: `${labels.length} ${pluralLabel}`,
+  });
 }
 
 function formatIssueUpdatedVerb(details: ActivityDetails): string | null {
@@ -153,14 +221,28 @@ function formatIssueUpdatedVerb(details: ActivityDetails): string | null {
   if (details.status !== undefined) {
     const from = previous.status;
     return from
-      ? `changed status from ${humanizeValue(from)} to ${humanizeValue(details.status)} on`
-      : `changed status to ${humanizeValue(details.status)} on`;
+      ? translateInstant("activityFormat.changedStatusFromOn", {
+        from: humanizeStatusValue(from),
+        to: humanizeStatusValue(details.status),
+        defaultValue: `changed status from ${humanizeStatusValue(from)} to ${humanizeStatusValue(details.status)} on`,
+      })
+      : translateInstant("activityFormat.changedStatusToOn", {
+        status: humanizeStatusValue(details.status),
+        defaultValue: `changed status to ${humanizeStatusValue(details.status)} on`,
+      });
   }
   if (details.priority !== undefined) {
     const from = previous.priority;
     return from
-      ? `changed priority from ${humanizeValue(from)} to ${humanizeValue(details.priority)} on`
-      : `changed priority to ${humanizeValue(details.priority)} on`;
+      ? translateInstant("activityFormat.changedPriorityFromOn", {
+        from: humanizePriorityValue(from),
+        to: humanizePriorityValue(details.priority),
+        defaultValue: `changed priority from ${humanizePriorityValue(from)} to ${humanizePriorityValue(details.priority)} on`,
+      })
+      : translateInstant("activityFormat.changedPriorityToOn", {
+        priority: humanizePriorityValue(details.priority),
+        defaultValue: `changed priority to ${humanizePriorityValue(details.priority)} on`,
+      });
   }
   return null;
 }
@@ -174,23 +256,37 @@ function formatIssueUpdatedAction(details: ActivityDetails): string | null {
     const from = previous.status;
     parts.push(
       from
-        ? `changed the status from ${humanizeValue(from)} to ${humanizeValue(details.status)}`
-        : `changed the status to ${humanizeValue(details.status)}`,
+        ? translateInstant("changed the status from {{from}} to {{to}}", {
+          from: humanizeStatusValue(from),
+          to: humanizeStatusValue(details.status),
+          defaultValue: `changed the status from ${humanizeStatusValue(from)} to ${humanizeStatusValue(details.status)}`,
+        })
+        : translateInstant("changed the status to {{status}}", {
+          status: humanizeStatusValue(details.status),
+          defaultValue: `changed the status to ${humanizeStatusValue(details.status)}`,
+        }),
     );
   }
   if (details.priority !== undefined) {
     const from = previous.priority;
     parts.push(
       from
-        ? `changed the priority from ${humanizeValue(from)} to ${humanizeValue(details.priority)}`
-        : `changed the priority to ${humanizeValue(details.priority)}`,
+        ? translateInstant("changed the priority from {{from}} to {{to}}", {
+          from: humanizePriorityValue(from),
+          to: humanizePriorityValue(details.priority),
+          defaultValue: `changed the priority from ${humanizePriorityValue(from)} to ${humanizePriorityValue(details.priority)}`,
+        })
+        : translateInstant("changed the priority to {{priority}}", {
+          priority: humanizePriorityValue(details.priority),
+          defaultValue: `changed the priority to ${humanizePriorityValue(details.priority)}`,
+        }),
     );
   }
   if (details.assigneeAgentId !== undefined || details.assigneeUserId !== undefined) {
-    parts.push(details.assigneeAgentId || details.assigneeUserId ? "assigned the issue" : "unassigned the issue");
+    parts.push(translateActivityText(details.assigneeAgentId || details.assigneeUserId ? "assigned the issue" : "unassigned the issue"));
   }
-  if (details.title !== undefined) parts.push("updated the title");
-  if (details.description !== undefined) parts.push("updated the description");
+  if (details.title !== undefined) parts.push(translateActivityText("updated the title"));
+  if (details.description !== undefined) parts.push(translateActivityText("updated the description"));
 
   return parts.length > 0 ? parts.join(", ") : null;
 }
@@ -209,13 +305,37 @@ function formatStructuredIssueChange(input: {
     const removed = readIssueReferences(details, "removedBlockedByIssues").map(formatIssueReferenceLabel);
     if (added.length > 0 && removed.length === 0) {
       const changed = formatChangedEntityLabel("blocker", "blockers", added);
-      return input.forIssueDetail ? `added ${changed}` : `added ${changed} to`;
+      return input.forIssueDetail
+        ? translateInstant("activityFormat.added", {
+          changed,
+          defaultValue: `added ${changed}`,
+        })
+        : translateInstant("activityFormat.addedTo", {
+          changed,
+          defaultValue: `added ${changed} to`,
+        });
     }
     if (removed.length > 0 && added.length === 0) {
       const changed = formatChangedEntityLabel("blocker", "blockers", removed);
-      return input.forIssueDetail ? `removed ${changed}` : `removed ${changed} from`;
+      return input.forIssueDetail
+        ? translateInstant("activityFormat.removed", {
+          changed,
+          defaultValue: `removed ${changed}`,
+        })
+        : translateInstant("activityFormat.removedFrom", {
+          changed,
+          defaultValue: `removed ${changed} from`,
+        });
     }
-    return input.forIssueDetail ? "updated blockers" : "updated blockers on";
+    return input.forIssueDetail
+      ? translateInstant("activityFormat.updatedLabel", {
+        label: translateActivityText("blockers"),
+        defaultValue: "updated blockers",
+      })
+      : translateInstant("activityFormat.updatedOn", {
+        label: translateActivityText("blockers"),
+        defaultValue: "updated blockers on",
+      });
   }
 
   if (input.action === "issue.reviewers_updated" || input.action === "issue.approvers_updated") {
@@ -225,13 +345,38 @@ function formatStructuredIssueChange(input: {
     const plural = input.action === "issue.reviewers_updated" ? "reviewers" : "approvers";
     if (added.length > 0 && removed.length === 0) {
       const changed = formatChangedEntityLabel(singular, plural, added);
-      return input.forIssueDetail ? `added ${changed}` : `added ${changed} to`;
+      return input.forIssueDetail
+        ? translateInstant("activityFormat.added", {
+          changed,
+          defaultValue: `added ${changed}`,
+        })
+        : translateInstant("activityFormat.addedTo", {
+          changed,
+          defaultValue: `added ${changed} to`,
+        });
     }
     if (removed.length > 0 && added.length === 0) {
       const changed = formatChangedEntityLabel(singular, plural, removed);
-      return input.forIssueDetail ? `removed ${changed}` : `removed ${changed} from`;
+      return input.forIssueDetail
+        ? translateInstant("activityFormat.removed", {
+          changed,
+          defaultValue: `removed ${changed}`,
+        })
+        : translateInstant("activityFormat.removedFrom", {
+          changed,
+          defaultValue: `removed ${changed} from`,
+        });
     }
-    return input.forIssueDetail ? `updated ${plural}` : `updated ${plural} on`;
+    const translatedPlural = translateActivityText(plural);
+    return input.forIssueDetail
+      ? translateInstant("activityFormat.updatedLabel", {
+        label: translatedPlural,
+        defaultValue: `updated ${translatedPlural}`,
+      })
+      : translateInstant("activityFormat.updatedOn", {
+        label: translatedPlural,
+        defaultValue: `updated ${translatedPlural} on`,
+      });
   }
 
   return null;
@@ -255,7 +400,8 @@ export function formatActivityVerb(
   });
   if (structuredChange) return structuredChange;
 
-  return ACTIVITY_ROW_VERBS[action] ?? action.replace(/[._]/g, " ");
+  const fallback = ACTIVITY_ROW_VERBS[action] ?? action.replace(/[._]/g, " ");
+  return translateActivityText(fallback);
 }
 
 export function formatIssueActivityAction(
@@ -282,8 +428,9 @@ export function formatIssueActivityAction(
   ) {
     const key = typeof details.key === "string" ? details.key : "document";
     const title = typeof details.title === "string" && details.title ? ` (${details.title})` : "";
-    return `${ISSUE_ACTIVITY_LABELS[action] ?? action} ${key}${title}`;
+    return `${translateActivityText(ISSUE_ACTIVITY_LABELS[action] ?? action)} ${key}${title}`;
   }
 
-  return ISSUE_ACTIVITY_LABELS[action] ?? action.replace(/[._]/g, " ");
+  const fallback = ISSUE_ACTIVITY_LABELS[action] ?? action.replace(/[._]/g, " ");
+  return translateActivityText(fallback);
 }

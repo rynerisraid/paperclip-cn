@@ -2,7 +2,7 @@ import { z } from "zod";
 import { COMPANY_STATUSES } from "../constants.js";
 
 const logoAssetIdSchema = z.string().uuid().nullable().optional();
-const brandColorSchema = z.string().regex(/^#[0-9a-fA-F]{6}$/).nullable().optional();
+export const brandColorSchema = z.string().regex(/^#[0-9a-fA-F]{6}$/).nullable().optional();
 const feedbackDataSharingTermsVersionSchema = z.string().min(1).nullable().optional();
 
 export const createCompanySchema = z.object({

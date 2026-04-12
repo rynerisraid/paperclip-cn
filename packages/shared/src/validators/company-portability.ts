@@ -1,5 +1,7 @@
 import { z } from "zod";
+import { AGENT_ICON_NAMES, AGENT_ROLES, PROJECT_STATUSES } from "../constants.js";
 import { routineVariableSchema } from "./routine.js";
+import { brandColorSchema } from "./company.js";
 
 export const portabilityIncludeSchema = z
   .object({
@@ -35,7 +37,7 @@ export const portabilityCompanyManifestEntrySchema = z.object({
   path: z.string().min(1),
   name: z.string().min(1),
   description: z.string().nullable(),
-  brandColor: z.string().nullable(),
+  brandColor: brandColorSchema,
   logoPath: z.string().nullable(),
   requireBoardApprovalForNewAgents: z.boolean(),
   feedbackDataSharingEnabled: z.boolean().default(false),
@@ -54,9 +56,9 @@ export const portabilityAgentManifestEntrySchema = z.object({
   name: z.string().min(1),
   path: z.string().min(1),
   skills: z.array(z.string().min(1)).default([]),
-  role: z.string().min(1),
+  role: z.enum(AGENT_ROLES),
   title: z.string().nullable(),
-  icon: z.string().nullable(),
+  icon: z.enum(AGENT_ICON_NAMES).nullable(),
   capabilities: z.string().nullable(),
   reportsToSlug: z.string().min(1).nullable(),
   adapterType: z.string().min(1),
@@ -94,7 +96,7 @@ export const portabilityProjectManifestEntrySchema = z.object({
   leadAgentSlug: z.string().min(1).nullable(),
   targetDate: z.string().nullable(),
   color: z.string().nullable(),
-  status: z.string().nullable(),
+  status: z.enum(PROJECT_STATUSES).nullable(),
   executionWorkspacePolicy: z.record(z.unknown()).nullable(),
   workspaces: z.array(z.object({
     key: z.string().min(1),

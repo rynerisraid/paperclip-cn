@@ -1,5 +1,6 @@
 import { NavLink } from "@/lib/router";
 import { useTranslation } from "react-i18next";
+import { SIDEBAR_SCROLL_RESET_STATE } from "../lib/navigation-scroll";
 import { cn } from "../lib/utils";
 import { useSidebar } from "../context/SidebarContext";
 import type { LucideIcon } from "lucide-react";
@@ -37,6 +38,7 @@ export function SidebarNavItem({
   return (
     <NavLink
       to={to}
+      state={SIDEBAR_SCROLL_RESET_STATE}
       end={end}
       onClick={() => { if (isMobile) setSidebarOpen(false); }}
       className={({ isActive }) =>

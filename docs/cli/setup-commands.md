@@ -91,6 +91,8 @@ Show resolved environment configuration:
 penclip env
 ```
 
+This now includes bind-oriented deployment settings such as `PAPERCLIP_BIND` and `PAPERCLIP_BIND_HOST` when configured.
+
 ## `penclip allowed-hostname`
 
 Allow a private hostname for authenticated/private mode:

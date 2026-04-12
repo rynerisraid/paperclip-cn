@@ -177,6 +177,14 @@ Open source. Self-hosted. No Paperclip account required.
 npx penclip onboard --yes
 ```
 
+That quickstart path now defaults to trusted local loopback mode for the fastest first run. To start in authenticated/private mode instead, choose a bind preset explicitly:
+
+```bash
+npx penclip onboard --yes --bind lan
+# or:
+npx penclip onboard --yes --bind tailnet
+```
+
 If you already have Paperclip configured, rerunning `onboard` keeps the existing config in place. Use `npx penclip configure` to edit settings.
 
 Or manually:

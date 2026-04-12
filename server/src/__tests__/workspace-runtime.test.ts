@@ -1059,7 +1059,7 @@ describe("realizeExecutionWorkspace", () => {
     expect(workspaceSharedPath).not.toBe(repoSharedPath);
     expect(repoSharedPath.startsWith(normalizedRepoRoot)).toBe(true);
     },
-    15_000,
+    WORKTREE_PROVISION_TEST_TIMEOUT,
   );
 
   it("records worktree setup and provision operations when a recorder is provided", async () => {

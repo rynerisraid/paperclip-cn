@@ -355,6 +355,8 @@ async function main() {
     server: {
       deploymentMode: sourceConfig?.server?.deploymentMode ?? "local_trusted",
       exposure: sourceConfig?.server?.exposure ?? "private",
+      ...(sourceConfig?.server?.bind ? { bind: sourceConfig.server.bind } : {}),
+      ...(sourceConfig?.server?.customBindHost ? { customBindHost: sourceConfig.server.customBindHost } : {}),
       host: sourceConfig?.server?.host ?? "127.0.0.1",
       port: serverPort,
       allowedHostnames: sourceConfig?.server?.allowedHostnames ?? [],
@@ -464,7 +466,6 @@ disable_seeded_routines() {
 }
 
 disable_seeded_routines
-
 list_base_node_modules_paths() {
   cd "$base_cwd" &&
     find . \

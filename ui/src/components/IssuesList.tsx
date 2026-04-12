@@ -8,6 +8,10 @@ import { issuesApi } from "../api/issues";
 import { authApi } from "../api/auth";
 import { instanceSettingsApi } from "../api/instanceSettings";
 import { queryKeys } from "../lib/queryKeys";
+import {
+  shouldBlurPageSearchOnEnter,
+  shouldBlurPageSearchOnEscape,
+} from "../lib/keyboardShortcuts";
 import { formatAssigneeUserLabel } from "../lib/assignees";
 import { groupBy } from "../lib/groupBy";
 import {
@@ -16,6 +20,7 @@ import {
   defaultIssueFilterState,
   issueFilterLabel,
   issuePriorityOrder,
+  resolveIssueFilterWorkspaceId,
   issueStatusOrder,
   type IssueFilterState,
 } from "../lib/issue-filters";
@@ -172,9 +177,27 @@ function IssueSearchInput({
         onChange={(e) => {
           setDraftValue(e.target.value);
         }}
+        onKeyDown={(e) => {
+          if (shouldBlurPageSearchOnEnter({
+            key: e.key,
+            isComposing: e.nativeEvent.isComposing,
+          })) {
+            e.currentTarget.blur();
+            return;
+          }
+
+          if (shouldBlurPageSearchOnEscape({
+            key: e.key,
+            isComposing: e.nativeEvent.isComposing,
+            currentValue: e.currentTarget.value,
+          })) {
+            e.currentTarget.blur();
+          }
+        }}
         placeholder={t("Search issues...", { defaultValue: "Search issues..." })}
         className="pl-7 text-xs sm:text-sm"
         aria-label={t("Search issues", { defaultValue: "Search issues" })}
+        data-page-search-target="true"
       />
     </div>
   );
@@ -349,6 +372,16 @@ export function IssuesList({
     return map;
   }, [executionWorkspaceById, projectWorkspaceById]);
 
+  const workspaceOptions = useMemo(() => {
+    const options = new Map<string, string>();
+    for (const [workspaceId, workspaceName] of workspaceNameMap) {
+      options.set(workspaceId, workspaceName);
+    }
+    return [...options.entries()]
+      .sort((a, b) => a[1].localeCompare(b[1]))
+      .map(([id, name]) => ({ id, name }));
+  }, [workspaceNameMap]);
+
   const visibleIssueColumnSet = useMemo(() => new Set(visibleIssueColumns), [visibleIssueColumns]);
   const availableIssueColumns = useMemo(
     () => getAvailableInboxIssueColumns(isolatedWorkspacesEnabled),
@@ -407,7 +440,7 @@ export function IssuesList({
         .map((p) => ({ key: p, label: issueFilterLabel(p), items: groups[p]! }));
     }
     if (viewState.groupBy === "workspace") {
-      const groups = groupBy(filtered, (i) => i.projectWorkspaceId ?? "__no_workspace");
+      const groups = groupBy(filtered, (issue) => resolveIssueFilterWorkspaceId(issue) ?? "__no_workspace");
       return Object.keys(groups)
         .sort((a, b) => {
           // Groups with items first, "no workspace" last
@@ -469,6 +502,10 @@ export function IssuesList({
     }
     return defaults;
   }, [projectId, viewState.groupBy]);
+
+  const filterToWorkspace = useCallback((workspaceId: string) => {
+    updateView({ workspaces: [workspaceId] });
+  }, [updateView]);
 
   const setIssueColumns = useCallback((next: InboxIssueColumn[]) => {
     const normalized = normalizeInboxIssueColumns(next);
@@ -534,6 +571,7 @@ export function IssuesList({
             onToggleColumn={toggleIssueColumn}
             onResetColumns={() => setIssueColumns(DEFAULT_INBOX_ISSUE_COLUMNS)}
             title={t("issuesList.chooseVisibleColumns", { defaultValue: "Choose which issue columns stay visible" })}
+            iconOnly
           />
 
           <IssueFiltersPopover
@@ -545,15 +583,16 @@ export function IssuesList({
             labels={labels?.map((label) => ({ id: label.id, name: label.name, color: label.color }))}
             currentUserId={currentUserId}
             enableRoutineVisibilityFilter={enableRoutineVisibilityFilter}
+            iconOnly
+            workspaces={isolatedWorkspacesEnabled ? workspaceOptions : undefined}
           />
 
           {/* Sort (list view only) */}
           {viewState.viewMode === "list" && (
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="ghost" size="sm" className="text-xs">
-                  <ArrowUpDown className="h-3.5 w-3.5 sm:h-3 sm:w-3 sm:mr-1" />
-                  <span className="hidden sm:inline">{t("issuesList.sort", { defaultValue: "Sort" })}</span>
+                <Button variant="outline" size="icon" className="h-8 w-8 shrink-0" title={t("issuesList.sort", { defaultValue: "Sort" })}>
+                  <ArrowUpDown className="h-3.5 w-3.5" />
                 </Button>
               </PopoverTrigger>
               <PopoverContent align="end" className="w-48 p-0">
@@ -595,9 +634,8 @@ export function IssuesList({
           {viewState.viewMode === "list" && (
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="ghost" size="sm" className="text-xs">
-                  <Layers className="h-3.5 w-3.5 sm:h-3 sm:w-3 sm:mr-1" />
-                  <span className="hidden sm:inline">{t("issuesList.group", { defaultValue: "Group" })}</span>
+                <Button variant="outline" size="icon" className="h-8 w-8 shrink-0" title={t("issuesList.group", { defaultValue: "Group" })}>
+                  <Layers className="h-3.5 w-3.5" />
                 </Button>
               </PopoverTrigger>
               <PopoverContent align="end" className="w-44 p-0">
@@ -754,11 +792,13 @@ export function IssuesList({
                               columns={visibleTrailingIssueColumns}
                               projectName={issueProject?.name ?? null}
                               projectColor={issueProject?.color ?? null}
+                              workspaceId={resolveIssueFilterWorkspaceId(issue)}
                               workspaceName={resolveIssueWorkspaceName(issue, {
                                 executionWorkspaceById,
                                 projectWorkspaceById,
                                 defaultProjectWorkspaceIdByProjectId,
                               })}
+                              onFilterWorkspace={filterToWorkspace}
                               assigneeName={agentName(issue.assigneeAgentId)}
                               currentUserId={currentUserId}
                               parentIdentifier={parentIssue?.identifier ?? null}
