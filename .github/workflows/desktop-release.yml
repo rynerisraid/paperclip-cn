@@ -1,0 +1,133 @@
+name: Desktop Release
+
+on:
+  workflow_call:
+    inputs:
+      source_ref:
+        description: Commit SHA, branch, or tag to package
+        required: true
+        type: string
+      release_version:
+        description: Desktop artifact version to inject into electron-builder
+        required: true
+        type: string
+      artifact_name:
+        description: Name for the uploaded Actions artifact
+        required: true
+        type: string
+      upload_to_release:
+        description: Upload built installers to an existing GitHub Release
+        required: true
+        type: boolean
+      github_release_tag:
+        description: Existing GitHub Release tag to upload assets into
+        required: false
+        type: string
+  workflow_dispatch:
+    inputs:
+      source_ref:
+        description: Commit SHA, branch, or tag to package
+        required: true
+        type: string
+        default: master
+      release_version:
+        description: Desktop artifact version to inject into electron-builder
+        required: true
+        type: string
+      artifact_name:
+        description: Name for the uploaded Actions artifact
+        required: true
+        type: string
+        default: desktop-release-manual
+      upload_to_release:
+        description: Upload built installers to an existing GitHub Release
+        required: true
+        type: boolean
+        default: false
+      github_release_tag:
+        description: Existing GitHub Release tag to upload assets into
+        required: false
+        type: string
+
+jobs:
+  build_windows_installer:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          ref: ${{ inputs.source_ref }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          package-manager-cache: false
+          registry-url: https://registry.npmjs.org
+
+      - name: Setup pnpm
+        shell: bash
+        run: |
+          corepack enable
+          corepack prepare pnpm@9.15.4 --activate
+
+      - name: Install dependencies
+        shell: bash
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Restore tracked install-time changes
+        shell: bash
+        run: git checkout -- pnpm-lock.yaml
+
+      - name: Typecheck desktop package
+        shell: bash
+        run: pnpm --filter @penclipai/desktop-electron typecheck
+
+      - name: Build Windows desktop installer
+        shell: bash
+        env:
+          PAPERCLIP_DESKTOP_RELEASE_VERSION: ${{ inputs.release_version }}
+        run: pnpm desktop:dist:win
+
+      - name: Verify installer artifacts
+        shell: pwsh
+        run: |
+          $artifacts = @(Get-ChildItem "packages/desktop-electron/release" -Filter *.exe | Sort-Object Name)
+          if ($artifacts.Count -eq 0) {
+            throw "No Windows installer artifact was produced."
+          }
+
+          $artifactListPath = "packages/desktop-electron/release/desktop-release-files.txt"
+          $artifacts | ForEach-Object { $_.FullName } | Tee-Object -FilePath $artifactListPath | Out-Host
+
+      - name: Upload desktop installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.artifact_name }}
+          if-no-files-found: error
+          path: |
+            packages/desktop-electron/release/*.exe
+            packages/desktop-electron/release/desktop-release-files.txt
+
+      - name: Upload installer to GitHub Release
+        if: inputs.upload_to_release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace("${{ inputs.github_release_tag }}")) {
+            throw "github_release_tag is required when upload_to_release=true."
+          }
+
+          $artifacts = @(Get-ChildItem "packages/desktop-electron/release" -Filter *.exe | Sort-Object Name)
+          if ($artifacts.Count -eq 0) {
+            throw "No Windows installer artifact was produced."
+          }
+
+          $assetPaths = $artifacts | ForEach-Object { $_.FullName }
+          gh release upload "${{ inputs.github_release_tag }}" $assetPaths --repo "${{ github.repository }}" --clobber

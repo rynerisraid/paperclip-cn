@@ -110,7 +110,31 @@ The workflow:
 - publishes `YYYY.MDD.P` under npm dist-tag `latest`
 - creates git tag `vYYYY.MDD.P`
 - creates or updates the GitHub Release from `releases/vYYYY.MDD.P.md`
+- builds an unsigned Windows Electron installer with the same stable version injected into `electron-builder`
+- uploads that Windows installer to the same GitHub Release as a downloadable asset
 - runs the reusable release smoke workflow against the published `latest` dist-tag
+
+### Windows Desktop Installer Assets
+
+Stable releases now also publish a Windows desktop installer through [`.github/workflows/desktop-release.yml`](../.github/workflows/desktop-release.yml).
+
+Current contract:
+
+- Windows only
+- unsigned installer first
+- stable live releases only
+- attached to the existing GitHub Release `vYYYY.MDD.P`
+- canaries do not publish desktop assets
+
+The desktop packaging workflow injects the stable version through `PAPERCLIP_DESKTOP_RELEASE_VERSION` so the installer file name follows the real release version instead of the package placeholder `0.0.1`.
+
+You can also run the workflow manually from GitHub Actions when you need a standalone packaging rerun:
+
+- `source_ref`: commit, branch, or tag to package
+- `release_version`: the desktop version to inject, for example `2026.413.0`
+- `artifact_name`: Actions artifact name
+- `upload_to_release`: whether to attach installers to an existing GitHub Release
+- `github_release_tag`: required when uploading, for example `v2026.413.0`
 
 ## Local Commands
 
@@ -251,5 +275,6 @@ Then fix forward with a new stable release.
 - [`scripts/release-package-map.mjs`](../scripts/release-package-map.mjs)
 - [`scripts/create-github-release.sh`](../scripts/create-github-release.sh)
 - [`scripts/rollback-latest.sh`](../scripts/rollback-latest.sh)
+- [`.github/workflows/desktop-release.yml`](../.github/workflows/desktop-release.yml)
 - [`doc/PUBLISHING.md`](PUBLISHING.md)
 - [`doc/RELEASE-AUTOMATION-SETUP.md`](RELEASE-AUTOMATION-SETUP.md)
