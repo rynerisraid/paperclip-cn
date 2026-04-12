@@ -2077,7 +2077,7 @@ export function Inbox() {
                       >
                         <div className="h-px flex-1 bg-border/80" />
                         <span className="shrink-0 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                          Archived
+                          {t("Archived", { defaultValue: "Archived" })}
                         </span>
                         <div className="h-px flex-1 bg-border/80" />
                       </div>,

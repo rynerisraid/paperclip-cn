@@ -545,7 +545,11 @@ async function markChildAsCurrent() {
   dirtyPaths = new Set();
   lastChangedAt = null;
   lastRestartAt = new Date().toISOString();
-  await refreshPendingMigrations();
+  // `maybePreflightMigrations()` already refreshed the migration state before
+  // spawning the server child. Re-running migration-status here can race the
+  // freshly started embedded Postgres owner on Windows and make `pnpm dev`
+  // exit even though the server came up successfully.
+  writeDevServerStatus();
   await updateDevServiceRecord();
 }
 
