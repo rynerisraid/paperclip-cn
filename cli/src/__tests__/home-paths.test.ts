@@ -33,6 +33,12 @@ describe("home path resolution", () => {
     expect(resolvePaperclipInstanceId("dev_1")).toBe("dev_1");
   });
 
+  it("normalizes legacy desktop storage paths to the penclip directory name", () => {
+    process.env.PAPERCLIP_HOME = "C:\\Users\\chenj\\AppData\\Roaming\\Paperclip CN";
+
+    expect(resolvePaperclipHomeDir()).toBe(path.resolve("C:\\Users\\chenj\\AppData\\Roaming\\penclip"));
+  });
+
   it("rejects invalid instance ids", () => {
     expect(() => resolvePaperclipInstanceId("bad/id")).toThrow(/Invalid instance id/);
   });

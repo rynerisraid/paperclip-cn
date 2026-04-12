@@ -3,10 +3,20 @@ import path from "node:path";
 
 const DEFAULT_INSTANCE_ID = "default";
 const INSTANCE_ID_RE = /^[a-zA-Z0-9_-]+$/;
+const LEGACY_WINDOWS_HOME_PREFIX_RE =
+  /^([A-Za-z]:[\\/].*?AppData[\\/]Roaming[\\/])(Paperclip CN|Paperclip)([\\/]|$)/i;
+const DESKTOP_USER_DATA_DIRNAME = "penclip";
+
+export function normalizeLegacyDesktopStoragePath(value: string): string {
+  return value.replace(
+    LEGACY_WINDOWS_HOME_PREFIX_RE,
+    (_, prefix: string, _name: string, suffix: string) => `${prefix}${DESKTOP_USER_DATA_DIRNAME}${suffix}`,
+  );
+}
 
 export function resolvePaperclipHomeDir(): string {
   const envHome = process.env.PAPERCLIP_HOME?.trim();
-  if (envHome) return path.resolve(expandHomePrefix(envHome));
+  if (envHome) return path.resolve(normalizeLegacyDesktopStoragePath(expandHomePrefix(envHome)));
   return path.resolve(os.homedir(), ".paperclip");
 }
 
@@ -60,7 +70,7 @@ export function resolveDefaultBackupDir(instanceId?: string): string {
 export function expandHomePrefix(value: string): string {
   if (value === "~") return os.homedir();
   if (value.startsWith("~/")) return path.resolve(os.homedir(), value.slice(2));
-  return value;
+  return normalizeLegacyDesktopStoragePath(value);
 }
 
 export function describeLocalInstancePaths(instanceId?: string) {

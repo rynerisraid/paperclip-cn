@@ -30,6 +30,13 @@
 - 不要为了中文化去改内部路径、包名、环境变量、数据库字段、API shape
 - 不要在每个页面都复制一套相似翻译逻辑
 
+特别注意桌面端路径：
+
+- `Paperclip CN` 是显示品牌，不是桌面数据目录名
+- Electron 桌面默认 `userData` 目录固定用无空格 slug `penclip`
+- CLI/server 默认 home 仍是 `~/.paperclip`
+- 不要把路径命名问题当成 UI 文案本地化问题处理
+
 ### 2.2 用户可见与技术标识分离
 
 下列内容属于用户可见层，可以本地化或品牌化：
@@ -51,6 +58,16 @@
 - 内部 localStorage key
 - 内部 API 路径和数据结构
 - 文件路径、代码块、日志原文、模型原文、用户自由输入内容
+
+路径约定补充：
+
+- 桌面 Electron 默认数据目录：
+  - Windows: `AppData/Roaming/penclip`
+  - macOS: `~/Library/Application Support/penclip`
+  - Linux: `~/.config/penclip` 或 `$XDG_CONFIG_HOME/penclip`
+- CLI/server 默认数据目录：`~/.paperclip`
+
+这些路径都是技术契约，不应该因为可见品牌名是 `Paperclip CN` 就被改成带空格的目录名。
 
 补充规则：
 

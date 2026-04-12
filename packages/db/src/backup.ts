@@ -15,10 +15,17 @@ type PartialConfig = {
   };
 };
 
+const LEGACY_WINDOWS_HOME_PREFIX_RE =
+  /^([A-Za-z]:[\\/].*?AppData[\\/]Roaming[\\/])(Paperclip CN|Paperclip)([\\/]|$)/i;
+const DESKTOP_USER_DATA_DIRNAME = "penclip";
+
 function expandHomePrefix(value: string): string {
   if (value === "~") return os.homedir();
   if (value.startsWith("~/")) return path.resolve(os.homedir(), value.slice(2));
-  return value;
+  return value.replace(
+    LEGACY_WINDOWS_HOME_PREFIX_RE,
+    (_, prefix: string, _name: string, suffix: string) => `${prefix}${DESKTOP_USER_DATA_DIRNAME}${suffix}`,
+  );
 }
 
 function resolvePaperclipHomeDir(): string {

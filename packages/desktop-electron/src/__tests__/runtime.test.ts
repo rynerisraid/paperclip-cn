@@ -37,7 +37,7 @@ function buildInput(mode: DesktopRuntimeInput["mode"]): DesktopRuntimeInput {
   return {
     appRoot: "C:\\paperclip\\desktop-electron",
     repoRoot: "C:\\paperclip",
-    userDataDir: "C:\\Users\\chenj\\AppData\\Roaming\\Paperclip",
+    userDataDir: "C:\\Users\\chenj\\AppData\\Roaming\\penclip",
     mode,
   };
 }
@@ -106,7 +106,7 @@ describe("buildWorkerEnvironment", () => {
     expect(resolveServerEntrypoint({
       appRoot,
       repoRoot: "C:\\paperclip",
-      userDataDir: "C:\\Users\\chenj\\AppData\\Roaming\\Paperclip",
+      userDataDir: "C:\\Users\\chenj\\AppData\\Roaming\\penclip",
       mode: "packaged",
     })).toBe(legacyEntrypoint);
   });
@@ -134,7 +134,7 @@ describe("buildWorkerEnvironment", () => {
 
     const env = buildWorkerEnvironment(buildInput("development"));
 
-    expect(env.PAPERCLIP_HOME).toBe("C:\\Users\\chenj\\AppData\\Roaming\\Paperclip");
+    expect(env.PAPERCLIP_HOME).toBe("C:\\Users\\chenj\\AppData\\Roaming\\penclip");
     expect(env.PAPERCLIP_CONTEXT).toBeUndefined();
     expect(env.PAPERCLIP_CONFIG).toBeUndefined();
     expect(env.PAPERCLIP_IN_WORKTREE).toBeUndefined();
@@ -189,6 +189,12 @@ describe("buildWorkerEnvironment", () => {
 
     expect(resolveDesktopUserDataDir("C:\\Users\\chenj\\AppData\\Roaming\\Paperclip CN")).toBe(
       path.resolve("C:\\temp\\paperclip-desktop-user-data"),
+    );
+  });
+
+  it("uses the penclip data directory even when the Electron default includes the branded name", () => {
+    expect(resolveDesktopUserDataDir("C:\\Users\\chenj\\AppData\\Roaming\\Paperclip CN")).toBe(
+      path.resolve("C:\\Users\\chenj\\AppData\\Roaming\\penclip"),
     );
   });
 });

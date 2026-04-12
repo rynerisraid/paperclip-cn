@@ -633,12 +633,6 @@ export async function resolveCommandForLogs(command: string, cwd: string, env: N
   return (await resolveCommandPath(command, cwd, env)) ?? command;
 }
 
-function quoteForCmd(arg: string) {
-  if (!arg.length) return '""';
-  const escaped = arg.replace(/"/g, '""');
-  return /[\s"&<>|^()]/.test(escaped) ? `"${escaped}"` : escaped;
-}
-
 async function readShebangTokens(executable: string): Promise<string[] | null> {
   try {
     const handle = await fs.open(executable, "r");
@@ -711,10 +705,9 @@ async function resolveSpawnTarget(
     // Always use cmd.exe for .cmd/.bat wrappers. Some environments override
     // ComSpec to PowerShell, which breaks cmd-specific flags like /d /s /c.
     const shell = resolveWindowsCmdShell(env);
-    const commandLine = [quoteForCmd(executable), ...args.map(quoteForCmd)].join(" ");
     return {
       command: shell,
-      args: ["/d", "/s", "/c", commandLine],
+      args: ["/d", "/s", "/c", executable, ...args],
     };
   }
 

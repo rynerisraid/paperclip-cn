@@ -18,6 +18,7 @@ export const DESKTOP_TITLEBAR_HEIGHT = 42;
 export const DESKTOP_WINDOW_TITLE = "Paperclip CN";
 export const DESKTOP_APP_ID = "ai.penclip.desktop";
 export const DESKTOP_PREFERENCES_FILENAME = "desktop-preferences.json";
+export const DESKTOP_USER_DATA_DIRNAME = "penclip";
 const DESKTOP_TEMP_INSTANCE_PATH_RE = /paperclip-desktop-(?:smoke|acceptance)-/i;
 
 export type DesktopTitlebarThemeConfig = {
@@ -128,7 +129,8 @@ function resolveDesktopPaperclipContextPath(paperclipHome: string): string {
 
 export function resolveDesktopUserDataDir(defaultUserDataDir: string): string {
   const override = process.env.PAPERCLIP_DESKTOP_USER_DATA_DIR?.trim();
-  return override ? path.resolve(override) : defaultUserDataDir;
+  if (override) return path.resolve(override);
+  return path.resolve(path.dirname(defaultUserDataDir), DESKTOP_USER_DATA_DIRNAME);
 }
 
 export function resolveDesktopPreferencesPath(userDataDir: string): string {

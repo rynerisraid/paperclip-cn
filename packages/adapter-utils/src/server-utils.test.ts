@@ -64,6 +64,36 @@ async function waitForPidExit(pid: number, timeoutMs = 2_000) {
 }
 
 describe("runChildProcess", () => {
+  itWindows("preserves quoted .cmd arguments with spaces and trailing backslashes", async () => {
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "paperclip-run-child-cmd-"));
+    cleanups.push(tempDir);
+
+    const commandPath = path.join(tempDir, "echo-argv.cmd");
+    const nodePath = process.execPath.replace(/\\/g, "\\\\");
+    await fs.writeFile(
+      commandPath,
+      `@echo off\r\n"${nodePath}" -e "process.stdout.write(JSON.stringify(process.argv.slice(1)))" -- %*\r\n`,
+      "utf8",
+    );
+
+    const trickyArg = "C:\\Users\\chenj\\AppData\\Roaming\\Paperclip CN\\instances\\default\\projects\\demo\\_default\\";
+    const result = await runChildProcess(
+      randomUUID(),
+      commandPath,
+      ["--append-system-prompt-file", trickyArg],
+      {
+        cwd: tempDir,
+        env: {},
+        timeoutSec: 5,
+        graceSec: 1,
+        onLog: async () => {},
+      },
+    );
+
+    expect(result.exitCode).toBe(0);
+    expect(JSON.parse(result.stdout)).toEqual(["--append-system-prompt-file", trickyArg]);
+  });
+
   it("waits for onSpawn before sending stdin to the child", async () => {
     const spawnDelayMs = 150;
     const startedAt = Date.now();

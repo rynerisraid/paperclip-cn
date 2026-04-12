@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { randomBytes } from "node:crypto";
 import { config as loadDotenv, parse as parseEnvFileContents } from "dotenv";
+import { normalizeLegacyDesktopStoragePath } from "./home.js";
 import { resolveConfigPath } from "./store.js";
 
 const JWT_SECRET_ENV_KEY = "PAPERCLIP_AGENT_JWT_SECRET";
@@ -16,10 +17,21 @@ function isNonEmpty(value: unknown): value is string {
 
 function parseEnvFile(contents: string) {
   try {
-    return parseEnvFileContents(contents);
+    return normalizeEnvEntries(parseEnvFileContents(contents));
   } catch {
     return {};
   }
+}
+
+function normalizeEnvEntries(entries: Record<string, string>): Record<string, string> {
+  const next = { ...entries };
+  for (const key of ["PAPERCLIP_HOME", "PAPERCLIP_CONTEXT", "PAPERCLIP_WORKTREES_DIR"] as const) {
+    const value = next[key];
+    if (typeof value === "string" && value.trim().length > 0) {
+      next[key] = normalizeLegacyDesktopStoragePath(value.trim());
+    }
+  }
+  return next;
 }
 
 function formatEnvValue(value: string): string {
@@ -65,6 +77,12 @@ export function loadAgentJwtEnvFile(filePath = resolveEnvFilePath()): void {
   if (!fs.existsSync(filePath)) return;
   loadedEnvFiles.add(filePath);
   loadDotenv({ path: filePath, override: false, quiet: true });
+  const normalizedEntries = readPaperclipEnvEntries(filePath);
+  for (const [key, value] of Object.entries(normalizedEntries)) {
+    if (process.env[key] === undefined) {
+      process.env[key] = value;
+    }
+  }
 }
 
 export function readAgentJwtSecretFromEnv(configPath?: string): string | null {

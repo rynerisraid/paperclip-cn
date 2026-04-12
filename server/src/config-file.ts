@@ -1,5 +1,13 @@
 import fs from "node:fs";
-import { resolveDefaultBackupDir, resolveDefaultEmbeddedPostgresDir, resolveDefaultLogsDir, resolveDefaultSecretsKeyFilePath, resolveDefaultStorageDir, resolveHomeAwarePath } from "./home-paths.js";
+import {
+  normalizeLegacyDesktopStoragePath,
+  resolveDefaultBackupDir,
+  resolveDefaultEmbeddedPostgresDir,
+  resolveDefaultLogsDir,
+  resolveDefaultSecretsKeyFilePath,
+  resolveDefaultStorageDir,
+  resolveHomeAwarePath,
+} from "./home-paths.js";
 import { paperclipConfigSchema, type PaperclipConfig } from "@penclipai/shared";
 import { resolvePaperclipConfigPath } from "./paths.js";
 
@@ -50,6 +58,39 @@ function repairBrokenDesktopTempPaths(raw: unknown): unknown {
   return next;
 }
 
+function repairLegacyDesktopStoragePaths(raw: unknown): unknown {
+  if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
+    return raw;
+  }
+
+  const next = structuredClone(raw as Record<string, unknown>);
+  const database = asRecord(next.database);
+  const logging = asRecord(next.logging);
+  const storage = asRecord(next.storage);
+  const storageLocalDisk = asRecord(storage?.localDisk);
+  const secrets = asRecord(next.secrets);
+  const localEncrypted = asRecord(secrets?.localEncrypted);
+  const backup = asRecord(database?.backup);
+
+  if (database && typeof database.embeddedPostgresDataDir === "string") {
+    database.embeddedPostgresDataDir = normalizeLegacyDesktopStoragePath(database.embeddedPostgresDataDir);
+  }
+  if (backup && typeof backup.dir === "string") {
+    backup.dir = normalizeLegacyDesktopStoragePath(backup.dir);
+  }
+  if (logging && typeof logging.logDir === "string") {
+    logging.logDir = normalizeLegacyDesktopStoragePath(logging.logDir);
+  }
+  if (storageLocalDisk && typeof storageLocalDisk.baseDir === "string") {
+    storageLocalDisk.baseDir = normalizeLegacyDesktopStoragePath(storageLocalDisk.baseDir);
+  }
+  if (localEncrypted && typeof localEncrypted.keyFilePath === "string") {
+    localEncrypted.keyFilePath = normalizeLegacyDesktopStoragePath(localEncrypted.keyFilePath);
+  }
+
+  return next;
+}
+
 export function readConfigFile(): PaperclipConfig | null {
   const configPath = resolvePaperclipConfigPath();
 
@@ -57,7 +98,7 @@ export function readConfigFile(): PaperclipConfig | null {
 
   try {
     const raw = JSON.parse(fs.readFileSync(configPath, "utf-8"));
-    return paperclipConfigSchema.parse(repairBrokenDesktopTempPaths(raw));
+    return paperclipConfigSchema.parse(repairBrokenDesktopTempPaths(repairLegacyDesktopStoragePaths(raw)));
   } catch {
     return null;
   }
