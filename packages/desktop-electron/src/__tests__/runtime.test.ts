@@ -194,7 +194,7 @@ describe("buildWorkerEnvironment", () => {
 
   it("uses the penclip data directory even when the Electron default includes the branded name", () => {
     expect(resolveDesktopUserDataDir("C:\\Users\\chenj\\AppData\\Roaming\\Paperclip CN")).toBe(
-      path.resolve("C:\\Users\\chenj\\AppData\\Roaming\\penclip"),
+      "C:\\Users\\chenj\\AppData\\Roaming\\penclip",
     );
   });
 });

@@ -175,19 +175,19 @@ describe("readConfigFile", () => {
     const config = readConfigFile();
 
     expect(config?.database.embeddedPostgresDataDir).toBe(
-      path.resolve("C:\\Users\\chenj\\AppData\\Roaming\\penclip\\instances\\default\\db"),
+      "C:\\Users\\chenj\\AppData\\Roaming\\penclip\\instances\\default\\db",
     );
     expect(config?.database.backup.dir).toBe(
-      path.resolve("C:\\Users\\chenj\\AppData\\Roaming\\penclip\\instances\\default\\data\\backups"),
+      "C:\\Users\\chenj\\AppData\\Roaming\\penclip\\instances\\default\\data\\backups",
     );
     expect(config?.logging.logDir).toBe(
-      path.resolve("C:\\Users\\chenj\\AppData\\Roaming\\penclip\\instances\\default\\logs"),
+      "C:\\Users\\chenj\\AppData\\Roaming\\penclip\\instances\\default\\logs",
     );
     expect(config?.storage.localDisk.baseDir).toBe(
-      path.resolve("C:\\Users\\chenj\\AppData\\Roaming\\penclip\\instances\\default\\data\\storage"),
+      "C:\\Users\\chenj\\AppData\\Roaming\\penclip\\instances\\default\\data\\storage",
     );
     expect(config?.secrets.localEncrypted.keyFilePath).toBe(
-      path.resolve("C:\\Users\\chenj\\AppData\\Roaming\\penclip\\instances\\default\\secrets\\master.key"),
+      "C:\\Users\\chenj\\AppData\\Roaming\\penclip\\instances\\default\\secrets\\master.key",
     );
   });
 });
