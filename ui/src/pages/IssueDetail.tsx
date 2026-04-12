@@ -222,14 +222,15 @@ function mergeOptimisticFeedbackVote(
 }
 
 function ActorIdentity({ evt, agentMap }: { evt: ActivityEvent; agentMap: Map<string, Agent> }) {
+  const { t } = useTranslation();
   const id = evt.actorId;
   if (evt.actorType === "agent") {
     const agent = agentMap.get(id);
     return <Identity name={agent?.name ?? id.slice(0, 8)} size="sm" />;
   }
-  if (evt.actorType === "system") return <Identity name="System" size="sm" />;
-  if (evt.actorType === "user") return <Identity name="Board" size="sm" />;
-  return <Identity name={id || "Unknown"} size="sm" />;
+  if (evt.actorType === "system") return <Identity name={t("System", { defaultValue: "System" })} size="sm" />;
+  if (evt.actorType === "user") return <Identity name={t("Board", { defaultValue: "Board" })} size="sm" />;
+  return <Identity name={id || t("Unknown", { defaultValue: "Unknown" })} size="sm" />;
 }
 
 function IssueSectionSkeleton({

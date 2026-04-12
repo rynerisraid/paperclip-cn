@@ -1,4 +1,5 @@
 import { Link } from "@/lib/router";
+import { useTranslation } from "react-i18next";
 import { Identity } from "./Identity";
 import { timeAgo } from "../lib/timeAgo";
 import { cn } from "../lib/utils";
@@ -25,6 +26,7 @@ interface ActivityRowProps {
 }
 
 export function ActivityRow({ event, agentMap, entityNameMap, entityTitleMap, className }: ActivityRowProps) {
+  const { t } = useTranslation();
   const verb = formatActivityVerb(event.action, event.details, { agentMap });
 
   const isHeartbeatEvent = event.entityType === "heartbeat_run";
@@ -43,7 +45,13 @@ export function ActivityRow({ event, agentMap, entityNameMap, entityTitleMap, cl
     : entityLink(event.entityType, event.entityId, name);
 
   const actor = event.actorType === "agent" ? agentMap.get(event.actorId) : null;
-  const actorName = actor?.name ?? (event.actorType === "system" ? "System" : event.actorType === "user" ? "Board" : event.actorId || "Unknown");
+  const actorName = actor?.name ?? (
+    event.actorType === "system"
+      ? t("System", { defaultValue: "System" })
+      : event.actorType === "user"
+        ? t("Board", { defaultValue: "Board" })
+        : event.actorId || t("Unknown", { defaultValue: "Unknown" })
+  );
 
   const inner = (
     <div className="flex gap-3">

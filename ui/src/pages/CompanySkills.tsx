@@ -151,45 +151,47 @@ function sourceMeta(sourceBadge: CompanySkillSourceBadge, sourceLabel: string | 
     normalizedLabel.includes("skills.sh") || normalizedLabel.includes("vercel-labs/skills");
   const translatedSourceLabel =
     sourceLabel === "Paperclip bundled"
-      ? translateInstant("Paperclip CN bundled", { defaultValue: "Paperclip CN bundled" })
-      : sourceLabel;
+      ? translateInstant("companySkills.source.paperclipBundled", { defaultValue: "Paperclip CN bundled" })
+      : sourceLabel === "Paperclip workspace"
+        ? translateInstant("companySkills.source.paperclipWorkspace", { defaultValue: "Paperclip workspace" })
+        : sourceLabel;
 
   switch (sourceBadge) {
     case "skills_sh":
       return {
         icon: VercelMark,
         label: translatedSourceLabel ?? "skills.sh",
-        managedLabel: translateInstant("skills.sh managed", { defaultValue: "skills.sh managed" }),
+        managedLabel: translateInstant("companySkills.sourceManaged.skillsSh", { defaultValue: "skills.sh managed" }),
       };
     case "github":
       return isSkillsShManaged
         ? {
             icon: VercelMark,
             label: translatedSourceLabel ?? "skills.sh",
-            managedLabel: translateInstant("skills.sh managed", { defaultValue: "skills.sh managed" }),
+            managedLabel: translateInstant("companySkills.sourceManaged.skillsSh", { defaultValue: "skills.sh managed" }),
           }
         : {
             icon: Github,
             label: translatedSourceLabel ?? "GitHub",
-            managedLabel: translateInstant("GitHub managed", { defaultValue: "GitHub managed" }),
+            managedLabel: translateInstant("companySkills.sourceManaged.github", { defaultValue: "GitHub managed" }),
           };
     case "url":
       return {
         icon: Link2,
         label: translatedSourceLabel ?? "URL",
-        managedLabel: translateInstant("URL managed", { defaultValue: "URL managed" }),
+        managedLabel: translateInstant("companySkills.sourceManaged.url", { defaultValue: "URL managed" }),
       };
     case "local":
       return {
         icon: Folder,
         label: translatedSourceLabel ?? translateInstant("Folder", { defaultValue: "Folder" }),
-        managedLabel: translateInstant("Folder managed", { defaultValue: "Folder managed" }),
+        managedLabel: translateInstant("companySkills.sourceManaged.folder", { defaultValue: "Folder managed" }),
       };
     case "paperclip":
       return {
         icon: Paperclip,
         label: translatedSourceLabel ?? translateInstant("brand.productName"),
-        managedLabel: translateInstant("{{label}} managed", {
+        managedLabel: translateInstant("companySkills.sourceManaged.paperclip", {
           label: translatedSourceLabel ?? translateInstant("brand.productName"),
           defaultValue: `${translatedSourceLabel ?? translateInstant("brand.productName")} managed`,
         }),
@@ -198,8 +200,37 @@ function sourceMeta(sourceBadge: CompanySkillSourceBadge, sourceLabel: string | 
       return {
         icon: Boxes,
         label: translatedSourceLabel ?? translateInstant("Catalog", { defaultValue: "Catalog" }),
-        managedLabel: translateInstant("Catalog managed", { defaultValue: "Catalog managed" }),
+        managedLabel: translateInstant("companySkills.sourceManaged.catalog", { defaultValue: "Catalog managed" }),
       };
+  }
+}
+
+function translateSkillEditableReason(reason: string | null) {
+  if (!reason) return null;
+
+  switch (reason) {
+    case "Bundled Paperclip skills are read-only.":
+      return translateInstant("companySkills.editableReason.paperclipBundled", {
+        defaultValue: "Bundled Paperclip skills are read-only.",
+      });
+    case "Skills.sh-managed skills are read-only.":
+      return translateInstant("companySkills.editableReason.skillsSh", {
+        defaultValue: "Skills.sh-managed skills are read-only.",
+      });
+    case "Remote GitHub skills are read-only. Fork or import locally to edit them.":
+      return translateInstant("companySkills.editableReason.github", {
+        defaultValue: "Remote GitHub skills are read-only. Fork or import locally to edit them.",
+      });
+    case "URL-based skills are read-only. Save them locally to edit them.":
+      return translateInstant("companySkills.editableReason.url", {
+        defaultValue: "URL-based skills are read-only. Save them locally to edit them.",
+      });
+    case "This skill source is read-only.":
+      return translateInstant("companySkills.editableReason.generic", {
+        defaultValue: "This skill source is read-only.",
+      });
+    default:
+      return reason;
   }
 }
 
@@ -630,7 +661,9 @@ function SkillPane({
   const latestPin = shortRef(updateStatus?.latestRef);
   const removeBlocked = usedBy.length > 0;
   const removeDisabledReason = removeBlocked
-    ? "Detach this skill from all agents before removing it."
+    ? t("companySkills.removeDisabledReason", {
+      defaultValue: "Detach this skill from all agents before removing it.",
+    })
     : null;
 
   return (
@@ -670,7 +703,7 @@ function SkillPane({
                   : t("Edit", { defaultValue: "Edit" })}
               </button>
             ) : (
-              <div className="text-sm text-muted-foreground" data-e2e-ignore-i18n>{detail.editableReason}</div>
+              <div className="text-sm text-muted-foreground">{translateSkillEditableReason(detail.editableReason)}</div>
             )}
           </div>
         </div>

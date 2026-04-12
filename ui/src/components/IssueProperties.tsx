@@ -727,7 +727,7 @@ export function IssueProperties({
       {issue.ancestors?.[0]?.title ?? currentParentIssue?.title ?? issue.parentId.slice(0, 8)}
     </span>
   ) : (
-    <span className="text-sm text-muted-foreground">No parent</span>
+    <span className="text-sm text-muted-foreground">{t("issueProperties.noParent", { defaultValue: "No parent" })}</span>
   );
   const parentOptions = (allIssues ?? [])
     .filter((candidate) => candidate.id !== issue.id)
@@ -749,7 +749,7 @@ export function IssueProperties({
     <>
       <input
         className="w-full px-2 py-1.5 text-xs bg-transparent outline-none border-b border-border mb-1 placeholder:text-muted-foreground/50"
-        placeholder="Search issues..."
+        placeholder={t("Search issues...", { defaultValue: "Search issues..." })}
         value={parentSearch}
         onChange={(e) => setParentSearch(e.target.value)}
         autoFocus={!inline}
@@ -765,7 +765,7 @@ export function IssueProperties({
             setParentOpen(false);
           }}
         >
-          No parent
+          {t("issueProperties.noParent", { defaultValue: "No parent" })}
         </button>
         {parentOptions.map((candidate) => (
           <button
