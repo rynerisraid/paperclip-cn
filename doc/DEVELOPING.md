@@ -84,6 +84,35 @@ Current scope and notes:
 - startup splash screenshots are written to `packages/desktop-electron/.artifacts/smoke/<mode>/`
 - acceptance evidence is written to `packages/desktop-electron/.artifacts/smoke/acceptance-dev-core/` or `acceptance-dev-full/`
 
+### Desktop vs CLI/server local paths
+
+Paperclip CN currently uses two different local-state roots depending on how it is started:
+
+- **CLI/server default path**: `~/.paperclip`
+- **Desktop Electron default path**: the OS app-data directory with a fixed slug `penclip`
+
+Expected desktop defaults:
+
+- Windows: `C:\Users\<user>\AppData\Roaming\penclip\...`
+- macOS: `~/Library/Application Support/penclip/...`
+- Linux: `~/.config/penclip/...` (or `$XDG_CONFIG_HOME/penclip/...` when set)
+
+Expected CLI/server defaults:
+
+- all platforms: `~/.paperclip/...`
+
+Important boundary:
+
+- `Paperclip CN` is the **visible product name**
+- `penclip` is the **desktop storage directory slug**
+- `.paperclip` is the **CLI/server storage root**
+
+Do not “normalize” these into one name during upstream merges unless the product intentionally changes its storage model. In particular:
+
+- do not derive desktop storage paths from `productName`, window title, or visible brand strings
+- do not rewrite CLI/server defaults from `~/.paperclip` to the desktop app-data path
+- do not treat `AppData/Roaming/penclip` as a reason to rename `PAPERCLIP_*` env vars or repo-local `.paperclip/` files
+
 Acceptance speed tips:
 
 - use `pnpm smoke:desktop:acceptance` for routine regression

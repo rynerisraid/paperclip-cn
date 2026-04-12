@@ -1,6 +1,17 @@
 import { existsSync, lstatSync, readFileSync } from "node:fs";
 import path from "node:path";
 
+const LEGACY_WINDOWS_HOME_PREFIX_RE =
+  /^([A-Za-z]:[\\/].*?AppData[\\/]Roaming[\\/])(Paperclip CN|Paperclip)([\\/]|$)/i;
+const DESKTOP_USER_DATA_DIRNAME = "penclip";
+
+function normalizeLegacyDesktopStoragePath(value: string): string {
+  return value.replace(
+    LEGACY_WINDOWS_HOME_PREFIX_RE,
+    (_, prefix: string, _name: string, suffix: string) => `${prefix}${DESKTOP_USER_DATA_DIRNAME}${suffix}`,
+  );
+}
+
 function parseEnvFile(contents: string): Record<string, string> {
   const entries: Record<string, string> = {};
 
@@ -22,15 +33,22 @@ function parseEnvFile(contents: string): Record<string, string> {
       continue;
     }
 
+    let parsedValue = value;
     if (
       (value.startsWith("\"") && value.endsWith("\"")) ||
       (value.startsWith("'") && value.endsWith("'"))
     ) {
-      entries[key] = value.slice(1, -1);
-      continue;
+      parsedValue = value.slice(1, -1);
+    } else {
+      parsedValue = value.replace(/\s+#.*$/, "").trim();
     }
 
-    entries[key] = value.replace(/\s+#.*$/, "").trim();
+    if (key === "PAPERCLIP_HOME" || key === "PAPERCLIP_CONTEXT" || key === "PAPERCLIP_WORKTREES_DIR") {
+      parsedValue = normalizeLegacyDesktopStoragePath(parsedValue);
+    }
+
+    entries[key] = parsedValue;
+    continue;
   }
 
   return entries;

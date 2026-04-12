@@ -63,6 +63,27 @@ describe("dev-runner worktree env bootstrap", () => {
     expect(env.PAPERCLIP_OPTIONAL).toBe("");
   });
 
+  it("normalizes legacy desktop storage paths when bootstrapping repo-local worktree env", () => {
+    const root = createTempRoot("paperclip-dev-runner-worktree-legacy-env-");
+    fs.mkdirSync(path.join(root, ".paperclip"), { recursive: true });
+    fs.writeFileSync(path.join(root, ".git"), "gitdir: /tmp/paperclip/.git/worktrees/feature\n", "utf8");
+    fs.writeFileSync(
+      resolveWorktreeEnvFilePath(root),
+      [
+        "PAPERCLIP_HOME=C:\\Users\\chenj\\AppData\\Roaming\\Paperclip CN",
+        "PAPERCLIP_CONTEXT=C:\\Users\\chenj\\AppData\\Roaming\\Paperclip CN\\context.json",
+        "",
+      ].join("\n"),
+      "utf8",
+    );
+
+    const env: NodeJS.ProcessEnv = {};
+    bootstrapDevRunnerWorktreeEnv(root, env);
+
+    expect(env.PAPERCLIP_HOME).toBe("C:\\Users\\chenj\\AppData\\Roaming\\penclip");
+    expect(env.PAPERCLIP_CONTEXT).toBe("C:\\Users\\chenj\\AppData\\Roaming\\penclip\\context.json");
+  });
+
   it("reports uninitialized linked worktrees so dev runner can fail fast", () => {
     const root = createTempRoot("paperclip-dev-runner-worktree-missing-");
     fs.writeFileSync(path.join(root, ".git"), "gitdir: /tmp/paperclip/.git/worktrees/feature\n", "utf8");

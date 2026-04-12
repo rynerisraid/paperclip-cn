@@ -108,4 +108,86 @@ describe("readConfigFile", () => {
       path.resolve(os.homedir(), ".paperclip", "instances", "default", "secrets", "master.key"),
     );
   });
+
+  it("normalizes legacy desktop storage paths in repo-local configs", () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "paperclip-config-file-"));
+    const projectDir = path.join(tempDir, "repo");
+    fs.mkdirSync(projectDir, { recursive: true });
+    process.chdir(projectDir);
+    delete process.env.PAPERCLIP_CONFIG;
+    delete process.env.PAPERCLIP_HOME;
+
+    writeJson(path.join(projectDir, ".paperclip", "config.json"), {
+      $meta: {
+        version: 1,
+        updatedAt: "2026-04-12T00:00:00.000Z",
+        source: "configure",
+      },
+      database: {
+        mode: "embedded-postgres",
+        embeddedPostgresDataDir: "C:\\Users\\chenj\\AppData\\Roaming\\Paperclip CN\\instances\\default\\db",
+        embeddedPostgresPort: 54331,
+        backup: {
+          enabled: true,
+          intervalMinutes: 60,
+          retentionDays: 14,
+          dir: "C:\\Users\\chenj\\AppData\\Roaming\\Paperclip CN\\instances\\default\\data\\backups",
+        },
+      },
+      logging: {
+        mode: "file",
+        logDir: "C:\\Users\\chenj\\AppData\\Roaming\\Paperclip CN\\instances\\default\\logs",
+      },
+      server: {
+        deploymentMode: "local_trusted",
+        exposure: "private",
+        host: "127.0.0.1",
+        port: 3900,
+        allowedHostnames: [],
+        serveUi: true,
+      },
+      storage: {
+        provider: "local_disk",
+        localDisk: {
+          baseDir: "C:\\Users\\chenj\\AppData\\Roaming\\Paperclip CN\\instances\\default\\data\\storage",
+        },
+        s3: {
+          bucket: "paperclip",
+          region: "us-east-1",
+          prefix: "",
+          forcePathStyle: false,
+        },
+      },
+      secrets: {
+        provider: "local_encrypted",
+        strictMode: false,
+        localEncrypted: {
+          keyFilePath: "C:\\Users\\chenj\\AppData\\Roaming\\Paperclip CN\\instances\\default\\secrets\\master.key",
+        },
+      },
+      telemetry: { enabled: true },
+      auth: {
+        baseUrlMode: "auto",
+        disableSignUp: false,
+      },
+    });
+
+    const config = readConfigFile();
+
+    expect(config?.database.embeddedPostgresDataDir).toBe(
+      "C:\\Users\\chenj\\AppData\\Roaming\\penclip\\instances\\default\\db",
+    );
+    expect(config?.database.backup.dir).toBe(
+      "C:\\Users\\chenj\\AppData\\Roaming\\penclip\\instances\\default\\data\\backups",
+    );
+    expect(config?.logging.logDir).toBe(
+      "C:\\Users\\chenj\\AppData\\Roaming\\penclip\\instances\\default\\logs",
+    );
+    expect(config?.storage.localDisk.baseDir).toBe(
+      "C:\\Users\\chenj\\AppData\\Roaming\\penclip\\instances\\default\\data\\storage",
+    );
+    expect(config?.secrets.localEncrypted.keyFilePath).toBe(
+      "C:\\Users\\chenj\\AppData\\Roaming\\penclip\\instances\\default\\secrets\\master.key",
+    );
+  });
 });

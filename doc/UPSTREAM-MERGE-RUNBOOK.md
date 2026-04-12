@@ -85,6 +85,10 @@ Windows 兼容层：
 - dev/build/runtime 脚本中的 Windows 兼容修复
 - `tsx` / watch 相关兼容修复
 - 触及 dev/runtime 脚本时，优先确认是否仍应保持 `pnpm exec node --import tsx ...` 这类更稳写法
+- 桌面端默认存储目录与可见品牌名解耦
+  - Electron 桌面默认 `userData` 目录使用无空格 slug `penclip`
+  - 可见品牌名仍是 `Paperclip CN`
+  - CLI/server 默认 home 仍是 `~/.paperclip`
 
 ### 4.4 范围基线
 
@@ -189,6 +193,25 @@ git merge <upstream remote>/master
 ### 7.3 locale JSON
 
 处理 locale 文件只记四条：先保留上游新增 key，再补回 Paperclip CN 翻译；中英文一起改；不要引入重复 key。
+
+### 7.3.1 路径与品牌名边界
+
+路径类改动在 upstream merge 里非常容易被误判成“品牌替换没做完”。这里单独记一条：
+
+- **桌面 Electron 默认数据目录**：跟随操作系统 app-data 根目录，但最后一级固定为 `penclip`
+  - Windows: `AppData/Roaming/penclip`
+  - macOS: `~/Library/Application Support/penclip`
+  - Linux: `~/.config/penclip` 或 `$XDG_CONFIG_HOME/penclip`
+- **CLI/server 默认数据目录**：`~/.paperclip`
+- **可见品牌名**：`Paperclip CN`
+
+同步时不要做这些事：
+
+- 不要因为看到 `Paperclip CN` 文案，就把桌面 `userData` 目录回退成带空格的 `Paperclip CN`
+- 不要因为桌面目录用了 `penclip`，就把 CLI/server 默认 home 改成 app-data 目录
+- 不要把 repo-local `.paperclip/`、`PAPERCLIP_HOME`、`PAPERCLIP_CONTEXT` 这类技术标识当成“需要品牌替换”的文案
+
+如果上游改动触及 `packages/desktop-electron/src/runtime.ts`、`packages/desktop-electron/src/main.ts`、`cli/src/config/home.ts`、`server/src/home-paths.ts` 或配置/环境文件读写逻辑，必须额外确认上面三条边界仍然成立。
 
 ### 7.4 lockfile
 
@@ -319,6 +342,8 @@ git branch -f master <fork remote>/master
   - 正确做法：接受上游结构，再补最小 i18n 补丁
 - 只改中文 locale，不改英文 locale
   - 正确做法：中英文一起改
+- 把桌面默认数据目录和 CLI/server 默认 home 混成同一套路径
+  - 正确做法：桌面默认目录是系统 app-data 下的 `penclip`，CLI/server 默认目录仍是 `~/.paperclip`
 - 把模型正文、评论正文、日志、插件名、用户输入误当成漏翻
 - 跳过 fork 自己的历史对齐
 - 直接在本地 `master` 上 merge、提交、推送
