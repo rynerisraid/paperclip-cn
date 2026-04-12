@@ -2,7 +2,6 @@ import fs from "node:fs";
 import path from "node:path";
 import { paperclipConfigSchema, type PaperclipConfig } from "./schema.js";
 import {
-  normalizeLegacyDesktopStoragePath,
   resolveDefaultConfigPath,
   resolvePaperclipInstanceId,
 } from "./home.js";
@@ -66,53 +65,6 @@ function migrateLegacyConfig(raw: unknown): unknown {
   }
 
   config.database = database;
-  if (typeof database.embeddedPostgresDataDir === "string") {
-    database.embeddedPostgresDataDir = normalizeLegacyDesktopStoragePath(database.embeddedPostgresDataDir);
-  }
-  if (typeof database.backup === "object" && database.backup !== null && !Array.isArray(database.backup)) {
-    const backup = { ...(database.backup as Record<string, unknown>) };
-    if (typeof backup.dir === "string") {
-      backup.dir = normalizeLegacyDesktopStoragePath(backup.dir);
-    }
-    database.backup = backup;
-  }
-
-  const logging = config.logging;
-  if (typeof logging === "object" && logging !== null && !Array.isArray(logging)) {
-    const nextLogging = { ...(logging as Record<string, unknown>) };
-    if (typeof nextLogging.logDir === "string") {
-      nextLogging.logDir = normalizeLegacyDesktopStoragePath(nextLogging.logDir);
-    }
-    config.logging = nextLogging;
-  }
-
-  const storage = config.storage;
-  if (typeof storage === "object" && storage !== null && !Array.isArray(storage)) {
-    const nextStorage = { ...(storage as Record<string, unknown>) };
-    const localDisk = nextStorage.localDisk;
-    if (typeof localDisk === "object" && localDisk !== null && !Array.isArray(localDisk)) {
-      const nextLocalDisk = { ...(localDisk as Record<string, unknown>) };
-      if (typeof nextLocalDisk.baseDir === "string") {
-        nextLocalDisk.baseDir = normalizeLegacyDesktopStoragePath(nextLocalDisk.baseDir);
-      }
-      nextStorage.localDisk = nextLocalDisk;
-    }
-    config.storage = nextStorage;
-  }
-
-  const secrets = config.secrets;
-  if (typeof secrets === "object" && secrets !== null && !Array.isArray(secrets)) {
-    const nextSecrets = { ...(secrets as Record<string, unknown>) };
-    const localEncrypted = nextSecrets.localEncrypted;
-    if (typeof localEncrypted === "object" && localEncrypted !== null && !Array.isArray(localEncrypted)) {
-      const nextLocalEncrypted = { ...(localEncrypted as Record<string, unknown>) };
-      if (typeof nextLocalEncrypted.keyFilePath === "string") {
-        nextLocalEncrypted.keyFilePath = normalizeLegacyDesktopStoragePath(nextLocalEncrypted.keyFilePath);
-      }
-      nextSecrets.localEncrypted = nextLocalEncrypted;
-    }
-    config.secrets = nextSecrets;
-  }
   return config;
 }
 

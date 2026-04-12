@@ -7,9 +7,6 @@ const CONFIG_BASENAME = "config.json";
 const ENV_BASENAME = ".env";
 const INSTANCE_ID_RE = /^[a-zA-Z0-9_-]+$/;
 const DESKTOP_TEMP_INSTANCE_PATH_RE = /paperclip-desktop-(?:smoke|acceptance)-/i;
-const LEGACY_WINDOWS_HOME_PREFIX_RE =
-  /^([A-Za-z]:[\\/].*?AppData[\\/]Roaming[\\/])(Paperclip CN|Paperclip)([\\/]|$)/i;
-const DESKTOP_USER_DATA_DIRNAME = "penclip";
 
 type PartialConfig = {
   database?: {
@@ -42,10 +39,7 @@ export type ResolvedDatabaseTarget =
 function expandHomePrefix(value: string): string {
   if (value === "~") return os.homedir();
   if (value.startsWith("~/")) return path.resolve(os.homedir(), value.slice(2));
-  return value.replace(
-    LEGACY_WINDOWS_HOME_PREFIX_RE,
-    (_, prefix: string, _name: string, suffix: string) => `${prefix}${DESKTOP_USER_DATA_DIRNAME}${suffix}`,
-  );
+  return value;
 }
 
 function isPathInsideDir(candidatePath: string, parentDir: string): boolean {
