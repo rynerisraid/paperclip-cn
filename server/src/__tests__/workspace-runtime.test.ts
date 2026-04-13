@@ -1463,6 +1463,98 @@ describe("realizeExecutionWorkspace", () => {
     });
   }, WORKTREE_PROVISION_TEST_TIMEOUT);
 
+  it("does not remove a reused git worktree during cleanup", async () => {
+    const repoRoot = await createTempRepo();
+
+    const createdWorkspace = await realizeExecutionWorkspace({
+      base: {
+        baseCwd: repoRoot,
+        source: "project_primary",
+        projectId: "project-1",
+        workspaceId: "workspace-1",
+        repoUrl: null,
+        repoRef: "HEAD",
+      },
+      config: {
+        workspaceStrategy: {
+          type: "git_worktree",
+          branchTemplate: "{{issue.identifier}}-{{slug}}",
+        },
+      },
+      issue: {
+        id: "issue-1",
+        identifier: "PAP-450",
+        title: "Reusable workspace",
+      },
+      agent: {
+        id: "agent-1",
+        name: "Codex Coder",
+        companyId: "company-1",
+      },
+    });
+
+    const reusedWorkspace = await realizeExecutionWorkspace({
+      base: {
+        baseCwd: repoRoot,
+        source: "project_primary",
+        projectId: "project-1",
+        workspaceId: "workspace-1",
+        repoUrl: null,
+        repoRef: "HEAD",
+      },
+      config: {
+        workspaceStrategy: {
+          type: "git_worktree",
+          branchTemplate: "{{issue.identifier}}-{{slug}}",
+        },
+      },
+      issue: {
+        id: "issue-1",
+        identifier: "PAP-450",
+        title: "Reusable workspace",
+      },
+      agent: {
+        id: "agent-2",
+        name: "Second Agent",
+        companyId: "company-1",
+      },
+    });
+
+    expect(reusedWorkspace.created).toBe(false);
+    expect(reusedWorkspace.cwd).toBe(createdWorkspace.cwd);
+
+    const cleanup = await cleanupExecutionWorkspaceArtifacts({
+      workspace: {
+        id: "execution-workspace-1",
+        cwd: reusedWorkspace.cwd,
+        providerType: "git_worktree",
+        providerRef: reusedWorkspace.worktreePath,
+        branchName: reusedWorkspace.branchName,
+        repoUrl: reusedWorkspace.repoUrl,
+        baseRef: reusedWorkspace.repoRef,
+        projectId: reusedWorkspace.projectId,
+        projectWorkspaceId: reusedWorkspace.workspaceId,
+        sourceIssueId: "issue-1",
+        metadata: {
+          createdByRuntime: false,
+        },
+      },
+      projectWorkspace: {
+        cwd: repoRoot,
+        cleanupCommand: null,
+      },
+    });
+
+    expect(cleanup.cleaned).toBe(false);
+    expect(cleanup.warnings).toEqual([]);
+    await expect(fs.stat(reusedWorkspace.cwd)).resolves.toBeTruthy();
+    await expect(
+      execFileAsync("git", ["branch", "--list", reusedWorkspace.branchName!], { cwd: repoRoot }),
+    ).resolves.toMatchObject({
+      stdout: expect.stringContaining(reusedWorkspace.branchName!),
+    });
+  }, WORKTREE_PROVISION_TEST_TIMEOUT);
+
   it("keeps an unmerged runtime-created branch and warns instead of force deleting it", async () => {
     const repoRoot = await createTempRepo();
 

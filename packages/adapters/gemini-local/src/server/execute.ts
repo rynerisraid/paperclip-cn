@@ -71,8 +71,8 @@ function renderApiAccessNote(env: Record<string, string>): string {
     "GET example:",
     `  run_shell_command({ command: "curl -s -H \\"Authorization: Bearer $PAPERCLIP_API_KEY\\" \\"$PAPERCLIP_API_URL/api/agents/me\\"" })`,
     "POST/PATCH/PUT example:",
-    "  Write the request body to a UTF-8 file and send it with curl --data-binary @payload.json.",
-    `  run_shell_command({ command: "curl -s -X POST -H \\"Authorization: Bearer $PAPERCLIP_API_KEY\\" -H 'Content-Type: application/json' -H \\"X-Paperclip-Run-Id: $PAPERCLIP_RUN_ID\\" --data-binary @payload.json \\"$PAPERCLIP_API_URL/api/issues/{id}/checkout\\"" })`,
+    "  Send a valid JSON request body and include both the auth header and X-Paperclip-Run-Id.",
+    `  run_shell_command({ command: "curl -s -X POST -H \\"Authorization: Bearer $PAPERCLIP_API_KEY\\" -H 'Content-Type: application/json' -H \\"X-Paperclip-Run-Id: $PAPERCLIP_RUN_ID\\" --data '{\\\"agentId\\\":\\\"'$PAPERCLIP_AGENT_ID'\\\"}' \\"$PAPERCLIP_API_URL/api/issues/{id}/checkout\\"" })`,
     "",
     "",
   ].join("\n");

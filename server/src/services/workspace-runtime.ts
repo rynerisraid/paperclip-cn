@@ -1296,7 +1296,7 @@ export async function cleanupExecutionWorkspaceArtifacts(input: {
 
   if (input.workspace.providerType === "git_worktree" && workspacePath) {
     const worktreeExists = await directoryExists(workspacePath);
-    if (worktreeExists) {
+    if (worktreeExists && createdByRuntime) {
       if (!repoRoot) {
         warnings.push(`Could not resolve git repo root for "${workspacePath}".`);
       } else {
