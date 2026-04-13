@@ -70,8 +70,8 @@ describe("resolveRuntimeLocalizationPrompt", () => {
     expect(note).toContain("宿主环境：Windows PowerShell。");
     expect(note).toContain("CLI 契约：执行 Paperclip 命令一律使用 `penclip ...`");
     expect(note).toContain("`paperclipai ...`");
-    expect(note).toContain("API 契约：任何带请求体的 Paperclip API 调用");
-    expect(note).toContain("以宿主环境支持的安全方式发送合法 JSON");
+    expect(note).toContain("API 契约：优先使用 `penclip` CLI 完成 Paperclip 操作");
+    expect(note).toContain("只有在 CLI 无法覆盖时");
     expect(note).not.toContain("Python / Node");
   });
 
@@ -85,7 +85,7 @@ describe("resolveRuntimeLocalizationPrompt", () => {
     });
 
     expect(note).toContain("宿主环境：WSL bash。");
-    expect(note).toContain("安全方式发送合法 JSON");
+    expect(note).toContain("优先使用 `penclip` CLI");
   });
 
   it("returns an English note with a detected POSIX shell label", () => {
@@ -100,8 +100,8 @@ describe("resolveRuntimeLocalizationPrompt", () => {
     expect(note).toContain("Host runtime: zsh on darwin.");
     expect(note).toContain("CLI contract: use `penclip ...` for Paperclip commands");
     expect(note).toContain("`paperclipai ...`");
-    expect(note).toContain("API contract: for any Paperclip API call with a request body");
-    expect(note).toContain("send valid JSON using a safe mechanism supported by the current runtime");
+    expect(note).toContain("API contract: prefer the `penclip` CLI for Paperclip operations");
+    expect(note).toContain("only call the HTTP API directly when the CLI cannot cover the action");
     expect(note).not.toContain("Python / Node");
   });
 });

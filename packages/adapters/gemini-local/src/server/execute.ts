@@ -67,12 +67,9 @@ function renderApiAccessNote(env: Record<string, string>): string {
   if (!hasNonEmptyEnvValue(env, "PAPERCLIP_API_URL") || !hasNonEmptyEnvValue(env, "PAPERCLIP_API_KEY")) return "";
   return [
     "Paperclip API access note:",
-    "Use run_shell_command with curl to make Paperclip API requests.",
-    "GET example:",
-    `  run_shell_command({ command: "curl -s -H \\"Authorization: Bearer $PAPERCLIP_API_KEY\\" \\"$PAPERCLIP_API_URL/api/agents/me\\"" })`,
-    "POST/PATCH/PUT example:",
-    "  Send a valid JSON request body and include both the auth header and X-Paperclip-Run-Id.",
-    `  run_shell_command({ command: "curl -s -X POST -H \\"Authorization: Bearer $PAPERCLIP_API_KEY\\" -H 'Content-Type: application/json' -H \\"X-Paperclip-Run-Id: $PAPERCLIP_RUN_ID\\" --data '{\\\"agentId\\\":\\\"'$PAPERCLIP_AGENT_ID'\\\"}' \\"$PAPERCLIP_API_URL/api/issues/{id}/checkout\\"" })`,
+    "Prefer the penclip CLI for Paperclip operations whenever possible.",
+    "Only fall back to direct HTTP requests when the CLI cannot perform the action.",
+    "If you do call the API directly, include Authorization and X-Paperclip-Run-Id headers.",
     "",
     "",
   ].join("\n");
