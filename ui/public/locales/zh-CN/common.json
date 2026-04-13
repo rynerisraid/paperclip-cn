@@ -701,6 +701,7 @@
   "Issue update failed": "更新任务失败",
   "Archive failed": "归档失败",
   "Unable to archive this issue from the inbox": "无法将此任务从收件箱归档",
+  "Unable to load issue preview.": "无法加载任务预览。",
   "Unable to post comment": "无法发布评论",
   "Unable to save issue changes": "无法保存任务变更",
   "No configuration revisions yet.": "暂无配置版本记录。",
