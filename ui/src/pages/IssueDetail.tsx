@@ -27,6 +27,7 @@ import {
   readIssueDetailHeaderSeed,
   rememberIssueDetailLocationState,
 } from "../lib/issueDetailBreadcrumb";
+import { resolveIssueActiveRun, shouldTrackIssueActiveRun } from "../lib/issueActiveRun";
 import {
   hasBlockingShortcutDialog,
   resolveIssueDetailGoKeyAction,
@@ -474,13 +475,15 @@ export function IssueDetail() {
     placeholderData: keepPreviousData,
   });
 
-  const { data: activeRun, isLoading: activeRunLoading } = useQuery({
+  const shouldPollActiveRun = shouldTrackIssueActiveRun(issue);
+  const { data: rawActiveRun, isLoading: activeRunLoading } = useQuery({
     queryKey: queryKeys.issues.activeRun(issueId!),
     queryFn: () => heartbeatsApi.activeRunForIssue(issueId!),
-    enabled: !!issueId && (!!issue?.executionRunId || issue?.status === "in_progress"),
+    enabled: !!issueId && shouldPollActiveRun,
     refetchInterval: (liveRuns?.length ?? 0) > 0 ? false : 3000,
     placeholderData: keepPreviousData,
   });
+  const activeRun = resolveIssueActiveRun(issue, rawActiveRun);
 
   const hasLiveRuns = (liveRuns ?? []).length > 0 || !!activeRun;
   const runningIssueRun = useMemo(
@@ -499,10 +502,17 @@ export function IssueDetail() {
     () => readIssueDetailHeaderSeed(location.state) ?? readIssueDetailHeaderSeed(resolvedIssueDetailState),
     [location.state, resolvedIssueDetailState],
   );
-  const sourceBreadcrumb = useMemo(
-    () => readIssueDetailBreadcrumb(issueId, location.state, location.search) ?? { label: "Issues", href: "/issues" },
-    [issueId, location.state, location.search],
-  );
+  const sourceBreadcrumb = useMemo(() => {
+    const breadcrumb =
+      readIssueDetailBreadcrumb(issueId, location.state, location.search) ?? { label: "Issues", href: "/issues" };
+    if (breadcrumb.label === "Inbox" || breadcrumb.href.includes("/inbox")) {
+      return { ...breadcrumb, label: t("Inbox", { defaultValue: "Inbox" }) };
+    }
+    if (breadcrumb.label === "Issues" || breadcrumb.href.includes("/issues")) {
+      return { ...breadcrumb, label: t("Issues", { defaultValue: "Issues" }) };
+    }
+    return breadcrumb;
+  }, [issueId, location.state, location.search, t]);
 
   // Filter out runs already shown by the live widget to avoid duplication
   const timelineRuns = useMemo(() => {
@@ -899,8 +909,10 @@ export function IssueDetail() {
         queryClient.setQueryData(queryKeys.issues.list(context.selectedCompanyId), context.previousList);
       }
       pushToast({
-        title: "Issue update failed",
-        body: err instanceof Error ? err.message : "Unable to save issue changes",
+        title: t("Issue update failed", { defaultValue: "Issue update failed" }),
+        body: err instanceof Error
+          ? err.message
+          : t("Unable to save issue changes", { defaultValue: "Unable to save issue changes" }),
         tone: "error",
       });
     },
@@ -934,14 +946,20 @@ export function IssueDetail() {
         queryClient.invalidateQueries({ queryKey: queryKeys.approvals.list(resolvedCompanyId) });
       }
       pushToast({
-        title: variables.action === "approve" ? "Approval approved" : "Approval rejected",
+        title: variables.action === "approve"
+          ? t("Approval approved", { defaultValue: "Approval approved" })
+          : t("Approval rejected", { defaultValue: "Approval rejected" }),
         tone: "success",
       });
     },
     onError: (err, variables) => {
       pushToast({
-        title: variables.action === "approve" ? "Approval failed" : "Rejection failed",
-        body: err instanceof Error ? err.message : "Unable to update approval",
+        title: variables.action === "approve"
+          ? t("Approval failed", { defaultValue: "Approval failed" })
+          : t("Rejection failed", { defaultValue: "Rejection failed" }),
+        body: err instanceof Error
+          ? err.message
+          : t("Unable to update approval", { defaultValue: "Unable to update approval" }),
         tone: "error",
       });
     },
@@ -1016,8 +1034,8 @@ export function IssueDetail() {
         queryClient.setQueryData(queryKeys.issues.detail(issueId!), context.previousIssue);
       }
       pushToast({
-        title: "Comment failed",
-        body: err instanceof Error ? err.message : "Unable to post comment",
+        title: t("Comment failed", { defaultValue: "Comment failed" }),
+        body: err instanceof Error ? err.message : t("Unable to post comment", { defaultValue: "Unable to post comment" }),
         tone: "error",
       });
     },
@@ -1115,8 +1133,8 @@ export function IssueDetail() {
         queryClient.setQueryData(queryKeys.issues.detail(issueId!), context.previousIssue);
       }
       pushToast({
-        title: "Comment failed",
-        body: err instanceof Error ? err.message : "Unable to post comment",
+        title: t("Comment failed", { defaultValue: "Comment failed" }),
+        body: err instanceof Error ? err.message : t("Unable to post comment", { defaultValue: "Unable to post comment" }),
         tone: "error",
       });
     },
@@ -1173,8 +1191,10 @@ export function IssueDetail() {
       invalidateIssueDetail();
       invalidateIssueRunState();
       pushToast({
-        title: "Interrupt requested",
-        body: "The active run is stopping so queued comments can continue next.",
+        title: t("Interrupt requested", { defaultValue: "Interrupt requested" }),
+        body: t("The active run is stopping so queued comments can continue next.", {
+          defaultValue: "The active run is stopping so queued comments can continue next.",
+        }),
         tone: "success",
       });
     },
@@ -1183,8 +1203,10 @@ export function IssueDetail() {
       queryClient.setQueryData(queryKeys.issues.liveRuns(issueId!), context?.previousLiveRuns);
       queryClient.setQueryData(queryKeys.issues.activeRun(issueId!), context?.previousActiveRun);
       pushToast({
-        title: "Interrupt failed",
-        body: err instanceof Error ? err.message : "Unable to interrupt the active run",
+        title: t("Interrupt failed", { defaultValue: "Interrupt failed" }),
+        body: err instanceof Error
+          ? err.message
+          : t("Unable to interrupt the active run", { defaultValue: "Unable to interrupt the active run" }),
         tone: "error",
       });
     },
@@ -1235,11 +1257,17 @@ export function IssueDetail() {
         title:
           variables.sharingPreferenceAtSubmit === "prompt"
             ? variables.allowSharing
-              ? "Feedback saved. Future votes will share"
-              : "Feedback saved. Future votes will stay local"
+              ? t("Feedback saved. Future votes will share", {
+                defaultValue: "Feedback saved. Future votes will share",
+              })
+              : t("Feedback saved. Future votes will stay local", {
+                defaultValue: "Feedback saved. Future votes will stay local",
+              })
             : variables.allowSharing
-              ? "Feedback saved and sharing enabled"
-              : "Feedback saved",
+              ? t("Feedback saved and sharing enabled", {
+                defaultValue: "Feedback saved and sharing enabled",
+              })
+              : t("Feedback saved", { defaultValue: "Feedback saved" }),
         tone: "success",
       });
     },
@@ -1248,8 +1276,8 @@ export function IssueDetail() {
         queryClient.setQueryData(queryKeys.issues.feedbackVotes(issueId!), context.previousVotes);
       }
       pushToast({
-        title: "Failed to save feedback",
-        body: err instanceof Error ? err.message : "Unknown error",
+        title: t("Failed to save feedback", { defaultValue: "Failed to save feedback" }),
+        body: err instanceof Error ? err.message : t("Unknown error", { defaultValue: "Unknown error" }),
         tone: "error",
       });
     },
@@ -1257,7 +1285,7 @@ export function IssueDetail() {
 
   const uploadAttachment = useMutation({
     mutationFn: async (file: File) => {
-      if (!selectedCompanyId) throw new Error("No company selected");
+      if (!selectedCompanyId) throw new Error(t("No company selected", { defaultValue: "No company selected" }));
       return issuesApi.uploadAttachment(selectedCompanyId, issueId!, file);
     },
     onSuccess: () => {
@@ -1266,7 +1294,7 @@ export function IssueDetail() {
       invalidateIssueDetail();
     },
     onError: (err) => {
-      setAttachmentError(err instanceof Error ? err.message : "Upload failed");
+      setAttachmentError(err instanceof Error ? err.message : t("Upload failed", { defaultValue: "Upload failed" }));
     },
   });
 
@@ -1291,7 +1319,9 @@ export function IssueDetail() {
       queryClient.invalidateQueries({ queryKey: queryKeys.issues.documents(issueId!) });
     },
     onError: (err) => {
-      setAttachmentError(err instanceof Error ? err.message : "Document import failed");
+      setAttachmentError(
+        err instanceof Error ? err.message : t("Document import failed", { defaultValue: "Document import failed" }),
+      );
     },
   });
 
@@ -1303,7 +1333,7 @@ export function IssueDetail() {
       invalidateIssueDetail();
     },
     onError: (err) => {
-      setAttachmentError(err instanceof Error ? err.message : "Delete failed");
+      setAttachmentError(err instanceof Error ? err.message : t("Delete failed", { defaultValue: "Delete failed" }));
     },
   });
 
@@ -1312,19 +1342,26 @@ export function IssueDetail() {
     onSuccess: () => {
       invalidateIssueCollections();
       navigate(sourceBreadcrumb.href.startsWith("/inbox") ? sourceBreadcrumb.href : "/inbox", { replace: true });
-      pushToast({ title: "Issue archived from inbox", tone: "success" });
+      pushToast({
+        title: t("Issue archived from inbox", { defaultValue: "Issue archived from inbox" }),
+        tone: "success",
+      });
     },
     onError: (err) => {
       pushToast({
-        title: "Archive failed",
-        body: err instanceof Error ? err.message : "Unable to archive this issue from the inbox",
+        title: t("Archive failed", { defaultValue: "Archive failed" }),
+        body: err instanceof Error
+          ? err.message
+          : t("Unable to archive this issue from the inbox", {
+            defaultValue: "Unable to archive this issue from the inbox",
+          }),
         tone: "error",
       });
     },
   });
 
   useEffect(() => {
-    const titleLabel = issue?.title ?? issueId ?? "Issue";
+    const titleLabel = issue?.title ?? issueId ?? t("entityType.issue", { defaultValue: "Issue" });
     setBreadcrumbs([
       sourceBreadcrumb,
       { label: hasLiveRuns ? `🔵 ${titleLabel}` : titleLabel },
@@ -1539,7 +1576,7 @@ export function IssueDetail() {
     const md = `# ${issue.identifier}: ${title}\n\n${body}`.trimEnd();
     await navigator.clipboard.writeText(md);
     setCopied(true);
-    pushToast({ title: "Copied to clipboard", tone: "success" });
+    pushToast({ title: t("Copied to clipboard", { defaultValue: "Copied to clipboard" }), tone: "success" });
     setTimeout(() => setCopied(false), 2000);
   };
 
