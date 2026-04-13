@@ -614,6 +614,7 @@
   "Issue update failed": "Issue update failed",
   "Archive failed": "Archive failed",
   "Unable to archive this issue from the inbox": "Unable to archive this issue from the inbox",
+  "Unable to load issue preview.": "Unable to load issue preview.",
   "Unable to post comment": "Unable to post comment",
   "Unable to save issue changes": "Unable to save issue changes",
   "No cost data yet.": "No cost data yet.",
