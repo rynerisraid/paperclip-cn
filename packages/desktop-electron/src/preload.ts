@@ -44,6 +44,44 @@ let navigationState = {
   canGoForward: false,
 };
 let colorNormalizationContext: CanvasRenderingContext2D | null = null;
+const desktopShellBridge = {
+  async retryStart() {
+    await ipcRenderer.invoke("desktop-shell:retry-start");
+  },
+  async setTheme(theme: DesktopTheme) {
+    currentTheme = theme;
+    const persistPromise = ipcRenderer.invoke("desktop-shell:set-theme-preference", theme).catch((error) => {
+      console.warn("[desktop-preload] Failed to persist desktop theme:", error);
+      return false;
+    });
+
+    await ensureTitlebar(theme);
+    await persistPromise;
+  },
+  initialTheme: initialTheme ?? undefined,
+  isDesktop: true,
+  platform: process.platform,
+  titlebarHeight: DESKTOP_TITLEBAR_HEIGHT,
+};
+
+function resolveAvailableHeightExpression(titlebarHeight: number): string {
+  const normalizedHeight = Math.max(0, Math.round(titlebarHeight));
+  const viewportUnit =
+    typeof CSS !== "undefined" && typeof CSS.supports === "function" && CSS.supports("height", "100dvh")
+      ? "100dvh"
+      : "100vh";
+  return `calc(${viewportUnit} - ${normalizedHeight}px)`;
+}
+
+function applyDesktopLayoutVariables(titlebarHeight: number): void {
+  const normalizedHeight = Math.max(0, Math.round(titlebarHeight));
+  document.documentElement.style.setProperty("--paperclip-desktop-titlebar-height", `${normalizedHeight}px`);
+  document.documentElement.style.setProperty(
+    "--paperclip-available-height",
+    resolveAvailableHeightExpression(normalizedHeight),
+  );
+  desktopShellBridge.titlebarHeight = normalizedHeight;
+}
 
 type NavigationState = {
   canGoBack: boolean;
@@ -452,6 +490,7 @@ function applyThemeToTitlebar(titlebar: CustomTitlebar, theme: DesktopTheme): vo
   const colors = resolveTitlebarColors(theme);
   const baseSize = Math.max(10, Math.floor(themeConfig.fontSize));
   const isSplash = isSplashDocument();
+  const measuredTitlebarHeight = titlebar.titlebarElement.offsetHeight || DESKTOP_TITLEBAR_HEIGHT;
 
   titlebar.titlebarElement.style.setProperty("--cet-font-family", themeConfig.fontFamily);
   titlebar.titlebarElement.style.setProperty("--cet-font-size", `${baseSize}px`);
@@ -469,16 +508,18 @@ function applyThemeToTitlebar(titlebar: CustomTitlebar, theme: DesktopTheme): vo
     divider.style.display = "none";
   } else {
     divider.style.display = "block";
-    divider.style.top = `${Math.max(0, titlebar.titlebarElement.offsetHeight || DESKTOP_TITLEBAR_HEIGHT)}px`;
+    divider.style.top = `${Math.max(0, measuredTitlebarHeight)}px`;
     divider.style.backgroundColor = colors.border;
   }
+
+  applyDesktopLayoutVariables(measuredTitlebarHeight);
 
   void ipcRenderer.invoke("desktop-shell:update-titlebar", {
     backgroundColor: isSplash ? getDesktopWindowBackground(theme) : colors.background,
     overlay: {
       color: isSplash ? themeConfig.colors.titlebar : colors.background,
       symbolColor: isSplash ? themeConfig.colors.titlebarForeground : colors.foreground,
-      height: titlebar.titlebarElement.offsetHeight || DESKTOP_TITLEBAR_HEIGHT,
+      height: measuredTitlebarHeight,
     },
   }).catch((error) => {
     console.warn("[desktop-preload] Failed to refresh native title bar theme:", error);
@@ -550,22 +591,6 @@ try {
   logTitlebarInitError(error);
 }
 
-contextBridge.exposeInMainWorld("desktopShell", {
-  async retryStart() {
-    await ipcRenderer.invoke("desktop-shell:retry-start");
-  },
-  async setTheme(theme: DesktopTheme) {
-    currentTheme = theme;
-    const persistPromise = ipcRenderer.invoke("desktop-shell:set-theme-preference", theme).catch((error) => {
-      console.warn("[desktop-preload] Failed to persist desktop theme:", error);
-      return false;
-    });
+applyDesktopLayoutVariables(DESKTOP_TITLEBAR_HEIGHT);
 
-    await ensureTitlebar(theme);
-    await persistPromise;
-  },
-  initialTheme: initialTheme ?? undefined,
-  isDesktop: true,
-  platform: process.platform,
-  titlebarHeight: DESKTOP_TITLEBAR_HEIGHT,
-});
+contextBridge.exposeInMainWorld("desktopShell", desktopShellBridge);
