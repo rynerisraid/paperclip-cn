@@ -2,7 +2,7 @@ appId: ai.penclip.desktop
 productName: Paperclip CN
 artifactName: "Paperclip-CN-${version}-${arch}.${ext}"
 asar: false
-compression: store
+compression: maximum
 publish: null
 npmRebuild: false
 
@@ -27,6 +27,9 @@ extraResources:
     to: app-runtime/skills
     filter:
       - "**/*"
+
+dmg:
+  format: UDBZ
 
 win:
   icon: assets/icon.png

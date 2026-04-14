@@ -150,7 +150,15 @@ jobs:
             exit 1
           fi
 
-          mapfile -t assets < <(printf '%s\n' "${{ steps.manifest.outputs.release_asset_paths }}")
+          assets=()
+          while IFS= read -r asset_path; do
+            if [ -n "$asset_path" ]; then
+              assets+=("$asset_path")
+            fi
+          done <<EOF
+          ${{ steps.manifest.outputs.release_asset_paths }}
+          EOF
+
           if [ "${#assets[@]}" -eq 0 ]; then
             echo "No desktop release assets were listed in the manifest output." >&2
             exit 1
