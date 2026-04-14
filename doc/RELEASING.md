@@ -110,23 +110,32 @@ The workflow:
 - publishes `YYYY.MDD.P` under npm dist-tag `latest`
 - creates git tag `vYYYY.MDD.P`
 - creates or updates the GitHub Release from `releases/vYYYY.MDD.P.md`
-- builds an unsigned Windows Electron installer with the same stable version injected into `electron-builder`
-- uploads that Windows installer to the same GitHub Release as a downloadable asset
+- builds unsigned Electron desktop assets for Windows, macOS, and Linux with the same stable version injected into `electron-builder`
+- uploads those desktop assets to the same GitHub Release as downloadable artifacts
 - runs the reusable release smoke workflow against the published `latest` dist-tag
 
-### Windows Desktop Installer Assets
+### Desktop Installer Assets
 
-Stable releases now also publish a Windows desktop installer through [`.github/workflows/desktop-release.yml`](../.github/workflows/desktop-release.yml).
+Stable releases now also publish desktop installers through [`.github/workflows/desktop-release.yml`](../.github/workflows/desktop-release.yml).
 
 Current contract:
 
-- Windows only
-- unsigned installer first
+- Windows x64
+- macOS x64
+- macOS arm64
+- Linux x64
+- unsigned desktop artifacts first
 - stable live releases only
 - attached to the existing GitHub Release `vYYYY.MDD.P`
 - canaries do not publish desktop assets
 
-The desktop packaging workflow injects the stable version through `PAPERCLIP_DESKTOP_RELEASE_VERSION` so the installer file name follows the real release version instead of the package placeholder `0.0.1`.
+The desktop packaging workflow injects the stable version through `PAPERCLIP_DESKTOP_RELEASE_VERSION` so the installer file names follow the real release version instead of the package placeholder `0.0.1`.
+
+Notes:
+
+- macOS publishes separate x64 and arm64 builds in this phase
+- this phase does not attempt a universal macOS app
+- notarization/signing remains a follow-up task
 
 You can also run the workflow manually from GitHub Actions when you need a standalone packaging rerun:
 

@@ -89,10 +89,11 @@ Windows 兼容层：
   - Electron 桌面默认 `userData` 目录使用无空格 slug `penclip`
   - 可见品牌名仍是 `Paperclip CN`
   - CLI/server 默认 home 仍是 `~/.paperclip`
-- fork 自维护的 Windows 桌面发布链路
-  - `.github/workflows/desktop-release.yml` 负责 Windows 安装包构建
-  - `.github/workflows/release.yml` 的 stable live 路径会把桌面安装包挂到同一个 GitHub Release
+- fork 自维护的桌面发布链路
+  - `.github/workflows/desktop-release.yml` 负责 Windows、macOS、Linux 桌面资产构建
+  - `.github/workflows/release.yml` 的 stable live 路径会把桌面资产挂到同一个 GitHub Release
   - `packages/desktop-electron/scripts/dist.mjs` 通过 `PAPERCLIP_DESKTOP_RELEASE_VERSION` 注入真实 release 版本，不能回退成固定 `0.0.1`
+  - macOS 构建是分开的 `x64` / `arm64`，不是 universal 包
 
 ### 4.4 范围基线
 

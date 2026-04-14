@@ -50,9 +50,25 @@ on:
         type: string
 
 jobs:
-  build_windows_installer:
-    runs-on: windows-latest
-    timeout-minutes: 60
+  build_desktop_assets:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: windows-latest
+            platform: win
+            arch: x64
+          - runner: macos-13
+            platform: mac
+            arch: x64
+          - runner: macos-latest
+            platform: mac
+            arch: arm64
+          - runner: ubuntu-latest
+            platform: linux
+            arch: x64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
     permissions:
       contents: write
 
@@ -88,46 +104,60 @@ jobs:
         shell: bash
         run: pnpm --filter @penclipai/desktop-electron typecheck
 
-      - name: Build Windows desktop installer
+      - name: Build desktop package
         shell: bash
         env:
           PAPERCLIP_DESKTOP_RELEASE_VERSION: ${{ inputs.release_version }}
-        run: pnpm desktop:dist:win
-
-      - name: Verify installer artifacts
-        shell: pwsh
         run: |
-          $artifacts = @(Get-ChildItem "packages/desktop-electron/release" -Filter *.exe | Sort-Object Name)
-          if ($artifacts.Count -eq 0) {
-            throw "No Windows installer artifact was produced."
+          pnpm --filter @penclipai/desktop-electron dist -- --platform "${{ matrix.platform }}" --arch "${{ matrix.arch }}"
+
+      - name: Smoke packaged Windows desktop app
+        if: matrix.platform == 'win'
+        shell: bash
+        run: pnpm smoke:desktop --mode packaged
+
+      - name: Read desktop artifact manifest
+        id: manifest
+        shell: bash
+        run: |
+          node - <<'NODE' >> "$GITHUB_OUTPUT"
+          const fs = require("node:fs");
+          const manifestPath = "packages/desktop-electron/release/desktop-artifacts.json";
+          const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+          const releaseAssetPaths = Array.isArray(manifest.releaseAssetPaths) ? manifest.releaseAssetPaths : [];
+          if (releaseAssetPaths.length === 0) {
+            throw new Error(`No desktop release assets were listed in ${manifestPath}.`);
           }
+          console.log("artifact_paths<<EOF");
+          console.log([manifestPath, ...releaseAssetPaths].join("\n"));
+          console.log("EOF");
+          console.log("release_asset_paths<<EOF");
+          console.log(releaseAssetPaths.join("\n"));
+          console.log("EOF");
+          NODE
 
-          $artifactListPath = "packages/desktop-electron/release/desktop-release-files.txt"
-          $artifacts | ForEach-Object { $_.FullName } | Tee-Object -FilePath $artifactListPath | Out-Host
-
-      - name: Upload desktop installer artifact
+      - name: Upload desktop artifact bundle
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ inputs.artifact_name }}
+          name: ${{ inputs.artifact_name }}-${{ matrix.platform }}-${{ matrix.arch }}
           if-no-files-found: error
-          path: |
-            packages/desktop-electron/release/*.exe
-            packages/desktop-electron/release/desktop-release-files.txt
+          path: ${{ steps.manifest.outputs.artifact_paths }}
 
-      - name: Upload installer to GitHub Release
+      - name: Upload desktop assets to GitHub Release
         if: inputs.upload_to_release
-        shell: pwsh
+        shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if ([string]::IsNullOrWhiteSpace("${{ inputs.github_release_tag }}")) {
-            throw "github_release_tag is required when upload_to_release=true."
-          }
+          if [ -z "${{ inputs.github_release_tag }}" ]; then
+            echo "github_release_tag is required when upload_to_release=true." >&2
+            exit 1
+          fi
 
-          $artifacts = @(Get-ChildItem "packages/desktop-electron/release" -Filter *.exe | Sort-Object Name)
-          if ($artifacts.Count -eq 0) {
-            throw "No Windows installer artifact was produced."
-          }
+          mapfile -t assets < <(printf '%s\n' "${{ steps.manifest.outputs.release_asset_paths }}")
+          if [ "${#assets[@]}" -eq 0 ]; then
+            echo "No desktop release assets were listed in the manifest output." >&2
+            exit 1
+          fi
 
-          $assetPaths = $artifacts | ForEach-Object { $_.FullName }
-          gh release upload "${{ inputs.github_release_tag }}" $assetPaths --repo "${{ github.repository }}" --clobber
+          gh release upload "${{ inputs.github_release_tag }}" "${assets[@]}" --repo "${{ github.repository }}" --clobber

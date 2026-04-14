@@ -17,6 +17,7 @@ const repoRoot = path.resolve(packageDir, "..", "..");
 const require = createRequire(import.meta.url);
 const DESKTOP_PREFERENCES_FILENAME = "desktop-preferences.json";
 const DESKTOP_THEMES = ["dark", "light"];
+const DESKTOP_ARTIFACT_MANIFEST = path.resolve(packageDir, "release", "desktop-artifacts.json");
 const DEV_PLUGIN_BUILD_FILTERS = [
   "@penclipai/plugin-hello-world-example",
   "@penclipai/plugin-file-browser-example",
@@ -150,6 +151,14 @@ function prepareDevLaunch() {
 }
 
 function resolvePackagedExecutable() {
+  if (fs.existsSync(DESKTOP_ARTIFACT_MANIFEST)) {
+    const manifest = JSON.parse(fs.readFileSync(DESKTOP_ARTIFACT_MANIFEST, "utf8"));
+    const launcherPath = typeof manifest?.launcherPath === "string" ? manifest.launcherPath : null;
+    if (launcherPath && fs.existsSync(launcherPath)) {
+      return launcherPath;
+    }
+  }
+
   const winUnpackedDir = path.resolve(packageDir, "release", "win-unpacked");
   const candidates = [
     path.resolve(winUnpackedDir, "Paperclip CN.exe"),
@@ -174,7 +183,7 @@ function resolvePackagedExecutable() {
   }
 
   throw new Error(
-    `Packaged desktop executable not found in ${winUnpackedDir}. Run "pnpm desktop:dist:win" first.`,
+    `Packaged desktop executable not found. Run a platform build such as "pnpm desktop:dist:win", "pnpm desktop:dist:mac", or "pnpm desktop:dist:linux" first.`,
   );
 }
 
