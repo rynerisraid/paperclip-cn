@@ -35,6 +35,22 @@ win:
       arch:
         - x64
 
+mac:
+  icon: assets/icon.icns
+  target:
+    - target: dmg
+      arch:
+        - x64
+        - arm64
+
+linux:
+  icon: assets/icon.png
+  category: Development
+  target:
+    - target: AppImage
+      arch:
+        - x64
+
 nsis:
   oneClick: false
   perMachine: false

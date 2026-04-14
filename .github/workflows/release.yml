@@ -320,7 +320,7 @@ jobs:
       contents: write
     uses: ./.github/workflows/desktop-release.yml
     with:
-      source_ref: ${{ inputs.source_ref }}
+      source_ref: ${{ needs.publish_stable.outputs.tag }}
       release_version: ${{ needs.publish_stable.outputs.version }}
       artifact_name: desktop-release-stable
       upload_to_release: true

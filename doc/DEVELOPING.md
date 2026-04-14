@@ -51,15 +51,17 @@ pnpm dev:list
 pnpm dev:stop
 ```
 
-## Electron Desktop (Windows-first)
+## Electron Desktop
 
-The repository also ships a Windows-first Electron wrapper for local desktop packaging.
+The repository also ships a cross-platform Electron wrapper for local desktop packaging.
 
 Desktop commands from repo root:
 
 ```sh
 pnpm desktop:dev
 pnpm desktop:dist:win
+pnpm desktop:dist:mac
+pnpm desktop:dist:linux
 pnpm smoke:desktop --mode dev
 pnpm smoke:desktop --mode packaged
 pnpm smoke:desktop:acceptance
@@ -69,9 +71,11 @@ pnpm smoke:desktop:acceptance:full
 What they do:
 
 - `pnpm desktop:dev` builds the Electron shell and launches a desktop window against the local Paperclip server entrypoint with `PAPERCLIP_UI_DEV_MIDDLEWARE=true`
-- `pnpm desktop:dist:win` stages a packaged runtime in `packages/desktop-electron/.stage/app-runtime`, builds a small Electron shell, bundles `app-runtime` as extra resources, and creates the Windows installer plus `win-unpacked/`
+- `pnpm desktop:dist:win` stages a packaged runtime in `packages/desktop-electron/.stage/app-runtime`, builds a small Electron shell, bundles `app-runtime` as extra resources, and creates the Windows installer plus unpacked app output
+- `pnpm desktop:dist:mac` builds a macOS desktop package for the current host arch
+- `pnpm desktop:dist:linux` builds a Linux x64 desktop package
 - `pnpm smoke:desktop --mode dev` launches the dev Electron shell, captures a startup splash screenshot, waits for `/api/health`, then captures the loaded board
-- `pnpm smoke:desktop --mode packaged` launches the unpacked Windows desktop build from `packages/desktop-electron/release/win-unpacked/` and performs the same splash + board checks
+- `pnpm smoke:desktop --mode packaged` launches the packaged desktop app discovered from `packages/desktop-electron/release/desktop-artifacts.json` and performs the same splash + board checks
 - `pnpm smoke:desktop:acceptance` runs the faster `core` dev acceptance flow: desktop business pages + bundled example plugin validation
 - `pnpm smoke:desktop:acceptance:full` runs the slower full dev acceptance flow: `core` coverage plus multi-agent orchestration, real Claude CLI output capture, and third-party plugin installation
 
@@ -83,7 +87,13 @@ PAPERCLIP_DESKTOP_RELEASE_VERSION=2026.413.0 pnpm desktop:dist:win
 
 Current scope and notes:
 
-- this pass only supports Windows packaging
+- desktop packaging now targets:
+  - Windows x64
+  - macOS x64
+  - macOS arm64
+  - Linux x64
+- macOS builds are separate x64 and arm64 artifacts, not a universal bundle
+- macOS and Linux artifacts are unsigned in this phase
 - `pnpm` stays on the repo-standard `9.15.4`
 - the desktop shell uses `custom-electron-titlebar` with native Windows controls exposed via `titleBarOverlay`
 - packaged desktop assets now live under `resources/app-runtime/{server,node_modules,skills}` instead of using the server runtime as the Electron app directory
