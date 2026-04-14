@@ -37,6 +37,9 @@ win:
 
 mac:
   icon: assets/icon.icns
+  identity: null
+  gatekeeperAssess: false
+  strictVerify: false
   target:
     - target: dmg
       arch:
