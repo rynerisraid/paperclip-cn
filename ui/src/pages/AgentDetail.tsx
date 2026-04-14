@@ -3092,7 +3092,7 @@ function RunsTab({
         "shrink-0 border border-border rounded-lg",
         selectedRun ? "w-72" : "w-full",
       )}>
-        <div className="sticky top-4 overflow-y-auto" style={{ maxHeight: "calc(100vh - 2rem)" }}>
+        <div className="sticky top-4 overflow-y-auto" style={{ maxHeight: "calc(var(--paperclip-available-height) - 2rem)" }}>
         {sorted.map((run) => (
           <RunListItem key={run.id} run={run} isSelected={run.id === effectiveRunId} agentId={agentRouteId} />
         ))}

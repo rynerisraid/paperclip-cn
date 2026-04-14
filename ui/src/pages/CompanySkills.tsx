@@ -1310,7 +1310,7 @@ export function CompanySkills() {
         </DialogContent>
       </Dialog>
 
-      <div className="grid min-h-[calc(100vh-12rem)] gap-0 xl:grid-cols-[19rem_minmax(0,1fr)]">
+      <div className="grid min-h-[calc(var(--paperclip-available-height)-12rem)] gap-0 xl:grid-cols-[19rem_minmax(0,1fr)]">
         <aside className="border-r border-border">
           <div className="border-b border-border px-4 py-3">
             <div className="flex items-center justify-between gap-2">

@@ -313,8 +313,10 @@ export function Layout() {
     <GeneralSettingsProvider value={{ keyboardShortcutsEnabled }}>
       <div
       className={cn(
-        "bg-background text-foreground pt-[env(safe-area-inset-top)]",
-        isMobile ? "min-h-dvh" : "flex h-dvh flex-col overflow-hidden",
+        "box-border bg-background text-foreground pt-[env(safe-area-inset-top)]",
+        isMobile
+          ? "min-h-[var(--paperclip-available-height)]"
+          : "flex h-[var(--paperclip-available-height)] max-h-[var(--paperclip-available-height)] flex-col overflow-hidden",
       )}
       >
       <a

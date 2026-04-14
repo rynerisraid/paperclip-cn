@@ -423,6 +423,7 @@ async function readDesktopLayoutState(page) {
     const appShell = root?.firstElementChild ?? null;
     const cetContainer = document.querySelector(".cet-container");
     const main = document.querySelector("#main-content");
+    const scrollingElement = document.scrollingElement ?? document.documentElement;
 
     return {
       appShellPaddingTop:
@@ -430,6 +431,12 @@ async function readDesktopLayoutState(page) {
       cetContainer: rect(cetContainer),
       main: rect(main),
       root: rect(root),
+      scrolling: {
+        clientHeight: scrollingElement?.clientHeight ?? null,
+        scrollHeight: scrollingElement?.scrollHeight ?? null,
+      },
+      rootScrollHeight: root instanceof HTMLElement ? root.scrollHeight : null,
+      rootClientHeight: root instanceof HTMLElement ? root.clientHeight : null,
     };
   });
 }
@@ -509,6 +516,26 @@ function assertDesktopLayoutState(state, routeLabel) {
   if (state.main.bottom > state.cetContainer.bottom + 1) {
     throw new Error(
       `${routeLabel} main content overflowed the CET container (${state.main.bottom} > ${state.cetContainer.bottom}).`,
+    );
+  }
+
+  if (
+    typeof state.scrolling?.scrollHeight === "number"
+    && typeof state.scrolling?.clientHeight === "number"
+    && state.scrolling.scrollHeight > state.scrolling.clientHeight + 1
+  ) {
+    throw new Error(
+      `${routeLabel} introduced browser-level vertical overflow (${state.scrolling.scrollHeight} > ${state.scrolling.clientHeight}).`,
+    );
+  }
+
+  if (
+    typeof state.rootScrollHeight === "number"
+    && typeof state.rootClientHeight === "number"
+    && state.rootScrollHeight > state.rootClientHeight + 1
+  ) {
+    throw new Error(
+      `${routeLabel} root scroll height exceeded the available height (${state.rootScrollHeight} > ${state.rootClientHeight}).`,
     );
   }
 

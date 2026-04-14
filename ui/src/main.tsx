@@ -74,7 +74,7 @@ function AppProviders() {
 function AppBootstrapFallback() {
   return (
     <div
-      className="flex min-h-screen items-center justify-center bg-background text-sm text-muted-foreground"
+      className="flex min-h-[var(--paperclip-available-height)] items-center justify-center bg-background text-sm text-muted-foreground"
       aria-busy="true"
     >
       {i18n.t("common.loading")}

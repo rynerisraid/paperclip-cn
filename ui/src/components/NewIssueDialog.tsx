@@ -947,13 +947,13 @@ export function NewIssueDialog() {
         if (!open && !createIssue.isPending) closeNewIssue();
       }}
     >
-      <DialogContent
-        showCloseButton={false}
-        aria-describedby={undefined}
-        className={cn(
-          "flex h-[calc(100dvh-2rem)] max-h-[calc(100dvh-2rem)] flex-col gap-0 overflow-hidden p-0 sm:h-auto",
+        <DialogContent
+          showCloseButton={false}
+          aria-describedby={undefined}
+          className={cn(
+          "flex h-[calc(var(--paperclip-available-height)-2rem)] max-h-[calc(var(--paperclip-available-height)-2rem)] flex-col gap-0 overflow-hidden p-0 sm:h-auto",
           expanded
-            ? "sm:max-w-2xl sm:h-[calc(100dvh-2rem)]"
+            ? "sm:max-w-2xl sm:h-[calc(var(--paperclip-available-height)-2rem)]"
             : "sm:max-w-lg"
         )}
         onKeyDown={handleKeyDown}
