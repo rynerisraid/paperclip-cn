@@ -726,7 +726,7 @@ export function Routines() {
       >
         <DialogContent
           showCloseButton={false}
-          className="flex max-h-[calc(var(--paperclip-available-height)-2rem)] max-w-3xl flex-col gap-0 overflow-hidden p-0"
+          className="flex max-h-[calc(100dvh-2rem)] max-w-3xl flex-col gap-0 overflow-hidden p-0"
         >
           <div className="shrink-0 flex flex-wrap items-center justify-between gap-3 border-b border-border/60 px-5 py-3">
             <div>

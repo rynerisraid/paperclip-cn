@@ -388,9 +388,9 @@ describe("NewIssueDialog", () => {
     await flush();
 
     const dialogContent = Array.from(container.querySelectorAll("div")).find((element) =>
-      typeof element.className === "string" && element.className.includes("max-h-[calc(var(--paperclip-available-height)-2rem)]"),
+      typeof element.className === "string" && element.className.includes("max-h-[calc(100dvh-2rem)]"),
     );
-    expect(dialogContent?.className).toContain("h-[calc(var(--paperclip-available-height)-2rem)]");
+    expect(dialogContent?.className).toContain("h-[calc(100dvh-2rem)]");
     expect(dialogContent?.className).toContain("overflow-hidden");
 
     const descriptionInput = container.querySelector('textarea[aria-label="Add description..."]');
