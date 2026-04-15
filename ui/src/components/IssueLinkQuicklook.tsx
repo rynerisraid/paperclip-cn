@@ -7,8 +7,7 @@ import { useTranslation } from "react-i18next";
 import { timeAgo } from "@/lib/timeAgo";
 import { createIssueDetailPath, withIssueDetailHeaderSeed } from "@/lib/issueDetailBreadcrumb";
 import {
-  fetchIssueDetail,
-  getCachedIssueDetail,
+  getIssueDetailQueryOptions,
   ISSUE_DETAIL_STALE_TIME_MS,
   prefetchIssueDetail,
 } from "@/lib/issueDetailCache";
@@ -100,12 +99,9 @@ export const IssueLinkQuicklook = React.forwardRef<
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const prefetchedState = issuePrefetch ? withIssueDetailHeaderSeed(state, issuePrefetch) : state;
-  const cachedIssue = getCachedIssueDetail(queryClient, issuePathId, issuePrefetch ?? undefined);
   const { data, isLoading } = useQuery({
-    queryKey: queryKeys.issues.detail(issuePathId),
-    queryFn: () => fetchIssueDetail(queryClient, issuePathId),
+    ...getIssueDetailQueryOptions(queryClient, issuePathId, { placeholderIssue: issuePrefetch ?? undefined }),
     enabled: open,
-    initialData: () => cachedIssue,
     staleTime: ISSUE_DETAIL_STALE_TIME_MS,
   });
 

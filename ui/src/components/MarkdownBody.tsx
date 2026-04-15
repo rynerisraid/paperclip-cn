@@ -1,6 +1,7 @@
 import { isValidElement, useEffect, useId, useState, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import Markdown, { type Components, type Options } from "react-markdown";
+import { useQuery } from "@tanstack/react-query";
+import Markdown, { defaultUrlTransform, type Components, type Options } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { cn } from "../lib/utils";
 import { useTheme } from "../context/ThemeContext";
@@ -90,6 +91,10 @@ function extractMermaidSource(children: ReactNode): string | null {
   if (typeof childProps.className !== "string") return null;
   if (!/\blanguage-mermaid\b/i.test(childProps.className)) return null;
   return flattenText(childProps.children).replace(/\n$/, "");
+}
+
+function safeMarkdownUrlTransform(url: string): string {
+  return parseMentionChipHref(url) ? url : defaultUrlTransform(url);
 }
 
 function MermaidDiagramBlock({ source, darkMode }: { source: string; darkMode: boolean }) {
@@ -236,7 +241,11 @@ export function MarkdownBody({
       )}
       style={style}
     >
-      <Markdown remarkPlugins={remarkPlugins} components={components} urlTransform={(url) => url}>
+      <Markdown
+        remarkPlugins={remarkPlugins}
+        components={components}
+        urlTransform={safeMarkdownUrlTransform}
+      >
         {children}
       </Markdown>
     </div>
