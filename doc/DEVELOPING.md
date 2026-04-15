@@ -169,6 +169,29 @@ Allow additional private hostnames (for example custom Tailscale hostnames):
 pnpm penclip allowed-hostname dotta-macbook-pro
 ```
 
+## Test Commands
+
+Use the cheap local default unless you are specifically working on browser flows:
+
+```sh
+pnpm test
+```
+
+`pnpm test` runs the Vitest suite only. For interactive Vitest watch mode use:
+
+```sh
+pnpm test:watch
+```
+
+Browser suites stay separate:
+
+```sh
+pnpm test:e2e
+pnpm test:release-smoke
+```
+
+These browser suites are intended for targeted local verification and CI, not the default agent/human test command.
+
 ## One-Command Local Run
 
 For a first-time local install, you can bootstrap and run in one command:
@@ -278,7 +301,7 @@ Seed modes:
 
 After `worktree init`, both the server and the CLI auto-load the repo-local `.paperclip/.env` when run inside that worktree, so normal commands like `pnpm dev`, `penclip doctor`, and `penclip db:backup` stay scoped to the worktree instance.
 
-`pnpm dev` now fails fast in a linked git worktree when `.paperclip/.env` is missing, instead of silently booting against the default instance/port. If that happens, run `paperclipai worktree init` in the worktree first.
+`pnpm dev` now fails fast in a linked git worktree when `.paperclip/.env` is missing, instead of silently booting against the default instance/port. If that happens, run `penclip worktree init` in the worktree first.
 
 Provisioned git worktrees also pause seeded routines that still have enabled schedule triggers in the isolated worktree database by default. This prevents copied daily/cron routines from firing unexpectedly inside the new workspace instance during development without disabling webhook/API-only routines.
 
@@ -336,6 +359,34 @@ pnpm penclip worktree init --force --seed-mode minimal \
 ```
 
 That rewrites the worktree-local `.paperclip/config.json` + `.paperclip/.env`, recreates the isolated instance under `~/.paperclip-worktrees/instances/<worktree-id>/`, and preserves the git worktree contents themselves.
+
+For existing worktrees, prefer the dedicated reseed command instead of rebuilding the `worktree init --force` flags manually:
+For an already-created worktree where you want the CLI to decide whether to rebuild missing worktree metadata or just reseed the isolated DB, use `worktree repair`.
+
+**`pnpm penclip worktree repair [options]`** — Repair the current linked worktree by default, or create/repair a named linked worktree under `.paperclip/worktrees/` when `--branch` is provided. The command never targets the primary checkout unless you explicitly pass `--branch`.
+
+| Option | Description |
+|---|---|
+| `--branch <name>` | Existing branch/worktree selector to repair, or a branch name to create under `.paperclip/worktrees` |
+| `--home <path>` | Home root for worktree instances (default: `~/.paperclip-worktrees`) |
+| `--from-config <path>` | Source config.json to seed from |
+| `--from-data-dir <path>` | Source `PAPERCLIP_HOME` used when deriving the source config |
+| `--from-instance <id>` | Source instance id when deriving the source config (default: `default`) |
+| `--seed-mode <mode>` | Seed profile: `minimal` or `full` (default: `minimal`) |
+| `--no-seed` | Repair metadata only when bootstrapping a missing worktree config |
+| `--allow-live-target` | Override the guard that requires the target worktree DB to be stopped first |
+
+Examples:
+
+```sh
+# From inside a linked worktree, rebuild missing .paperclip metadata and reseed it from the default instance.
+cd /path/to/paperclip/.paperclip/worktrees/PAP-1132-assistant-ui-pap-1131-make-issues-comments-be-like-a-chat
+pnpm penclip worktree repair
+
+# From the primary checkout, create or repair a linked worktree for a branch under .paperclip/worktrees/.
+cd /path/to/paperclip
+pnpm penclip worktree repair --branch PAP-1132-assistant-ui-pap-1131-make-issues-comments-be-like-a-chat
+```
 
 For existing worktrees, prefer the dedicated reseed command instead of rebuilding the `worktree init --force` flags manually:
 

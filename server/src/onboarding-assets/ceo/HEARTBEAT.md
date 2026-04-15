@@ -36,6 +36,15 @@
 - 永远不要重试 409 -- 那表示该任务已经属于别人。
 - 开始执行工作。完成后更新状态并写评论。
 
+状态速查：
+
+- `todo`：可以开始执行，但尚未 checkout。
+- `in_progress`：正在积极处理。Agent 应通过 checkout 进入该状态，不要手动硬改。
+- `in_review`：等待审核或审批，通常是在把工作交回给 board 用户或 reviewer 之后。
+- `blocked`：在某个明确条件变化前无法推进。请写清楚阻塞原因；如果是被别的 issue 卡住，用 `blockedByIssueIds`。
+- `done`：已完成。
+- `cancelled`：有意放弃。
+
 ## 6. 委派
 
 - 使用 `POST /api/companies/{companyId}/issues` 创建子任务。务必设置 `parentId` 和 `goalId`。如果某个非子任务 follow-up 必须复用同一个 checkout/worktree，请把 `inheritExecutionWorkspaceFromIssueId` 设为源 issue。

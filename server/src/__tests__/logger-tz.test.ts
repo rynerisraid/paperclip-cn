@@ -53,28 +53,28 @@ vi.mock("../home-paths.js", () => ({
 describe("logger translateTime respects TZ environment variable", () => {
   beforeEach(() => {
     vi.resetModules();
+    vi.unstubAllEnvs();
     mockTransport.mockClear();
     mockDestination.mockClear();
     mockPino.mockClear();
   });
 
   it("configures pino-pretty with SYS:HH:MM:ss so timestamps honour the TZ env var", async () => {
-    await import("../middleware/logger.js");
-
-    expect(mockDestination).toHaveBeenCalledOnce();
-    expect(mockTransport).not.toHaveBeenCalled();
-
-    await vi.resetModules();
-    process.env.VITEST = "false";
+    const originalArgv = [...process.argv];
     process.argv = process.argv.filter((arg) => !arg.toLowerCase().includes("vitest"));
-    await import("../middleware/logger.js");
+    vi.stubEnv("VITEST", "false");
+    try {
+      await import("../middleware/logger.js");
 
-    expect(mockTransport).toHaveBeenCalledOnce();
-    const { targets } = mockTransport.mock.calls.at(-1)?.[0] as {
-      targets: Array<{ options: Record<string, unknown> }>;
-    };
-    for (const target of targets) {
-      expect(target.options.translateTime).toBe("SYS:HH:MM:ss");
+      expect(mockTransport).toHaveBeenCalledOnce();
+      const { targets } = mockTransport.mock.calls[0][0] as {
+        targets: Array<{ options: Record<string, unknown> }>;
+      };
+      for (const target of targets) {
+        expect(target.options.translateTime).toBe("SYS:HH:MM:ss");
+      }
+    } finally {
+      process.argv = originalArgv;
     }
   });
 

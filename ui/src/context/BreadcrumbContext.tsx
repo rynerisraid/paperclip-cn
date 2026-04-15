@@ -10,6 +10,8 @@ export interface Breadcrumb {
 interface BreadcrumbContextValue {
   breadcrumbs: Breadcrumb[];
   setBreadcrumbs: (crumbs: Breadcrumb[]) => void;
+  mobileToolbar: ReactNode | null;
+  setMobileToolbar: (node: ReactNode | null) => void;
 }
 
 const BreadcrumbContext = createContext<BreadcrumbContextValue | null>(null);
@@ -17,9 +19,14 @@ const BreadcrumbContext = createContext<BreadcrumbContextValue | null>(null);
 export function BreadcrumbProvider({ children }: { children: ReactNode }) {
   const [breadcrumbs, setBreadcrumbsState] = useState<Breadcrumb[]>([]);
   const { i18n } = useTranslation();
+  const [mobileToolbar, setMobileToolbarState] = useState<ReactNode | null>(null);
 
   const setBreadcrumbs = useCallback((crumbs: Breadcrumb[]) => {
     setBreadcrumbsState(crumbs);
+  }, []);
+
+  const setMobileToolbar = useCallback((node: ReactNode | null) => {
+    setMobileToolbarState(node);
   }, []);
 
   useEffect(() => {
@@ -32,7 +39,7 @@ export function BreadcrumbProvider({ children }: { children: ReactNode }) {
   }, [breadcrumbs, i18n.resolvedLanguage, i18n.language]);
 
   return (
-    <BreadcrumbContext.Provider value={{ breadcrumbs, setBreadcrumbs }}>
+    <BreadcrumbContext.Provider value={{ breadcrumbs, setBreadcrumbs, mobileToolbar, setMobileToolbar }}>
       {children}
     </BreadcrumbContext.Provider>
   );

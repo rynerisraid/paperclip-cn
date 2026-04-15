@@ -2227,6 +2227,22 @@
   "projectWorkspace.runtimeServicesRestarted": "运行时服务已重启。",
   "projectWorkspace.runtimeServicesStarted": "运行时服务已启动。",
   "projectWorkspace.runtimeServicesStopped": "运行时服务已停止。",
+  "projectWorkspace.runtimeJobCompleted": "工作区任务已完成。",
+  "projectWorkspace.runtimeCommandStopped": "工作区服务已停止。",
+  "projectWorkspace.runtimeCommandRestarted": "工作区服务已重启。",
+  "projectWorkspace.runtimeCommandStarted": "工作区服务已启动。",
+  "projectWorkspace.failedToControlRuntimeCommands": "控制工作区命令失败。",
+  "projectWorkspace.advancedRuntimeJson": "高级运行时 JSON",
+  "projectWorkspace.advancedRuntimeJsonHint": "Paperclip 会从这份 JSON 推导服务和任务。优先先编辑具名命令；只有在需要更高级的生命周期、端口、就绪检查或环境设置时，再直接编辑原始 JSON。",
+  "projectWorkspace.workspaceCommandsJson": "工作区命令 JSON",
+  "projectWorkspace.workspaceCommandsJsonHint": "执行工作区会继承这份配置，除非它们自行覆盖。旧的 `services` 数组仍然可用，但 `commands` 同时支持服务和任务。",
+  "projectWorkspace.workspaceCommands": "工作区命令",
+  "projectWorkspace.servicesAndJobs": "服务与任务",
+  "projectWorkspace.servicesAndJobsDesc": "长驻服务会在这里被持续监管，一次性任务则会按需在此工作区运行。执行工作区会继承这份配置，除非它们自行覆盖。",
+  "projectWorkspace.noServicesStarted": "这个工作区还没有启动任何服务。",
+  "projectWorkspace.noWorkspaceCommandsConfigured": "这个工作区还没有定义任何工作区命令配置。",
+  "projectWorkspace.noWorkspaceJobsConfigured": "这个工作区还没有配置任何一次性任务。",
+  "projectWorkspace.runtimeCommandsDisabledHint": "项目工作区需要先有工作目录，才能运行本地命令；服务还需要相应的运行时配置。",
   "projectWorkspace.saveChanges": "保存更改",
   "projectWorkspace.secondaryWorkspace": "次要工作区",
   "projectWorkspace.setupCommand": "准备命令",
@@ -2256,6 +2272,36 @@
   "projectWorkspace.workspaceId": "工作区 ID",
   "projectWorkspace.workspaceName": "工作区名称",
   "projectWorkspace.workspaceNotFound": "在该项目中找不到此工作区。",
+  "workspaceRuntime.header": "工作区命令",
+  "workspaceRuntime.servicesRunning": "有 {{count}} 个服务正在运行",
+  "workspaceRuntime.noServicesRunning": "当前没有运行中的服务",
+  "workspaceRuntime.jobsAvailable": "有 {{count}} 个任务可按需运行。",
+  "workspaceRuntime.independentControl": "每个命令都可以独立控制。",
+  "workspaceRuntime.port": "端口 {{port}}",
+  "workspaceRuntime.action.run": "运行",
+  "workspaceRuntime.action.start": "启动",
+  "workspaceRuntime.action.stop": "停止",
+  "workspaceRuntime.action.restart": "重启",
+  "workspaceRuntime.kind.service": "服务",
+  "workspaceRuntime.kind.job": "任务",
+  "workspaceRuntime.lifecycle.shared": "共享",
+  "workspaceRuntime.lifecycle.ephemeral": "临时",
+  "workspaceRuntime.status.runOnce": "运行一次",
+  "workspaceRuntime.status.starting": "正在启动",
+  "workspaceRuntime.status.running": "运行中",
+  "workspaceRuntime.status.stopped": "已停止",
+  "workspaceRuntime.status.failed": "失败",
+  "workspaceRuntime.health.healthy": "健康",
+  "workspaceRuntime.health.unhealthy": "异常",
+  "workspaceRuntime.health.unknown": "未知",
+  "workspaceRuntime.disabled.missingCommand": "这个任务缺少可执行命令。",
+  "workspaceRuntime.disabled.untrackedService": "这个运行中的服务已经不再匹配当前的工作区命令配置。",
+  "workspaceRuntime.section.services": "服务",
+  "workspaceRuntime.section.servicesDesc": "Paperclip 可以为这个工作区持续监管的长驻命令。",
+  "workspaceRuntime.section.jobs": "任务",
+  "workspaceRuntime.section.jobsDesc": "立即运行并在完成后退出的一次性命令。",
+  "workspaceRuntime.section.untracked": "未跟踪的服务",
+  "workspaceRuntime.section.untrackedDesc": "仍在运行、但已经不再匹配当前工作区命令配置的服务。",
   "queued requester wake-up": "已将请求者唤醒加入队列",
   "queued requester wake-up for": "已为以下内容排队唤醒请求者：",
   "recorded cost for": "登记了成本",
@@ -2501,6 +2547,12 @@
   ,"issuesList.chooseVisibleColumns": "选择要显示的任务列"
   ,"issuesList.defaultColumnsSummary": "状态、编号、更新时间"
   ,"issuesList.updatedAtTime": "更新于 {{time}}"
+  ,"issueDetail.loadingEarlierComments": "正在加载更早的评论…"
+  ,"issueDetail.loadEarlierComments": "加载更早的评论"
+  ,"issueDetail.costSummary": "成本汇总"
+  ,"issueDetail.noCostData": "暂时还没有成本数据。"
+  ,"issueDetail.noActivity": "暂时还没有活动记录。"
+  ,"issueDetail.newSubIssue": "新建子任务"
   ,"Disable parent-child nesting": "关闭父子任务嵌套"
   ,"Enable parent-child nesting": "开启父子任务嵌套"
   ,"Type": "类型"
