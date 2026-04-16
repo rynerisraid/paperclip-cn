@@ -147,18 +147,18 @@ run_penclip_command() {
   case "$resolved_penclip_invoker" in
     source)
       "$resolved_penclip_node_command" "$resolved_penclip_tsx_path" "$resolved_penclip_entry_path" "${command_args[@]}"
-      return 0
+      return $?
       ;;
     pnpm)
       (
         cd "$resolved_penclip_cwd" &&
         pnpm penclip "${command_args[@]}"
       )
-      return 0
+      return $?
       ;;
     global)
       penclip "${command_args[@]}"
-      return 0
+      return $?
       ;;
     *)
       return 1

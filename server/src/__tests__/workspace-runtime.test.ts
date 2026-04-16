@@ -1082,6 +1082,7 @@ describe("realizeExecutionWorkspace", () => {
 
   it("provisions successfully when install is needed but there are no symlinked node_modules to move", async () => {
     const repoRoot = await createTempRepo();
+    process.env.PAPERCLIP_WORKTREE_FORCE_FALLBACK_CONFIG = "1";
     await fs.mkdir(path.join(repoRoot, "scripts"), { recursive: true });
     await fs.writeFile(
       path.join(repoRoot, "package.json"),
@@ -1285,6 +1286,7 @@ describe("realizeExecutionWorkspace", () => {
     "provisions worktree-local pnpm node_modules instead of reusing base-repo links",
     async () => {
     const repoRoot = await createTempRepo();
+    process.env.PAPERCLIP_WORKTREE_FORCE_FALLBACK_CONFIG = "1";
     await fs.mkdir(path.join(repoRoot, "scripts"), { recursive: true });
     await fs.mkdir(path.join(repoRoot, "packages", "shared"), { recursive: true });
     await fs.mkdir(path.join(repoRoot, "server"), { recursive: true });
