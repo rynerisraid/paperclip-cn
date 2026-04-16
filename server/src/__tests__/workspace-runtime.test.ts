@@ -1158,7 +1158,7 @@ describe("realizeExecutionWorkspace", () => {
     const baseRoot = path.join(tempRoot, "base");
     const worktreeRoot = path.join(tempRoot, "worktree");
     const fakeBin = path.join(tempRoot, "bin");
-    const fakePnpmPath = path.join(fakeBin, "pnpm");
+    const fakePenclipPath = path.join(fakeBin, "penclip");
     const scriptPath = path.join(worktreeRoot, "provision-worktree.sh");
 
     try {
@@ -1168,13 +1168,10 @@ describe("realizeExecutionWorkspace", () => {
       await fs.copyFile(provisionWorktreeScriptPath, scriptPath);
       await fs.chmod(scriptPath, 0o755);
       await fs.writeFile(
-        fakePnpmPath,
+        fakePenclipPath,
         [
           "#!/bin/sh",
-          "if [ \"$1\" = \"paperclipai\" ] && [ \"$2\" = \"--help\" ]; then",
-          "  exit 0",
-          "fi",
-          "if [ \"$1\" = \"paperclipai\" ] && [ \"$2\" = \"worktree\" ] && [ \"$3\" = \"init\" ]; then",
+          "if [ \"$1\" = \"worktree\" ] && [ \"$2\" = \"init\" ]; then",
           "  echo \"simulated init failure\" >&2",
           "  exit 42",
           "fi",
@@ -1183,7 +1180,7 @@ describe("realizeExecutionWorkspace", () => {
         ].join("\n"),
         "utf8",
       );
-      await fs.chmod(fakePnpmPath, 0o755);
+      await fs.chmod(fakePenclipPath, 0o755);
 
       let caught: Error | null = null;
       try {
@@ -1245,7 +1242,7 @@ describe("realizeExecutionWorkspace", () => {
         fakePnpmPath,
         [
           "#!/bin/sh",
-          "if [ \"$1\" = \"paperclipai\" ] && [ \"$2\" = \"--help\" ]; then",
+          "if [ \"$1\" = \"penclip\" ] && [ \"$2\" = \"--help\" ]; then",
           "  exit 1",
           "fi",
           "if [ \"$1\" = \"install\" ] && [ \"$2\" = \"--frozen-lockfile\" ]; then",

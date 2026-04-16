@@ -8,6 +8,28 @@ import { defineConfig } from "@playwright/test";
 const PORT = Number(process.env.PAPERCLIP_E2E_PORT ?? 3199);
 const BASE_URL = `http://127.0.0.1:${PORT}`;
 const PAPERCLIP_HOME = fs.mkdtempSync(path.join(os.tmpdir(), "paperclip-e2e-home-"));
+const PAPERCLIP_INSTANCE_ID = "playwright-e2e";
+const PAPERCLIP_CONFIG = path.join(PAPERCLIP_HOME, "instances", PAPERCLIP_INSTANCE_ID, "config.json");
+
+function bootstrapE2EInstanceConfig(): void {
+  const instanceRoot = path.join(PAPERCLIP_HOME, "instances", PAPERCLIP_INSTANCE_ID);
+  fs.mkdirSync(instanceRoot, { recursive: true });
+  fs.writeFileSync(
+    PAPERCLIP_CONFIG,
+    `${JSON.stringify({
+      $meta: { version: 1, updatedAt: "2026-01-01T00:00:00.000Z", source: "onboard" },
+      database: { mode: "embedded-postgres" },
+      logging: { mode: "file" },
+      server: { deploymentMode: "local_trusted", host: "127.0.0.1", port: PORT },
+      auth: { baseUrlMode: "auto" },
+      storage: { provider: "local_disk" },
+      secrets: { provider: "local_encrypted", strictMode: false },
+    }, null, 2)}\n`,
+    "utf8",
+  );
+}
+
+bootstrapE2EInstanceConfig();
 
 export default defineConfig({
   testDir: ".",
@@ -41,7 +63,8 @@ export default defineConfig({
       ...process.env,
       PORT: String(PORT),
       PAPERCLIP_HOME,
-      PAPERCLIP_INSTANCE_ID: "playwright-e2e",
+      PAPERCLIP_INSTANCE_ID,
+      PAPERCLIP_CONFIG,
       PAPERCLIP_BIND: "loopback",
       PAPERCLIP_DEPLOYMENT_MODE: "local_trusted",
       PAPERCLIP_DEPLOYMENT_EXPOSURE: "private",
