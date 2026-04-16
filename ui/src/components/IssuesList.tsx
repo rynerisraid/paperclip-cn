@@ -838,13 +838,18 @@ export function IssuesList({
       {error && <p className="text-sm text-destructive">{error.message}</p>}
       {normalizedIssueSearch.length > 0 && searchedIssues.length === ISSUE_SEARCH_RESULT_LIMIT && (
         <p className="text-xs text-muted-foreground">
-          Showing up to {ISSUE_SEARCH_RESULT_LIMIT} matches. Refine the search to narrow further.
+          {t("Showing up to {{count}} matches. Refine the search to narrow further.", {
+            defaultValue: "Showing up to {{count}} matches. Refine the search to narrow further.",
+            count: ISSUE_SEARCH_RESULT_LIMIT,
+          })}
         </p>
       )}
       {!isLoading && filtered.length === 0 && viewState.viewMode === "list" && (
         <EmptyState
           icon={CircleDot}
-          message="No issues match the current filters or search."
+          message={t("No issues match the current filters or search.", {
+            defaultValue: "No issues match the current filters or search.",
+          })}
           action={createActionLabel}
           onAction={() => openCreateIssueDialog()}
         />

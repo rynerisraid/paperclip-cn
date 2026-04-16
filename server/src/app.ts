@@ -1,4 +1,4 @@
-import express, { Router, type Request as ExpressRequest } from "express";
+import express, { Router, type Request as ExpressRequest, type Response as ExpressResponse } from "express";
 import path from "node:path";
 import fs from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -86,6 +86,11 @@ export function shouldServeViteDevHtml(req: ExpressRequest): boolean {
   if (VITE_DEV_STATIC_PATHS.has(pathname)) return false;
   if (VITE_DEV_ASSET_PREFIXES.some((prefix) => pathname.startsWith(prefix))) return false;
   return req.accepts(["html"]) === "html";
+}
+
+export function shouldServeStaticUiHtml(req: ExpressRequest): boolean {
+  if (req.method !== "GET" && req.method !== "HEAD") return false;
+  return req.path === "/" || req.path === "/index.html";
 }
 
 export function shouldEnablePrivateHostnameGuard(opts: {
@@ -303,6 +308,23 @@ export async function createApp(
     const uiDist = candidates.find((p) => fs.existsSync(path.join(p, "index.html")));
     if (uiDist) {
       const indexHtmlTemplate = applyUiBranding(fs.readFileSync(path.join(uiDist, "index.html"), "utf-8"));
+      const serveStaticUiHtml = (req: ExpressRequest, res: ExpressResponse) => {
+        const initialLocale = resolveInitialUiLocale(req.get("Accept-Language"), req.query?.lng);
+        res
+          .status(200)
+          .set({
+            "Content-Type": "text/html",
+            "Content-Language": initialLocale.locale,
+            "Cache-Control": "no-cache",
+          })
+          .vary("Accept-Language");
+        if (req.method === "HEAD") {
+          res.end();
+          return;
+        }
+        const html = applyUiLocaleToHtml(indexHtmlTemplate, initialLocale);
+        res.end(html);
+      };
       // Hashed asset files (Vite emits them under /assets/<name>.<hash>.<ext>)
       // never change once built, so they can be cached aggressively.
       app.use(
@@ -312,44 +334,36 @@ export async function createApp(
           immutable: true,
         }),
       );
+      // Keep the HTML shell on the locale-aware path so `/` and `/index.html`
+      // produce the same `lang`, `Content-Language`, and cache semantics.
+      app.use((req, res, next) => {
+        if (!shouldServeStaticUiHtml(req)) {
+          next();
+          return;
+        }
+        serveStaticUiHtml(req, res);
+      });
       // Non-hashed static files (favicon.ico, manifest, robots.txt, etc.):
       // short cache so operators who swap them out see the new version
-      // reasonably fast. Override for `index.html` specifically — it is
-      // served by this middleware for `/` and `/index.html`, and it must
-      // never outlive the asset hashes it points at.
+      // reasonably fast.
       app.use(
         express.static(uiDist, {
           index: false,
           maxAge: "1h",
-          setHeaders(res, filePath) {
-            if (path.basename(filePath) === "index.html") {
-              res.set("Cache-Control", "no-cache");
-            }
-          },
         }),
       );
       // SPA fallback. Only for non-asset routes — if the browser asks for
       // /assets/something.js that doesn't exist, we must NOT serve the HTML
       // shell: the browser would try to load it as a JavaScript module, fail
       // with a MIME-type error, and cache that broken response. Return 404
-      // instead. The index.html response itself is no-cache so a subsequent
-      // deploy's updated asset hashes are picked up on next load.
+      // instead. The HTML shell responses themselves are no-cache so a
+      // subsequent deploy's updated asset hashes are picked up on next load.
       app.get(/.*/, (req, res) => {
         if (req.path.startsWith("/assets/")) {
           res.status(404).end();
           return;
         }
-        const initialLocale = resolveInitialUiLocale(req.get("Accept-Language"), req.query?.lng);
-        const html = applyUiLocaleToHtml(indexHtmlTemplate, initialLocale);
-        res
-          .status(200)
-          .set({
-            "Content-Type": "text/html",
-            "Content-Language": initialLocale.locale,
-            "Cache-Control": "no-cache",
-          })
-          .vary("Accept-Language")
-          .end(html);
+        serveStaticUiHtml(req, res);
       });
     } else {
       console.warn("[paperclip] UI dist not found; running in API-only mode");

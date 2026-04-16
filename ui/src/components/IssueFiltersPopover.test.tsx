@@ -10,12 +10,32 @@ import { defaultIssueFilterState } from "../lib/issue-filters";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
 
+const translations: Record<string, string> = {
+  Status: "状态",
+  Priority: "优先级",
+  Assignee: "负责人",
+  "No assignee": "无负责人",
+  Me: "我",
+  Creator: "创建者",
+  "Remove creator {{name}}": "移除创建者 {{name}}",
+  "Search creators...": "搜索创建者...",
+  "No creators match.": "没有匹配的创建者。",
+  Project: "项目",
+  Labels: "标签",
+  Workspace: "工作区",
+  "projectWorkspace.visibility": "可见性",
+  "Hide routine runs": "隐藏例行运行",
+};
+
 vi.mock("react-i18next", async (importOriginal) => {
   const actual = await importOriginal<typeof import("react-i18next")>();
   return {
     ...actual,
     useTranslation: () => ({
-      t: (key: string, options?: { defaultValue?: string; count?: number }) => options?.defaultValue ?? key,
+      t: (key: string, options?: Record<string, unknown>) => {
+        const template = translations[key] ?? (typeof options?.defaultValue === "string" ? options.defaultValue : key);
+        return template.replace(/\{\{(\w+)\}\}/g, (_match, token) => String(options?.[token] ?? ""));
+      },
     }),
   };
 });
@@ -85,5 +105,41 @@ describe("IssueFiltersPopover", () => {
     expect(renderedHtml).toContain("max-h-[min(80vh,42rem)]");
     expect(renderedHtml).toContain("md:grid-cols-3");
     expect(renderedHtml).toContain("grid-cols-1");
+  });
+
+  it("localizes filter labels and creator search copy", () => {
+    const root = createRoot(container);
+
+    act(() => {
+      root.render(
+        <IssueFiltersPopover
+          state={{ ...defaultIssueFilterState, creators: ["user:chen"], hideRoutineExecutions: true }}
+          onChange={vi.fn()}
+          activeFilterCount={1}
+          agents={[{ id: "agent-1", name: "Agent One" }]}
+          projects={[{ id: "project-1", name: "Project One" }]}
+          labels={[{ id: "label-1", name: "Bug", color: "#ff0000" }]}
+          currentUserId="user:me"
+          workspaces={[{ id: "workspace-1", name: "Workspace One" }]}
+          creators={[{ id: "user:chen", label: "Chen", kind: "user" }]}
+          enableRoutineVisibilityFilter
+        />,
+      );
+    });
+
+    const renderedHtml = document.body.innerHTML;
+    expect(renderedHtml).toContain("状态");
+    expect(renderedHtml).toContain("优先级");
+    expect(renderedHtml).toContain("负责人");
+    expect(renderedHtml).toContain("无负责人");
+    expect(renderedHtml).toContain("我");
+    expect(renderedHtml).toContain("创建者");
+    expect(renderedHtml).toContain("placeholder=\"搜索创建者...\"");
+    expect(renderedHtml).toContain("aria-label=\"移除创建者 Chen\"");
+    expect(renderedHtml).toContain("项目");
+    expect(renderedHtml).toContain("标签");
+    expect(renderedHtml).toContain("工作区");
+    expect(renderedHtml).toContain("可见性");
+    expect(renderedHtml).toContain("隐藏例行运行");
   });
 });

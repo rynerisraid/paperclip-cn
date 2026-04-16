@@ -9,6 +9,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { IssuesList } from "./IssuesList";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
+const translations: Record<string, string> = {
+  "No issues match the current filters or search.": "没有任务匹配当前筛选或搜索条件。",
+  "Showing up to {{count}} matches. Refine the search to narrow further.": "最多显示 {{count}} 条匹配结果。请进一步收窄搜索范围。",
+};
+
 vi.mock("react-i18next", async (importOriginal) => {
   const actual = await importOriginal<typeof import("react-i18next")>();
   return {
@@ -16,7 +21,7 @@ vi.mock("react-i18next", async (importOriginal) => {
     initReactI18next: { type: "3rdParty", init: () => {} },
     useTranslation: () => ({
       t: (key: string, options?: Record<string, unknown>) => {
-        const template = typeof options?.defaultValue === "string" ? options.defaultValue : key;
+        const template = translations[key] ?? (typeof options?.defaultValue === "string" ? options.defaultValue : key);
         return template.replace(/\{\{(\w+)\}\}/g, (_match, token) => String(options?.[token] ?? ""));
       },
     }),
@@ -397,7 +402,31 @@ describe("IssuesList", () => {
     );
 
     await waitForAssertion(() => {
-      expect(container.textContent).toContain("Showing up to 200 matches. Refine the search to narrow further.");
+      expect(container.textContent).toContain("最多显示 200 条匹配结果。请进一步收窄搜索范围。");
+    });
+
+    act(() => {
+      root.unmount();
+    });
+  });
+
+  it("localizes the empty-state message when search returns no rows", async () => {
+    mockIssuesApi.list.mockResolvedValue([]);
+
+    const { root } = renderWithQueryClient(
+      <IssuesList
+        issues={[]}
+        agents={[]}
+        projects={[]}
+        viewStateKey="paperclip:test-issues"
+        initialSearch="missing"
+        onUpdateIssue={() => undefined}
+      />,
+      container,
+    );
+
+    await waitForAssertion(() => {
+      expect(container.textContent).toContain("没有任务匹配当前筛选或搜索条件。");
     });
 
     act(() => {
