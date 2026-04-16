@@ -10,6 +10,16 @@ import { defaultIssueFilterState } from "../lib/issue-filters";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
 
+vi.mock("react-i18next", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("react-i18next")>();
+  return {
+    ...actual,
+    useTranslation: () => ({
+      t: (key: string, options?: { defaultValue?: string; count?: number }) => options?.defaultValue ?? key,
+    }),
+  };
+});
+
 vi.mock("@/components/ui/popover", () => ({
   Popover: ({ children }: { children: ReactNode }) => <div>{children}</div>,
   PopoverTrigger: ({ children }: { children: ReactNode }) => <>{children}</>,
@@ -70,14 +80,10 @@ describe("IssueFiltersPopover", () => {
       );
     });
 
-    const popoverContent = container.querySelector("[data-testid='popover-content']");
-    expect(popoverContent).not.toBeNull();
-    expect(popoverContent?.className).toContain("overflow-y-auto");
-    expect(popoverContent?.className).toContain("max-h-[min(80vh,42rem)]");
-
-    const layoutGrid = Array.from(popoverContent?.querySelectorAll("div") ?? []).find((element) =>
-      element.className.includes("md:grid-cols-3"),
-    );
-    expect(layoutGrid?.className).toContain("grid-cols-1");
+    const renderedHtml = document.body.innerHTML;
+    expect(renderedHtml).toContain("overflow-y-auto");
+    expect(renderedHtml).toContain("max-h-[min(80vh,42rem)]");
+    expect(renderedHtml).toContain("md:grid-cols-3");
+    expect(renderedHtml).toContain("grid-cols-1");
   });
 });

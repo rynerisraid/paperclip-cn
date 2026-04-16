@@ -24,6 +24,7 @@ import {
   countActiveIssueFilters,
   type IssueFilterState,
 } from "../lib/issue-filters";
+import { formatAssigneeUserLabel } from "../lib/assignees";
 import {
   armIssueDetailInboxQuickArchive,
   createIssueDetailLocationState,
@@ -98,8 +99,8 @@ import type { Approval, HeartbeatRun, Issue, JoinRequest } from "@penclipai/shar
 import {
   ACTIONABLE_APPROVAL_STATUSES,
   DEFAULT_INBOX_ISSUE_COLUMNS,
+  buildGroupedInboxSections,
   buildInboxKeyboardNavEntries,
-  buildInboxNesting,
   getAvailableInboxIssueColumns,
   getInboxWorkItemKey,
   getApprovalsForTab,
@@ -110,7 +111,6 @@ import {
   getLatestFailedRunsByAgent,
   matchesInboxIssueSearch,
   getRecentTouchedIssues,
-  groupInboxWorkItems,
   isInboxEntityDismissed,
   isMineInboxTab,
   loadCollapsedInboxGroupKeys,
@@ -136,6 +136,7 @@ import {
   type InboxKeyboardNavEntry,
   saveLastInboxTab,
   shouldShowInboxSection,
+  type InboxGroupedSection,
   type InboxTab,
   type InboxWorkItem,
   type InboxWorkItemGroupBy,
@@ -151,38 +152,12 @@ type SectionKey =
 
 /** A flat navigation entry for keyboard j/k traversal that includes expanded children. */
 type NavEntry = InboxKeyboardNavEntry;
-
-type InboxGroupedSection = {
-  key: string;
-  label: string | null;
-  displayItems: InboxWorkItem[];
-  childrenByIssueId: Map<string, Issue[]>;
-  isArchivedSearch: boolean;
+type CreatorOption = {
+  id: string;
+  label: string;
+  kind: "agent" | "user";
+  searchText?: string;
 };
-
-function buildGroupedInboxSections(
-  items: InboxWorkItem[],
-  groupBy: InboxWorkItemGroupBy,
-  nestingEnabled: boolean,
-  workspaceGrouping: InboxWorkspaceGroupingOptions,
-  options?: { keyPrefix?: string; isArchivedSearch?: boolean },
-): InboxGroupedSection[] {
-  const keyPrefix = options?.keyPrefix ?? "";
-  const isArchivedSearch = options?.isArchivedSearch ?? false;
-  return groupInboxWorkItems(items, groupBy, workspaceGrouping).map((group) => {
-    const nestedGroup = nestingEnabled && group.items.some((item) => item.kind === "issue")
-      ? buildInboxNesting(group.items)
-      : { displayItems: group.items, childrenByIssueId: new Map<string, Issue[]>() };
-
-    return {
-      key: `${keyPrefix}${group.key}`,
-      label: group.label,
-      displayItems: nestedGroup.displayItems,
-      childrenByIssueId: nestedGroup.childrenByIssueId,
-      isArchivedSearch,
-    };
-  });
-}
 
 function firstNonEmptyLine(value: string | null | undefined): string | null {
   if (!value) return null;
@@ -849,6 +824,66 @@ export function Inbox() {
     () => visibleTouchedIssues.filter((issue) => issue.isUnreadForMe),
     [visibleTouchedIssues],
   );
+  const creatorOptions = useMemo<CreatorOption[]>(() => {
+    const options = new Map<string, CreatorOption>();
+    const sourceIssues = [...mineIssues, ...touchedIssues];
+
+    if (currentUserId) {
+      options.set(`user:${currentUserId}`, {
+        id: `user:${currentUserId}`,
+        label: currentUserId === "local-board" ? "Board" : "Me",
+        kind: "user",
+        searchText: currentUserId === "local-board" ? "board me human local-board" : `me board human ${currentUserId}`,
+      });
+    }
+
+    for (const issue of sourceIssues) {
+      if (issue.createdByUserId) {
+        const id = `user:${issue.createdByUserId}`;
+        if (!options.has(id)) {
+          options.set(id, {
+            id,
+            label: formatAssigneeUserLabel(issue.createdByUserId, currentUserId) ?? issue.createdByUserId.slice(0, 5),
+            kind: "user",
+            searchText: `${issue.createdByUserId} board user human`,
+          });
+        }
+      }
+    }
+
+    const knownAgentIds = new Set<string>();
+    for (const agent of agents ?? []) {
+      knownAgentIds.add(agent.id);
+      const id = `agent:${agent.id}`;
+      if (!options.has(id)) {
+        options.set(id, {
+          id,
+          label: agent.name,
+          kind: "agent",
+          searchText: `${agent.name} ${agent.id} agent`,
+        });
+      }
+    }
+
+    for (const issue of sourceIssues) {
+      if (issue.createdByAgentId && !knownAgentIds.has(issue.createdByAgentId)) {
+        const id = `agent:${issue.createdByAgentId}`;
+        if (!options.has(id)) {
+          options.set(id, {
+            id,
+            label: issue.createdByAgentId.slice(0, 8),
+            kind: "agent",
+            searchText: `${issue.createdByAgentId} agent`,
+          });
+        }
+      }
+    }
+
+    return [...options.values()].sort((a, b) => {
+      if (a.kind !== b.kind) return a.kind === "user" ? -1 : 1;
+      return a.label.localeCompare(b.label);
+    });
+  }, [agents, currentUserId, mineIssues, touchedIssues]);
   const issuesToRender = useMemo(
     () => {
       if (tab === "mine") return visibleMineIssues;
@@ -1102,19 +1137,12 @@ export function Inbox() {
       remoteIssueSearchResults,
     ],
   );
-  const effectiveWorkItems = useMemo(
-    () =>
-      issueSearchSupplementResults.length > 0
-        ? [
-          ...filteredWorkItems,
-          ...getInboxWorkItems({ issues: issueSearchSupplementResults, approvals: [] }),
-        ]
-        : filteredWorkItems,
-    [filteredWorkItems, issueSearchSupplementResults],
-  );
-  const archivedSearchIssueIds = useMemo(
-    () => new Set(archivedSearchIssues.map((issue) => issue.id)),
-    [archivedSearchIssues],
+  const nonInboxSearchIssueIds = useMemo(
+    () => new Set([
+      ...archivedSearchIssues.map((issue) => issue.id),
+      ...issueSearchSupplementResults.map((issue) => issue.id),
+    ]),
+    [archivedSearchIssues, issueSearchSupplementResults],
   );
 
   // --- Parent-child nesting for inbox issues ---
@@ -1144,15 +1172,27 @@ export function Inbox() {
     });
   }, [selectedCompanyId]);
   const groupedSections = useMemo<InboxGroupedSection[]>(() => [
-    ...buildGroupedInboxSections(effectiveWorkItems, groupBy, nestingEnabled, inboxWorkspaceGrouping),
+    ...buildGroupedInboxSections(filteredWorkItems, groupBy, inboxWorkspaceGrouping, { nestingEnabled }),
     ...buildGroupedInboxSections(
       getInboxWorkItems({ issues: archivedSearchIssues, approvals: [] }),
       groupBy,
-      nestingEnabled,
       inboxWorkspaceGrouping,
-      { keyPrefix: "archived-search:", isArchivedSearch: true },
+      { keyPrefix: "archived-search:", searchSection: "archived", nestingEnabled },
     ),
-  ], [archivedSearchIssues, effectiveWorkItems, groupBy, inboxWorkspaceGrouping, nestingEnabled]);
+    ...buildGroupedInboxSections(
+      getInboxWorkItems({ issues: issueSearchSupplementResults, approvals: [] }),
+      groupBy,
+      inboxWorkspaceGrouping,
+      { keyPrefix: "other-search:", searchSection: "other", nestingEnabled },
+    ),
+  ], [
+    archivedSearchIssues,
+    filteredWorkItems,
+    groupBy,
+    inboxWorkspaceGrouping,
+    issueSearchSupplementResults,
+    nestingEnabled,
+  ]);
   const totalVisibleWorkItems = useMemo(
     () => groupedSections.reduce((count, group) => count + group.displayItems.length, 0),
     [groupedSections],
@@ -1521,7 +1561,7 @@ export function Inbox() {
     flatNavItems,
     selectedIndex,
     canArchive: canArchiveFromTab,
-    archivedSearchIssueIds,
+    nonInboxSearchIssueIds,
     archivingIssueIds,
     undoableArchiveIssueIds,
     unarchivingIssueIds,
@@ -1534,7 +1574,7 @@ export function Inbox() {
     flatNavItems,
     selectedIndex,
     canArchive: canArchiveFromTab,
-    archivedSearchIssueIds,
+    nonInboxSearchIssueIds,
     archivingIssueIds,
     undoableArchiveIssueIds,
     unarchivingIssueIds,
@@ -1637,10 +1677,10 @@ export function Inbox() {
           e.preventDefault();
           const { issue, item } = resolveNavEntry(st.selectedIndex);
           if (issue) {
-            if (!st.archivedSearchIssueIds.has(issue.id) && !st.archivingIssueIds.has(issue.id)) act.archiveIssue(issue.id);
+            if (!st.nonInboxSearchIssueIds.has(issue.id) && !st.archivingIssueIds.has(issue.id)) act.archiveIssue(issue.id);
           } else if (item) {
             if (item.kind === "issue") {
-              if (!st.archivedSearchIssueIds.has(item.issue.id) && !st.archivingIssueIds.has(item.issue.id)) {
+              if (!st.nonInboxSearchIssueIds.has(item.issue.id) && !st.archivingIssueIds.has(item.issue.id)) {
                 act.archiveIssue(item.issue.id);
               }
             } else {
@@ -1864,6 +1904,7 @@ export function Inbox() {
             onChange={updateIssueFilters}
             activeFilterCount={activeIssueFilterCount}
             agents={agents}
+            creators={creatorOptions}
             projects={projects?.map((project) => ({ id: project.id, name: project.name }))}
             labels={labels?.map((label) => ({ id: label.id, name: label.name, color: label.color }))}
             currentUserId={currentUserId}
@@ -2139,15 +2180,20 @@ export function Inbox() {
                 return groupedSections.flatMap((group, groupIndex) => {
                   const elements: ReactNode[] = [];
                   const isGroupCollapsed = collapsedGroupKeys.has(group.key);
-                  if (group.isArchivedSearch && (groupIndex === 0 || !groupedSections[groupIndex - 1]?.isArchivedSearch)) {
+                  if (
+                    group.searchSection !== "none"
+                    && group.searchSection !== groupedSections[groupIndex - 1]?.searchSection
+                  ) {
                     elements.push(
                       <div
-                        key="archived-search-divider"
+                        key={`${group.searchSection}-search-divider`}
                         className="flex items-center gap-3 border-y border-border/70 bg-muted/30 px-4 py-2"
                       >
                         <div className="h-px flex-1 bg-border/80" />
                         <span className="shrink-0 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                          {t("Archived", { defaultValue: "Archived" })}
+                          {group.searchSection === "archived"
+                            ? t("Archived", { defaultValue: "Archived" })
+                            : t("Other results", { defaultValue: "Other results" })}
                         </span>
                         <div className="h-px flex-1 bg-border/80" />
                       </div>,
@@ -2318,7 +2364,7 @@ export function Inbox() {
                     const childIssues = group.childrenByIssueId.get(issue.id) ?? [];
                     const hasChildren = childIssues.length > 0;
                     const isExpanded = hasChildren && !collapsedInboxParents.has(issue.id);
-                    const canArchiveIssue = canArchiveFromTab && !group.isArchivedSearch;
+                    const canArchiveIssue = canArchiveFromTab && group.searchSection === "none";
                     const parentRow = renderInboxIssue({
                       issue,
                       depth: 0,
