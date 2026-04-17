@@ -40,7 +40,10 @@ pnpm dev
 - 官网：[penclip.ing](https://penclip.ing)
 - 中文站：[paperclipai.cn](https://paperclipai.cn)
 - 文档：[penclip.ing/docs](https://penclip.ing/docs)
+- 路线图：[ROADMAP.md](./ROADMAP.md)
 - 上游项目：[paperclipai/paperclip](https://github.com/paperclipai/paperclip)
+
+英文 README 中的路线图预览，已经在完整路线图文档中展开维护。
 
 ## 许可
 

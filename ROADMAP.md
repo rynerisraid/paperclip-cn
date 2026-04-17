@@ -2,6 +2,8 @@
 
 This document expands the roadmap preview in `README.md`.
 
+For Paperclip CN, this file tracks the upstream core roadmap that the fork follows where practical. CN-specific long-term maintenance priorities still center on zh-CN localization completeness, Windows compatibility, Electron packaging, and rebrand boundary discipline.
+
 Paperclip is still moving quickly. The list below is directional, not promised, and priorities may shift as we learn from users and from operating real AI companies with the product.
 
 We value community involvement and want to make sure contributor energy goes toward areas where it can land.
