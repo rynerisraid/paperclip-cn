@@ -108,6 +108,7 @@ const SESSIONED_LOCAL_ADAPTERS = new Set([
   "codebuddy_local",
   "cursor",
   "gemini_local",
+  "hermes_local",
   "opencode_local",
   "pi_local",
   "qwen_local",
