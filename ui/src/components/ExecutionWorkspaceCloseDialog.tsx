@@ -4,7 +4,7 @@ import { Link } from "@/lib/router";
 import { Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { executionWorkspacesApi } from "../api/execution-workspaces";
-import { useToast } from "../context/ToastContext";
+import { useToastActions } from "../context/ToastContext";
 import { queryKeys } from "../lib/queryKeys";
 import { formatDateTime, issueUrl } from "../lib/utils";
 import { Button } from "./ui/button";
@@ -46,7 +46,7 @@ export function ExecutionWorkspaceCloseDialog({
 }: ExecutionWorkspaceCloseDialogProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const { pushToast } = useToast();
+  const { pushToast } = useToastActions();
   const actionLabel = currentStatus === "cleanup_failed" ? t("execCloseDialog.retryClose") : t("execCloseDialog.closeWorkspace");
 
   const readinessQuery = useQuery({

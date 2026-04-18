@@ -1,5 +1,6 @@
 import type { Agent } from "@penclipai/shared";
 import { translateInstant } from "../i18n";
+import type { CompanyUserProfile } from "./company-members";
 
 type ActivityDetails = Record<string, unknown> | null | undefined;
 
@@ -17,6 +18,7 @@ type ActivityIssueReference = {
 
 interface ActivityFormatOptions {
   agentMap?: Map<string, Agent>;
+  userProfileMap?: Map<string, CompanyUserProfile>;
   currentUserId?: string | null;
 }
 
@@ -26,6 +28,7 @@ const ACTIVITY_ROW_VERBS: Record<string, string> = {
   "issue.checked_out": "checked out",
   "issue.released": "released",
   "issue.comment_added": "commented on",
+  "issue.comment_cancelled": "cancelled a queued comment on",
   "issue.attachment_added": "attached file to",
   "issue.attachment_removed": "removed attachment from",
   "issue.document_created": "created document for",
@@ -66,6 +69,7 @@ const ISSUE_ACTIVITY_LABELS: Record<string, string> = {
   "issue.checked_out": "checked out the issue",
   "issue.released": "released the issue",
   "issue.comment_added": "added a comment",
+  "issue.comment_cancelled": "cancelled a queued comment",
   "issue.feedback_vote_saved": "saved feedback on an AI output",
   "issue.attachment_added": "added an attachment",
   "issue.attachment_removed": "removed an attachment",
@@ -169,9 +173,11 @@ function readIssueReferences(details: ActivityDetails, key: string): ActivityIss
   return value.filter(isActivityIssueReference);
 }
 
-function formatUserLabel(userId: string | null | undefined, currentUserId?: string | null): string {
+function formatUserLabel(userId: string | null | undefined, options: ActivityFormatOptions = {}): string {
   if (!userId || userId === "local-board") return translateActivityText("Board");
-  if (currentUserId && userId === currentUserId) return translateActivityText("You");
+  if (options.currentUserId && userId === options.currentUserId) return translateActivityText("You");
+  const profile = options.userProfileMap?.get(userId);
+  if (profile) return profile.label;
   return translateInstant("activityFormat.userLabel", {
     id: userId.slice(0, 5),
     defaultValue: `user ${userId.slice(0, 5)}`,
@@ -183,7 +189,7 @@ function formatParticipantLabel(participant: ActivityParticipant, options: Activ
     const agentId = participant.agentId ?? "";
     return options.agentMap?.get(agentId)?.name ?? translateActivityText("agent");
   }
-  return formatUserLabel(participant.userId, options.currentUserId);
+  return formatUserLabel(participant.userId, options);
 }
 
 function formatIssueReferenceLabel(reference: ActivityIssueReference): string {
@@ -247,7 +253,20 @@ function formatIssueUpdatedVerb(details: ActivityDetails): string | null {
   return null;
 }
 
-function formatIssueUpdatedAction(details: ActivityDetails): string | null {
+function formatAssigneeName(details: ActivityDetails, options: ActivityFormatOptions): string | null {
+  if (!details) return null;
+  const agentId = details.assigneeAgentId;
+  const userId = details.assigneeUserId;
+  if (typeof agentId === "string" && agentId) {
+    return options.agentMap?.get(agentId)?.name ?? "agent";
+  }
+  if (typeof userId === "string" && userId) {
+    return formatUserLabel(userId, options);
+  }
+  return null;
+}
+
+function formatIssueUpdatedAction(details: ActivityDetails, options: ActivityFormatOptions = {}): string | null {
   if (!details) return null;
   const previous = asRecord(details._previous) ?? {};
   const parts: string[] = [];
@@ -283,7 +302,15 @@ function formatIssueUpdatedAction(details: ActivityDetails): string | null {
     );
   }
   if (details.assigneeAgentId !== undefined || details.assigneeUserId !== undefined) {
-    parts.push(translateActivityText(details.assigneeAgentId || details.assigneeUserId ? "assigned the issue" : "unassigned the issue"));
+    const assigneeName = formatAssigneeName(details, options);
+    parts.push(
+      assigneeName
+        ? translateInstant("assigned the issue to {{assignee}}", {
+            assignee: assigneeName,
+            defaultValue: `assigned the issue to ${assigneeName}`,
+          })
+        : translateActivityText("unassigned the issue"),
+    );
   }
   if (details.title !== undefined) parts.push(translateActivityText("updated the title"));
   if (details.description !== undefined) parts.push(translateActivityText("updated the description"));
@@ -410,7 +437,7 @@ export function formatIssueActivityAction(
   options: ActivityFormatOptions = {},
 ): string {
   if (action === "issue.updated") {
-    const issueUpdatedAction = formatIssueUpdatedAction(details);
+    const issueUpdatedAction = formatIssueUpdatedAction(details, options);
     if (issueUpdatedAction) return issueUpdatedAction;
   }
 

@@ -147,23 +147,41 @@ run_penclip_command() {
   case "$resolved_penclip_invoker" in
     source)
       "$resolved_penclip_node_command" "$resolved_penclip_tsx_path" "$resolved_penclip_entry_path" "${command_args[@]}"
-      return 0
+      return $?
       ;;
     pnpm)
       (
         cd "$resolved_penclip_cwd" &&
         pnpm penclip "${command_args[@]}"
       )
-      return 0
+      return $?
       ;;
     global)
       penclip "${command_args[@]}"
-      return 0
+      return $?
       ;;
     *)
       return 1
       ;;
   esac
+}
+
+paperclipai_command_available() {
+  if command -v pnpm >/dev/null 2>&1 && pnpm penclip --help >/dev/null 2>&1; then
+    return 0
+  fi
+
+  local base_cli_tsx_path="$base_cwd/cli/node_modules/tsx/dist/cli.mjs"
+  local base_cli_entry_path="$base_cwd/cli/src/index.ts"
+  if command -v node >/dev/null 2>&1 && [[ -f "$base_cli_tsx_path" ]] && [[ -f "$base_cli_entry_path" ]]; then
+    return 0
+  fi
+
+  if command -v penclip >/dev/null 2>&1; then
+    return 0
+  fi
+
+  return 1
 }
 
 run_isolated_worktree_init() {
@@ -178,7 +196,6 @@ run_isolated_worktree_init() {
     --from-config \
     "$source_config_path_raw"
 }
-
 write_fallback_worktree_config() {
   local node_command
   node_command="$(resolve_node_command)"
@@ -442,8 +459,14 @@ EOF
 }
 
 if ! run_isolated_worktree_init; then
-  echo "penclip CLI not available in this workspace; writing isolated fallback config without DB seeding." >&2
-  write_fallback_worktree_config
+  resolve_penclip_invoker
+  if [[ "$resolved_penclip_invoker" == "none" ]]; then
+    echo "penclip CLI not available in this workspace; writing isolated fallback config without DB seeding." >&2
+    write_fallback_worktree_config
+  else
+    echo "penclip worktree init failed after CLI detection; refusing to write fallback config." >&2
+    exit 1
+  fi
 elif [[ ! -e "$(to_shell_path "$worktree_config_path_raw")" || ! -e "$(to_shell_path "$worktree_env_path_raw")" ]]; then
   echo "penclip worktree init did not materialize repo-local config; writing isolated fallback config." >&2
   write_fallback_worktree_config
@@ -527,13 +550,48 @@ if [[ -f "$worktree_cwd/package.json" && -f "$worktree_cwd/pnpm-lock.yaml" ]]; t
       done
     }
 
-    (
-      cd "$worktree_cwd"
-      pnpm install --frozen-lockfile
-    ) || {
-      restore_moved_symlinks
-      exit 1
+    run_pnpm_install() {
+      local stdout_path stderr_path
+      stdout_path="$(mktemp)"
+      stderr_path="$(mktemp)"
+
+      if (
+        cd "$worktree_cwd"
+        pnpm install "$@"
+      ) >"$stdout_path" 2>"$stderr_path"; then
+        cat "$stdout_path"
+        cat "$stderr_path" >&2
+        rm -f "$stdout_path" "$stderr_path"
+        return 0
+      fi
+
+      local exit_code=$?
+      cat "$stdout_path"
+      cat "$stderr_path" >&2
+      if grep -q "ERR_PNPM_OUTDATED_LOCKFILE" "$stdout_path" "$stderr_path"; then
+        rm -f "$stdout_path" "$stderr_path"
+        return 90
+      fi
+
+      rm -f "$stdout_path" "$stderr_path"
+      return "$exit_code"
     }
+
+    if run_pnpm_install --frozen-lockfile; then
+      :
+    else
+      install_exit_code=$?
+      if [[ "$install_exit_code" -eq 90 ]]; then
+        echo "pnpm-lock.yaml is out of date in this execution workspace; retrying install without --frozen-lockfile." >&2
+        run_pnpm_install --no-frozen-lockfile || {
+          restore_moved_symlinks
+          exit 1
+        }
+      else
+        restore_moved_symlinks
+        exit "$install_exit_code"
+      fi
+    fi
 
     cleanup_moved_symlinks
   fi

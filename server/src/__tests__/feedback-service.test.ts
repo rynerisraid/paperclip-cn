@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import fs from "node:fs";
+import net from "node:net";
 import os from "node:os";
 import path from "node:path";
 import { eq } from "drizzle-orm";
@@ -14,55 +15,101 @@ import {
   createDb,
   documents,
   documentRevisions,
+  ensurePostgresDatabase,
   feedbackExports,
   feedbackVotes,
-  getEmbeddedPostgresTestSupport,
   heartbeatRuns,
   instanceSettings,
   issueComments,
   issueDocuments,
   issues,
-  startEmbeddedPostgresTestDatabase,
 } from "@penclipai/db";
 import { feedbackService } from "../services/feedback.ts";
 
-async function removeDirBestEffort(dir: string) {
-  try {
-    await fs.promises.rm(dir, {
-      recursive: true,
-      force: true,
-      maxRetries: 10,
-      retryDelay: 200,
+type EmbeddedPostgresInstance = {
+  initialise(): Promise<void>;
+  start(): Promise<void>;
+  stop(): Promise<void>;
+};
+
+type EmbeddedPostgresCtor = new (opts: {
+  databaseDir: string;
+  user: string;
+  password: string;
+  port: number;
+  persistent: boolean;
+  initdbFlags?: string[];
+  onLog?: (message: unknown) => void;
+  onError?: (message: unknown) => void;
+}) => EmbeddedPostgresInstance;
+
+async function getEmbeddedPostgresCtor(): Promise<EmbeddedPostgresCtor> {
+  const mod = await import("embedded-postgres");
+  return mod.default as EmbeddedPostgresCtor;
+}
+
+async function getAvailablePort(): Promise<number> {
+  return await new Promise((resolve, reject) => {
+    const server = net.createServer();
+    server.unref();
+    server.on("error", reject);
+    server.listen(0, "127.0.0.1", () => {
+      const address = server.address();
+      if (!address || typeof address === "string") {
+        server.close(() => reject(new Error("Failed to allocate test port")));
+        return;
+      }
+      const { port } = address;
+      server.close((error) => {
+        if (error) reject(error);
+        else resolve(port);
+      });
     });
-  } catch (error) {
-    const code = (error as NodeJS.ErrnoException).code;
-    if (code !== "EPERM" && code !== "EBUSY" && code !== "ENOTEMPTY") {
-      throw error;
-    }
-  }
+  });
 }
 
-const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
-const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
-const EMBEDDED_POSTGRES_TIMEOUT = process.platform === "win32" ? 60_000 : 20_000;
+async function startTempDatabase() {
+  const dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "paperclip-feedback-service-"));
+  const port = await getAvailablePort();
+  const EmbeddedPostgres = await getEmbeddedPostgresCtor();
+  const instance = new EmbeddedPostgres({
+    databaseDir: dataDir,
+    user: "paperclip",
+    password: "paperclip",
+    port,
+    persistent: true,
+    initdbFlags: ["--encoding=UTF8", "--locale=C", "--lc-messages=C"],
+    onLog: () => {},
+    onError: () => {},
+  });
+  await instance.initialise();
+  await instance.start();
 
-if (!embeddedPostgresSupport.supported) {
-  console.warn(
-    `Skipping embedded Postgres feedback-service tests on this host: ${embeddedPostgresSupport.reason ?? "unsupported environment"}`,
-  );
+  const adminConnectionString = `postgres://paperclip:paperclip@127.0.0.1:${port}/postgres`;
+  await ensurePostgresDatabase(adminConnectionString, "paperclip");
+  const connectionString = `postgres://paperclip:paperclip@127.0.0.1:${port}/paperclip`;
+  await applyPendingMigrations(connectionString);
+  return { connectionString, dataDir, instance };
 }
 
-describeEmbeddedPostgres("feedbackService.saveIssueVote", () => {
+async function closeDbClient(db: ReturnType<typeof createDb> | undefined) {
+  await db?.$client?.end?.({ timeout: 0 });
+}
+
+describe("feedbackService.saveIssueVote", () => {
   let db!: ReturnType<typeof createDb>;
   let svc!: ReturnType<typeof feedbackService>;
-  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+  let instance: EmbeddedPostgresInstance | null = null;
+  let dataDir = "";
   let tempDirs: string[] = [];
 
   beforeAll(async () => {
-    tempDb = await startEmbeddedPostgresTestDatabase("paperclip-feedback-service-");
-    db = createDb(tempDb.connectionString);
+    const started = await startTempDatabase();
+    db = createDb(started.connectionString);
     svc = feedbackService(db);
-  }, EMBEDDED_POSTGRES_TIMEOUT);
+    instance = started.instance;
+    dataDir = started.dataDir;
+  }, 20_000);
 
   afterEach(async () => {
     await db.delete(feedbackExports);
@@ -79,14 +126,18 @@ describeEmbeddedPostgres("feedbackService.saveIssueVote", () => {
     await db.delete(agents);
     await db.delete(companies);
     for (const dir of tempDirs) {
-      await removeDirBestEffort(dir);
+      fs.rmSync(dir, { recursive: true, force: true });
     }
     vi.unstubAllEnvs();
     tempDirs = [];
   });
 
   afterAll(async () => {
-    await tempDb?.cleanup();
+    await closeDbClient(db);
+    await instance?.stop();
+    if (dataDir) {
+      fs.rmSync(dataDir, { recursive: true, force: true });
+    }
   });
 
   async function seedIssueWithAgentComment() {
@@ -166,7 +217,7 @@ describeEmbeddedPostgres("feedbackService.saveIssueVote", () => {
       {
         id: randomUUID(),
         companyId,
-        key: "paperclipai/paperclip/paperclip",
+        key: "penclipai/paperclip-cn/paperclip",
         slug: "paperclip",
         name: "Paperclip",
         markdown: "# Paperclip",
@@ -204,7 +255,7 @@ describeEmbeddedPostgres("feedbackService.saveIssueVote", () => {
           instructionsEntryFile: "AGENTS.md",
           instructionsFilePath: instructionsPath,
         },
-        ["paperclipai/paperclip/paperclip", "octo/research/public-skill"],
+        ["penclipai/paperclip-cn/paperclip", "octo/research/public-skill"],
       ),
       runtimeConfig: {
         heartbeat: {

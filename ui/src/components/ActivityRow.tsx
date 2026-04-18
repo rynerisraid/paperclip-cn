@@ -5,6 +5,7 @@ import { timeAgo } from "../lib/timeAgo";
 import { cn } from "../lib/utils";
 import { formatActivityVerb } from "../lib/activity-format";
 import { deriveProjectUrlKey, type ActivityEvent, type Agent } from "@penclipai/shared";
+import type { CompanyUserProfile } from "../lib/company-members";
 
 function entityLink(entityType: string, entityId: string, name?: string | null): string | null {
   switch (entityType) {
@@ -20,14 +21,15 @@ function entityLink(entityType: string, entityId: string, name?: string | null):
 interface ActivityRowProps {
   event: ActivityEvent;
   agentMap: Map<string, Agent>;
+  userProfileMap?: Map<string, CompanyUserProfile>;
   entityNameMap: Map<string, string>;
   entityTitleMap?: Map<string, string>;
   className?: string;
 }
 
-export function ActivityRow({ event, agentMap, entityNameMap, entityTitleMap, className }: ActivityRowProps) {
+export function ActivityRow({ event, agentMap, userProfileMap, entityNameMap, entityTitleMap, className }: ActivityRowProps) {
   const { t } = useTranslation();
-  const verb = formatActivityVerb(event.action, event.details, { agentMap });
+  const verb = formatActivityVerb(event.action, event.details, { agentMap, userProfileMap });
 
   const isHeartbeatEvent = event.entityType === "heartbeat_run";
   const heartbeatAgentId = isHeartbeatEvent
@@ -45,19 +47,24 @@ export function ActivityRow({ event, agentMap, entityNameMap, entityTitleMap, cl
     : entityLink(event.entityType, event.entityId, name);
 
   const actor = event.actorType === "agent" ? agentMap.get(event.actorId) : null;
+  const userProfile = event.actorType === "user" ? userProfileMap?.get(event.actorId) : null;
   const actorName = actor?.name ?? (
     event.actorType === "system"
       ? t("System", { defaultValue: "System" })
-      : event.actorType === "user"
-        ? t("Board", { defaultValue: "Board" })
-        : event.actorId || t("Unknown", { defaultValue: "Unknown" })
+      : userProfile?.label ?? (
+        event.actorType === "user"
+          ? t("Board", { defaultValue: "Board" })
+          : event.actorId || t("Unknown", { defaultValue: "Unknown" })
+      )
   );
+  const actorAvatarUrl = userProfile?.image ?? null;
 
   const inner = (
     <div className="flex gap-3">
       <p className="flex-1 min-w-0 truncate">
         <Identity
           name={actorName}
+          avatarUrl={actorAvatarUrl}
           size="xs"
           className="align-baseline"
         />
