@@ -110,7 +110,11 @@ export function SidebarAccountMenu({
     },
   });
 
-  const displayName = session?.user.name?.trim() || t("Board", { defaultValue: "Board" });
+  const rawDisplayName = session?.user.name?.trim() || "";
+  const isLocalBoardAccount = session?.user.id === "local-board";
+  const displayName = isLocalBoardAccount && (!rawDisplayName || rawDisplayName === "Board")
+    ? t("Board", { defaultValue: "Board" })
+    : rawDisplayName || t("Board", { defaultValue: "Board" });
   const secondaryLabel =
     session?.user.email?.trim() || (deploymentMode === "authenticated"
       ? t("Signed in", { defaultValue: "Signed in" })

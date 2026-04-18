@@ -118,10 +118,10 @@ export function IssueColumnPicker({
           >
             <span className="flex flex-col gap-0.5">
               <span className="text-sm font-medium text-foreground">
-                {issueColumnLabels[column]}
+                {t(issueColumnLabels[column], { defaultValue: issueColumnLabels[column] })}
               </span>
               <span className="text-xs leading-relaxed text-muted-foreground">
-                {issueColumnDescriptions[column]}
+                {t(issueColumnDescriptions[column], { defaultValue: issueColumnDescriptions[column] })}
               </span>
             </span>
           </DropdownMenuCheckboxItem>

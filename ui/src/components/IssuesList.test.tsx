@@ -12,6 +12,26 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 const translations: Record<string, string> = {
   "No issues match the current filters or search.": "没有任务匹配当前筛选或搜索条件。",
   "Showing up to {{count}} matches. Refine the search to narrow further.": "最多显示 {{count}} 条匹配结果。请进一步收窄搜索范围。",
+  "Desktop issue rows": "桌面端任务行",
+  "issuesList.columns": "列",
+  "Status": "状态",
+  "ID": "ID",
+  "Assignee": "负责人",
+  "Project": "项目",
+  "Workspace": "工作区",
+  "Parent issue": "父任务",
+  "Tags": "标签",
+  "Last updated": "最后更新",
+  "Issue state chip on the left edge.": "左侧边缘的任务状态标识。",
+  "Ticket identifier like PAP-1009.": "像 PAP-1009 这样的任务标识。",
+  "Assigned agent or board user.": "已分配的智能体或董事会用户。",
+  "Linked project pill with its color.": "带项目颜色的关联项目标签。",
+  "Execution or project workspace used for the issue.": "该任务使用的执行工作区或项目工作区。",
+  "Parent issue identifier and title.": "父任务标识与标题。",
+  "Issue labels and tags.": "任务标签与标记。",
+  "Latest visible activity time.": "最近一次可见活动时间。",
+  "Reset defaults": "恢复默认值",
+  "issuesList.defaultColumnsSummary": "状态、编号、更新时间",
 };
 
 vi.mock("react-i18next", async (importOriginal) => {
@@ -541,12 +561,58 @@ describe("IssuesList", () => {
 
     await waitForAssertion(() => {
       const columnsButton = Array.from(document.body.querySelectorAll("button")).find(
-        (button) => button.getAttribute("title") === "Columns",
+        (button) => button.getAttribute("title") === "列",
       );
       expect(columnsButton).not.toBeUndefined();
       expect(container.textContent).toContain("PAP-9");
       expect(container.textContent).toContain("Agent One");
       expect(container.textContent).not.toContain("Updated");
+    });
+
+    act(() => {
+      root.unmount();
+    });
+  });
+
+  it("shows localized column picker copy", async () => {
+    const issue = createIssue({
+      id: "issue-columns",
+      identifier: "PAP-21",
+      title: "Columns issue",
+    });
+
+    const { root } = renderWithQueryClient(
+      <IssuesList
+        issues={[issue]}
+        agents={[]}
+        projects={[]}
+        viewStateKey="paperclip:test-issues"
+        onUpdateIssue={() => undefined}
+      />,
+      container,
+    );
+
+    await waitForAssertion(() => {
+      const columnsButton = Array.from(document.body.querySelectorAll("button")).find(
+        (button) => button.getAttribute("title") === "列",
+      );
+      expect(columnsButton).not.toBeUndefined();
+    });
+
+    const columnsButton = Array.from(document.body.querySelectorAll("button")).find(
+      (button) => button.getAttribute("title") === "列",
+    );
+
+    await act(async () => {
+      columnsButton?.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0 }));
+      columnsButton?.dispatchEvent(new MouseEvent("click", { bubbles: true, button: 0 }));
+    });
+
+    await waitForAssertion(() => {
+      expect(document.body.textContent).toContain("桌面端任务行");
+      expect(document.body.textContent).toContain("状态");
+      expect(document.body.textContent).toContain("左侧边缘的任务状态标识。");
+      expect(document.body.textContent).toContain("恢复默认值");
     });
 
     act(() => {

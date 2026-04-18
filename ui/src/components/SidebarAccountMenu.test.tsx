@@ -6,6 +6,10 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SidebarAccountMenu } from "./SidebarAccountMenu";
 
+const translations: Record<string, string> = {
+  Board: "董事会",
+};
+
 vi.mock("react-i18next", async (importOriginal) => {
   const actual = await importOriginal<typeof import("react-i18next")>();
   return {
@@ -18,7 +22,7 @@ vi.mock("react-i18next", async (importOriginal) => {
         changeLanguage: vi.fn(),
       },
       t: (key: string, options?: Record<string, unknown>) => {
-        const template = typeof options?.defaultValue === "string" ? options.defaultValue : key;
+        const template = translations[key] ?? (typeof options?.defaultValue === "string" ? options.defaultValue : key);
         return template.replace(/\{\{(\w+)\}\}/g, (_match, token) => String(options?.[token] ?? ""));
       },
     }),
@@ -128,6 +132,44 @@ describe("SidebarAccountMenu", () => {
     expect(document.body.textContent).toContain("Documentation");
     expect(document.body.textContent).toContain("Paperclip v1.2.3");
     expect(document.body.textContent).toContain("jane@example.com");
+
+    await act(async () => {
+      root.unmount();
+    });
+  });
+
+  it("localizes the local board display name", async () => {
+    mockAuthApi.getSession.mockResolvedValue({
+      session: { id: "session-local", userId: "local-board" },
+      user: {
+        id: "local-board",
+        name: "Board",
+        email: null,
+        image: null,
+      },
+    });
+
+    const root = createRoot(container);
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+
+    await act(async () => {
+      root.render(
+        <QueryClientProvider client={queryClient}>
+          <SidebarAccountMenu
+            deploymentMode="local_trusted"
+            instanceSettingsTarget="/instance/settings/general"
+            version="1.2.3"
+          />
+        </QueryClientProvider>,
+      );
+    });
+    await flushReact();
+    await flushReact();
+
+    expect(container.textContent).toContain("董事会");
+    expect(container.textContent).not.toContain("Board");
 
     await act(async () => {
       root.unmount();
