@@ -12,6 +12,11 @@ vi.mock("react-i18next", async (importOriginal) => {
     ...actual,
     initReactI18next: { type: "3rdParty", init: () => {} },
     useTranslation: () => ({
+      i18n: {
+        resolvedLanguage: "en",
+        language: "en",
+        changeLanguage: vi.fn(),
+      },
       t: (key: string, options?: Record<string, unknown>) => {
         const template = typeof options?.defaultValue === "string" ? options.defaultValue : key;
         return template.replace(/\{\{(\w+)\}\}/g, (_match, token) => String(options?.[token] ?? ""));

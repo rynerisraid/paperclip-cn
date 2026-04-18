@@ -14,6 +14,7 @@ import type { DeploymentMode } from "@penclipai/shared";
 import { Link } from "@/lib/router";
 import { authApi } from "@/api/auth";
 import { queryKeys } from "@/lib/queryKeys";
+import { LanguageSwitcher } from "./LanguageSwitcher";
 import { useSidebar } from "../context/SidebarContext";
 import { useTheme } from "../context/ThemeContext";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -127,19 +128,27 @@ export function SidebarAccountMenu({
   return (
     <div className="border-t border-r border-border bg-background px-3 py-2">
       <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <button
-            type="button"
-            className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px] font-medium text-foreground/80 transition-colors hover:bg-accent/50 hover:text-foreground"
-            aria-label={t("Open account menu", { defaultValue: "Open account menu" })}
-          >
-            <Avatar size="sm">
-              {session?.user.image ? <AvatarImage src={session.user.image} alt={displayName} /> : null}
-              <AvatarFallback>{initials}</AvatarFallback>
-            </Avatar>
-            <span className="min-w-0 flex-1 truncate">{displayName}</span>
-          </button>
-        </PopoverTrigger>
+        <div className="flex items-center gap-1">
+          <LanguageSwitcher
+            align="start"
+            side="top"
+            sideOffset={10}
+            triggerClassName="h-9 w-9 rounded-lg hover:bg-accent/50"
+          />
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px] font-medium text-foreground/80 transition-colors hover:bg-accent/50 hover:text-foreground"
+              aria-label={t("Open account menu", { defaultValue: "Open account menu" })}
+            >
+              <Avatar size="sm">
+                {session?.user.image ? <AvatarImage src={session.user.image} alt={displayName} /> : null}
+                <AvatarFallback>{initials}</AvatarFallback>
+              </Avatar>
+              <span className="min-w-0 flex-1 truncate">{displayName}</span>
+            </button>
+          </PopoverTrigger>
+        </div>
         <PopoverContent
           side="top"
           align="start"

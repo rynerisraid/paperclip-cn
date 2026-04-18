@@ -43,6 +43,7 @@ import { cn } from "../lib/utils";
 import { NotFoundPage } from "../pages/NotFound";
 
 const INSTANCE_SETTINGS_MEMORY_KEY = "paperclip.lastInstanceSettingsPath";
+const DOCS_URL = "https://docs.paperclip.ing/";
 
 function readRememberedInstanceSettingsPath(): string {
   if (typeof window === "undefined") return DEFAULT_INSTANCE_SETTINGS_PATH;
@@ -388,7 +389,19 @@ export function Layout() {
               isMobile && "sticky top-0 z-20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/85",
             )}
           >
-            <BreadcrumbBar />
+            <div className="flex items-center justify-between gap-3 px-4 md:px-6">
+              <div className="min-w-0 flex-1">
+                <BreadcrumbBar />
+              </div>
+              <a
+                href={DOCS_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="shrink-0 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+              >
+                {t("Documentation", { defaultValue: "Documentation" })}
+              </a>
+            </div>
           </div>
           <div className={cn(isMobile ? "block" : "flex flex-1 min-h-0")}>
             <main
