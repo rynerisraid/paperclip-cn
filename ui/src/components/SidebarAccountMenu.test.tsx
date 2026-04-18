@@ -8,6 +8,10 @@ import { SidebarAccountMenu } from "./SidebarAccountMenu";
 
 const translations: Record<string, string> = {
   Board: "董事会",
+  "language.zh-CN": "简体中文",
+  "language.en": "English",
+  "layout.languageSwitcherLabel": "Switch language",
+  "sidebarAccountMenu.languageDescription": "Choose the interface language for this browser.",
 };
 
 vi.mock("react-i18next", async (importOriginal) => {
@@ -119,6 +123,7 @@ describe("SidebarAccountMenu", () => {
 
     expect(container.textContent).toContain("Jane Example");
     expect(container.textContent).not.toContain("jane@example.com");
+    expect(container.querySelector('button[aria-label="Switch language"]')).toBeNull();
 
     const trigger = container.querySelector('button[aria-label="Open account menu"]');
     expect(trigger).not.toBeNull();
@@ -132,6 +137,10 @@ describe("SidebarAccountMenu", () => {
     expect(document.body.textContent).toContain("Documentation");
     expect(document.body.textContent).toContain("Paperclip v1.2.3");
     expect(document.body.textContent).toContain("jane@example.com");
+    expect(document.body.textContent).toContain("Switch language");
+    expect(document.body.textContent).toContain("Choose the interface language for this browser.");
+    expect(document.body.textContent).toContain("中文");
+    expect(document.body.textContent).toContain("English");
 
     await act(async () => {
       root.unmount();

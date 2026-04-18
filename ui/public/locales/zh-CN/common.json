@@ -1643,12 +1643,12 @@
   "instanceGeneralSettings.keyboardShortcutsDescription": "启用应用内键盘快捷键，包括收件箱导航，以及创建任务、切换面板等全局快捷操作。此选项默认关闭。",
   "instanceGeneralSettings.keyboardShortcutsTitle": "键盘快捷键",
   "instanceGeneralSettings.keyboardShortcutsToggle": "切换键盘快捷键",
-  "instanceGeneralSettings.runtimeDefaultLocaleDescription": "选择当唤醒请求没有显式 UI 语言时，Paperclip 运行时提示和面向 agent 的自然语言说明默认使用的语言。这个设置不会改变每个操作者自己的 UI 语言偏好。",
+  "instanceGeneralSettings.runtimeDefaultLocaleDescription": "选择当唤醒请求没有显式 UI 语言时，Paperclip 运行时提示和面向智能体的自然语言说明默认使用的语言。这个设置不会改变每个操作者自己的 UI 语言偏好。",
   "instanceGeneralSettings.runtimeDefaultLocaleEn": "英文",
-  "instanceGeneralSettings.runtimeDefaultLocaleEnDescription": "当 run 在没有显式请求语言时，默认使用英文。",
+  "instanceGeneralSettings.runtimeDefaultLocaleEnDescription": "当一次运行在没有显式请求语言时，默认使用英文。",
   "instanceGeneralSettings.runtimeDefaultLocaleTitle": "运行时默认语言",
   "instanceGeneralSettings.runtimeDefaultLocaleZhCn": "简体中文",
-  "instanceGeneralSettings.runtimeDefaultLocaleZhCnDescription": "当 run 在没有显式请求语言时，默认使用简体中文。",
+  "instanceGeneralSettings.runtimeDefaultLocaleZhCnDescription": "当一次运行在没有显式请求语言时，默认使用简体中文。",
   "outputFeedback.alwaysAllow": "始终允许",
   "outputFeedback.alwaysAllowExplanation": "选择“始终允许”后，这次投票以及未来被投票的 AI 输出都可以共享。",
   "outputFeedback.changeLaterHint": "你之后可以在“实例设置 > 常规”里修改这个选项。",
@@ -2940,4 +2940,31 @@
   ,"inviteLanding.thisWillSetUpPaperclip": "这会完成 Paperclip 的初始化设置。"
   ,"inviteLanding.thisWillSubmitJoinRequest": "这会为 {{company}} 提交或完成你的加入请求。"
   ,"inviteLanding.working": "处理中..."
+  ,"Profile": "资料"
+  ,"Access": "访问"
+  ,"Env": "环境变量"
+  ,"Deployment and auth": "部署与认证"
+  ,"Auth readiness": "认证就绪状态"
+  ,"Bootstrap status": "初始化状态"
+  ,"Bootstrap invite": "初始化邀请"
+  ,"Not ready": "未就绪"
+  ,"Setup required": "需要设置"
+  ,"modeBadge.localTrusted": "本地可信"
+  ,"modeBadge.authenticatedPrivate": "认证私有"
+  ,"modeBadge.authenticatedPublic": "认证公开"
+  ,"sidebarAccountMenu.languageDescription": "为当前浏览器选择界面语言。"
+  ,"instanceGeneralSettings.localTrustedDescription": "本地可信模式针对本机操作者优化。浏览器请求会以本地董事会上下文运行，不需要登录。"
+  ,"instanceGeneralSettings.authenticatedPublicDescription": "认证公开模式要求登录后才能访问董事会，适合公开 URL 场景。"
+  ,"instanceGeneralSettings.authenticatedPrivateDescription": "认证私有模式要求登录，适合局域网、VPN 或其他私有网络部署场景。"
+  ,"projectProperties.env": "环境变量"
+  ,"Danger Zone": "危险区域"
+  ,"Enabled": "已启用"
+  ,"General": "常规"
+  ,"Heartbeats": "心跳"
+  ,"Loading general settings...": "正在加载常规设置..."
+  ,"Failed to load general settings.": "加载常规设置失败。"
+  ,"Failed to update general settings.": "更新常规设置失败。"
+  ,"Hide the username segment in home-directory paths and similar operator-visible log output. Standalone username mentions outside of paths are not yet masked in the live transcript view. This is off by default.": "隐藏主目录路径等操作者可见日志输出中的用户名片段。路径之外单独出现的用户名目前在实时转录视图中仍不会被遮蔽。此选项默认关闭。"
+  ,"Toggle username log censoring": "切换日志中的用户名隐藏"
+  ,"Select a company to create secrets": "请先选择公司再创建密钥"
 }
