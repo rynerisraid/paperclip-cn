@@ -467,9 +467,12 @@ export function IssuesList({
     const knownAgentIds = new Set<string>();
 
     if (currentUserId) {
+      const currentUserLabel = currentUserId === "local-board"
+        ? t("Board", { defaultValue: "Board" })
+        : t("Me", { defaultValue: "Me" });
       options.set(`user:${currentUserId}`, {
         id: `user:${currentUserId}`,
-        label: currentUserId === "local-board" ? "Board" : "Me",
+        label: currentUserLabel,
         kind: "user",
         searchText: currentUserId === "local-board" ? "board me human local-board" : `me board human ${currentUserId}`,
       });
@@ -520,7 +523,7 @@ export function IssuesList({
       if (a.kind !== b.kind) return a.kind === "user" ? -1 : 1;
       return a.label.localeCompare(b.label);
     });
-  }, [agents, currentUserId, issues]);
+  }, [agents, currentUserId, issues, t]);
 
   const visibleIssueColumnSet = useMemo(() => new Set(visibleIssueColumns), [visibleIssueColumns]);
   const availableIssueColumns = useMemo(
@@ -571,13 +574,21 @@ export function IssuesList({
       const groups = groupBy(filtered, (i) => i.status);
       return issueStatusOrder
         .filter((s) => groups[s]?.length)
-        .map((s) => ({ key: s, label: issueFilterLabel(s), items: groups[s]! }));
+        .map((s) => ({
+          key: s,
+          label: t(issueFilterLabel(s), { defaultValue: issueFilterLabel(s) }),
+          items: groups[s]!,
+        }));
     }
     if (viewState.groupBy === "priority") {
       const groups = groupBy(filtered, (i) => i.priority);
       return issuePriorityOrder
         .filter((p) => groups[p]?.length)
-        .map((p) => ({ key: p, label: issueFilterLabel(p), items: groups[p]! }));
+        .map((p) => ({
+          key: p,
+          label: t(issueFilterLabel(p), { defaultValue: issueFilterLabel(p) }),
+          items: groups[p]!,
+        }));
     }
     if (viewState.groupBy === "workspace") {
       const groups = groupBy(filtered, (issue) => resolveIssueFilterWorkspaceId(issue) ?? "__no_workspace");
@@ -590,7 +601,9 @@ export function IssuesList({
         })
         .map((key) => ({
           key,
-          label: key === "__no_workspace" ? "No Workspace" : (workspaceNameMap.get(key) ?? key.slice(0, 8)),
+          label: key === "__no_workspace"
+            ? t("No Workspace", { defaultValue: "No Workspace" })
+            : (workspaceNameMap.get(key) ?? key.slice(0, 8)),
           items: groups[key]!,
         }));
     }
@@ -605,7 +618,9 @@ export function IssuesList({
         })
         .map((key) => ({
           key,
-          label: key === "__no_parent" ? "No Parent" : (issueTitleMap.get(key) ?? key.slice(0, 8)),
+          label: key === "__no_parent"
+            ? t("No Parent", { defaultValue: "No Parent" })
+            : (issueTitleMap.get(key) ?? key.slice(0, 8)),
           items: groups[key]!,
         }));
     }
@@ -618,13 +633,14 @@ export function IssuesList({
       key,
       label:
         key === "__unassigned"
-          ? "Unassigned"
+          ? t("Unassigned", { defaultValue: "Unassigned" })
           : key.startsWith("__user:")
-            ? (formatAssigneeUserLabel(key.slice("__user:".length), currentUserId, companyUserLabelMap) ?? "User")
+            ? (formatAssigneeUserLabel(key.slice("__user:".length), currentUserId, companyUserLabelMap)
+              ?? t("User", { defaultValue: "User" }))
             : (agentName(key) ?? key.slice(0, 8)),
       items: groups[key]!,
     }));
-  }, [filtered, viewState.groupBy, agents, agentName, currentUserId, workspaceNameMap, issueTitleMap, companyUserLabelMap]);
+  }, [filtered, viewState.groupBy, agents, agentName, currentUserId, workspaceNameMap, issueTitleMap, companyUserLabelMap, t]);
 
   useEffect(() => {
     if (viewState.viewMode !== "list") return;
@@ -665,8 +681,12 @@ export function IssuesList({
     return defaults;
   }, [baseCreateIssueDefaults, currentUserId, issueById, projectId, viewState.groupBy]);
 
-  const createActionLabel = createIssueLabel ? `Create ${createIssueLabel}` : "Create Issue";
-  const createButtonLabel = createIssueLabel ? `New ${createIssueLabel}` : "New Issue";
+  const createActionLabel = createIssueLabel
+    ? t("Create {{label}}", { defaultValue: "Create {{label}}", label: createIssueLabel })
+    : t("Create Issue", { defaultValue: "Create Issue" });
+  const createButtonLabel = createIssueLabel
+    ? t("New {{label}}", { defaultValue: "New {{label}}", label: createIssueLabel })
+    : t("New Issue", { defaultValue: "New Issue" });
   const openCreateIssueDialog = useCallback((groupKey?: string) => {
     openNewIssue(newIssueDefaults(groupKey));
   }, [newIssueDefaults, openNewIssue]);
@@ -705,7 +725,6 @@ export function IssuesList({
           <Button size="sm" variant="outline" onClick={() => openCreateIssueDialog()}>
             <Plus className="h-4 w-4 sm:mr-1" />
             <span className="hidden sm:inline">{createButtonLabel}</span>
-            <span className="hidden sm:inline">{createButtonLabel}</span>
           </Button>
           <IssueSearchInput
             value={issueSearch}
@@ -742,7 +761,9 @@ export function IssuesList({
               size="icon"
               className={cn("hidden h-8 w-8 shrink-0 sm:inline-flex", viewState.nestingEnabled && "bg-accent")}
               onClick={() => updateView({ nestingEnabled: !viewState.nestingEnabled })}
-              title={viewState.nestingEnabled ? "Disable parent-child nesting" : "Enable parent-child nesting"}
+              title={viewState.nestingEnabled
+                ? t("Disable parent-child nesting", { defaultValue: "Disable parent-child nesting" })
+                : t("Enable parent-child nesting", { defaultValue: "Enable parent-child nesting" })}
             >
               <ListTree className="h-3.5 w-3.5" />
             </Button>
@@ -971,7 +992,9 @@ export function IssuesList({
                         issueLinkState={issueLinkState}
                         titleSuffix={hasChildren && !isExpanded ? (
                           <span className="ml-1.5 text-xs text-muted-foreground">
-                            ({totalDescendants} sub-task{totalDescendants !== 1 ? "s" : ""})
+                            ({totalDescendants} {t(totalDescendants === 1 ? "sub-task" : "sub-tasks", {
+                              defaultValue: totalDescendants === 1 ? "sub-task" : "sub-tasks",
+                            })})
                           </span>
                         ) : undefined}
                         mobileLeading={
@@ -1049,7 +1072,7 @@ export function IssuesList({
                                         <Identity name={agentName(issue.assigneeAgentId)!} size="sm" className="min-w-0" />
                                       ) : issue.assigneeUserId ? (
                                         <Identity
-                                          name={assigneeUserLabel ?? "User"}
+                                          name={assigneeUserLabel ?? t("User", { defaultValue: "User" })}
                                           avatarUrl={assigneeUserProfile?.image ?? null}
                                           size="sm"
                                           className="min-w-0"
@@ -1072,7 +1095,7 @@ export function IssuesList({
                                   >
                                     <input
                                       className="mb-1 w-full border-b border-border bg-transparent px-2 py-1.5 text-xs outline-none placeholder:text-muted-foreground/50"
-                                      placeholder="Search assignees..."
+                                      placeholder={t("Search assignees...", { defaultValue: "Search assignees..." })}
                                       value={assigneeSearch}
                                       onChange={(e) => setAssigneeSearch(e.target.value)}
                                       autoFocus
@@ -1089,7 +1112,7 @@ export function IssuesList({
                                           assignIssue(issue.id, null, null);
                                         }}
                                       >
-                                        No assignee
+                                        {t("No assignee", { defaultValue: "No assignee" })}
                                       </button>
                                       {currentUserId && (
                                         <button
@@ -1104,7 +1127,7 @@ export function IssuesList({
                                           }}
                                         >
                                           <User className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                                          <span>Me</span>
+                                          <span>{t("Me", { defaultValue: "Me" })}</span>
                                         </button>
                                       )}
                                       {(agents ?? [])
@@ -1149,7 +1172,11 @@ export function IssuesList({
           })}
           {remainingIssueRowCount > 0 && (
             <p className="text-xs text-muted-foreground">
-              Rendering {Math.min(renderedIssueRowLimit, filtered.length)} of {filtered.length} issues
+              {t("Rendering {{shown}} of {{total}} issues", {
+                defaultValue: "Rendering {{shown}} of {{total}} issues",
+                shown: Math.min(renderedIssueRowLimit, filtered.length),
+                total: filtered.length,
+              })}
             </p>
           )}
         </>

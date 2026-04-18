@@ -174,7 +174,7 @@ export function IssueFiltersPopover({
                     }`}
                     onClick={() => onChange({ statuses: isActive ? [] : [...preset.statuses] })}
                   >
-                    {preset.label}
+                    {t(preset.label, { defaultValue: preset.label })}
                   </button>
                 );
               })}
@@ -195,7 +195,7 @@ export function IssueFiltersPopover({
                         onCheckedChange={() => onChange({ statuses: toggleIssueFilterValue(state.statuses, status) })}
                       />
                       <StatusIcon status={status} />
-                      <span className="text-sm">{issueFilterLabel(status)}</span>
+                      <span className="text-sm">{t(issueFilterLabel(status), { defaultValue: issueFilterLabel(status) })}</span>
                     </label>
                   ))}
                 </div>
@@ -211,7 +211,7 @@ export function IssueFiltersPopover({
                         onCheckedChange={() => onChange({ priorities: toggleIssueFilterValue(state.priorities, priority) })}
                       />
                       <PriorityIcon priority={priority} />
-                      <span className="text-sm">{issueFilterLabel(priority)}</span>
+                      <span className="text-sm">{t(issueFilterLabel(priority), { defaultValue: issueFilterLabel(priority) })}</span>
                     </label>
                   ))}
                 </div>
