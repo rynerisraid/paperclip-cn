@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import type { Agent, Issue, IssueComment, LiveEvent } from "@penclipai/shared";
 import type { RunForIssue } from "../api/activity";
 import type { ActiveRunForIssue, LiveRunForIssue } from "../api/heartbeats";
+import type { CompanyUserDirectoryResponse } from "../api/access";
 import { issuesApi } from "../api/issues";
 import { authApi } from "../api/auth";
 import { useCompany } from "./CompanyContext";
@@ -55,6 +56,19 @@ function resolveAgentName(
   return agent?.name ?? null;
 }
 
+function resolveUserName(
+  queryClient: QueryClient,
+  companyId: string,
+  userId: string,
+): string | null {
+  const directory = queryClient.getQueryData<CompanyUserDirectoryResponse>(
+    queryKeys.access.companyUserDirectory(companyId),
+  );
+  if (!directory) return null;
+  const entry = directory.users.find((u) => u.principalId === userId);
+  return entry?.user?.name?.trim() || entry?.user?.email?.trim() || null;
+}
+
 function truncate(text: string, max: number): string {
   if (text.length <= max) return text;
   return text.slice(0, max - 1) + "\u2026";
@@ -75,7 +89,7 @@ function resolveActorLabel(
   }
   if (actorType === "system") return t("liveUpdates.actor.system", { defaultValue: "System" });
   if (actorType === "user" && actorId) {
-    return t("liveUpdates.actor.board", { defaultValue: "Board" });
+    return resolveUserName(queryClient, companyId, actorId) ?? t("liveUpdates.actor.board", { defaultValue: "Board" });
   }
   return t("liveUpdates.actor.someone", { defaultValue: "Someone" });
 }

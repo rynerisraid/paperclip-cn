@@ -147,7 +147,6 @@ Notes:
 - Publish from `packages/mcp-server/`, not the repo root.
 - If `npm view @penclipai/mcp-server version` already returns the same version that is in [`packages/mcp-server/package.json`](../packages/mcp-server/package.json), do not republish. Bump the version or use the normal repo-wide release flow in [`scripts/release.sh`](../scripts/release.sh).
 - The same npm-side prerequisites apply as above: valid npm auth, permission to publish to the `@penclipai` scope, `--access public`, and the required publish auth/2FA policy.
-
 ## Version formats
 
 Paperclip uses calendar versions:

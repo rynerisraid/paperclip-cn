@@ -372,7 +372,6 @@ export function ProjectDetail() {
   const experimentalSettingsQuery = useQuery({
     queryKey: queryKeys.instance.experimentalSettings,
     queryFn: () => instanceSettingsApi.getExperimental(),
-    retry: false,
   });
   const {
     slots: pluginDetailSlots,

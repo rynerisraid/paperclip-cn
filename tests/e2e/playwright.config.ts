@@ -34,6 +34,9 @@ bootstrapE2EInstanceConfig();
 export default defineConfig({
   testDir: ".",
   testMatch: "**/*.spec.ts",
+  // These suites target dedicated multi-user configurations/ports and are
+  // intentionally not part of the default local_trusted e2e run.
+  testIgnore: ["multi-user.spec.ts", "multi-user-authenticated.spec.ts"],
   timeout: 60_000,
   retries: 0,
   use: {

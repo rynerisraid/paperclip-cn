@@ -103,6 +103,18 @@ function isPathInside(candidatePath: string, rootPath: string): boolean {
   return candidate === root || candidate.startsWith(`${root}${path.sep}`);
 }
 
+const WORKTREE_PATH_ENV_KEYS = new Set([
+  "PAPERCLIP_HOME",
+  "PAPERCLIP_CONFIG",
+  "PAPERCLIP_CONTEXT",
+]);
+
+function normalizeWorktreeEnvComparisonValue(key: string, value: string | undefined): string | undefined {
+  if (value === undefined) return undefined;
+  if (!WORKTREE_PATH_ENV_KEYS.has(key)) return value;
+  return path.resolve(value);
+}
+
 type WorktreeRuntimeContext = {
   configPath: string;
   envPath: string;
@@ -126,11 +138,19 @@ function resolveWorktreeRuntimeContext(
 
   const configPath = resolvePaperclipConfigPath(overrideConfigPath);
   const envPath = resolvePaperclipEnvPath(configPath);
+  const persistedEnv = readEnvEntries(envPath);
   const worktreeRoot = path.resolve(path.dirname(configPath), "..");
-  const worktreeName = nonEmpty(env.PAPERCLIP_WORKTREE_NAME) ?? path.basename(worktreeRoot);
-  const instanceId = nonEmpty(env.PAPERCLIP_INSTANCE_ID) ?? sanitizeWorktreeInstanceId(worktreeName);
+  const worktreeName =
+    nonEmpty(persistedEnv.PAPERCLIP_WORKTREE_NAME) ??
+    nonEmpty(env.PAPERCLIP_WORKTREE_NAME) ??
+    path.basename(worktreeRoot);
+  const instanceId =
+    nonEmpty(persistedEnv.PAPERCLIP_INSTANCE_ID) ??
+    nonEmpty(env.PAPERCLIP_INSTANCE_ID) ??
+    sanitizeWorktreeInstanceId(worktreeName);
   const homeDir = resolveHomeAwarePath(
-    nonEmpty(env.PAPERCLIP_HOME) ??
+    nonEmpty(persistedEnv.PAPERCLIP_HOME) ??
+      nonEmpty(env.PAPERCLIP_HOME) ??
       nonEmpty(env.PAPERCLIP_WORKTREES_DIR) ??
       "~/.paperclip-worktrees",
   );
@@ -436,8 +456,9 @@ export function maybeRepairLegacyWorktreeConfigAndEnvFiles(): {
     PAPERCLIP_WORKTREE_NAME: context.worktreeName,
   };
 
-  const repairedEnv = Object.entries(desiredEnvEntries).some(
-    ([key, value]) => existingEnvEntries[key] !== value,
+  const repairedEnv = Object.entries(desiredEnvEntries).some(([key, value]) =>
+    normalizeWorktreeEnvComparisonValue(key, existingEnvEntries[key])
+      !== normalizeWorktreeEnvComparisonValue(key, value)
   );
 
   if (repairedEnv) {

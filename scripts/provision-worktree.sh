@@ -196,7 +196,6 @@ run_isolated_worktree_init() {
     --from-config \
     "$source_config_path_raw"
 }
-
 write_fallback_worktree_config() {
   local node_command
   node_command="$(resolve_node_command)"
