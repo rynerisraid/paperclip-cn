@@ -33,7 +33,11 @@ export function InstanceGeneralSettings() {
       queryClient.invalidateQueries({ queryKey: queryKeys.auth.session });
     },
     onError: (error) => {
-      setActionError(error instanceof Error ? error.message : "Failed to sign out.");
+      setActionError(
+        error instanceof Error
+          ? error.message
+          : t("Failed to sign out.", { defaultValue: "Failed to sign out." }),
+      );
     },
   });
 
@@ -129,7 +133,9 @@ export function InstanceGeneralSettings() {
       <section className="rounded-xl border border-border bg-card p-5">
         <div className="space-y-3">
           <div className="flex items-center gap-2">
-            <h2 className="text-sm font-semibold">Deployment and auth</h2>
+            <h2 className="text-sm font-semibold">
+              {t("Deployment and auth", { defaultValue: "Deployment and auth" })}
+            </h2>
             <ModeBadge
               deploymentMode={healthQuery.data?.deploymentMode}
               deploymentExposure={healthQuery.data?.deploymentExposure}
@@ -137,23 +143,38 @@ export function InstanceGeneralSettings() {
           </div>
           <div className="text-sm text-muted-foreground">
             {healthQuery.data?.deploymentMode === "local_trusted"
-              ? "Local trusted mode is optimized for a local operator. Browser requests run as local board context and no sign-in is required."
+              ? t("instanceGeneralSettings.localTrustedDescription", {
+                defaultValue:
+                  "Local trusted mode is optimized for a local operator. Browser requests run as local board context and no sign-in is required.",
+              })
               : healthQuery.data?.deploymentExposure === "public"
-                ? "Authenticated public mode requires sign-in for board access and is intended for public URLs."
-                : "Authenticated private mode requires sign-in and is intended for LAN, VPN, or other private-network deployments."}
+                ? t("instanceGeneralSettings.authenticatedPublicDescription", {
+                  defaultValue:
+                    "Authenticated public mode requires sign-in for board access and is intended for public URLs.",
+                })
+                : t("instanceGeneralSettings.authenticatedPrivateDescription", {
+                  defaultValue:
+                    "Authenticated private mode requires sign-in and is intended for LAN, VPN, or other private-network deployments.",
+                })}
           </div>
           <div className="grid gap-3 md:grid-cols-3">
             <StatusBox
-              label="Auth readiness"
-              value={healthQuery.data?.authReady ? "Ready" : "Not ready"}
+              label={t("Auth readiness", { defaultValue: "Auth readiness" })}
+              value={healthQuery.data?.authReady
+                ? t("Ready", { defaultValue: "Ready" })
+                : t("Not ready", { defaultValue: "Not ready" })}
             />
             <StatusBox
-              label="Bootstrap status"
-              value={healthQuery.data?.bootstrapStatus === "bootstrap_pending" ? "Setup required" : "Ready"}
+              label={t("Bootstrap status", { defaultValue: "Bootstrap status" })}
+              value={healthQuery.data?.bootstrapStatus === "bootstrap_pending"
+                ? t("Setup required", { defaultValue: "Setup required" })
+                : t("Ready", { defaultValue: "Ready" })}
             />
             <StatusBox
-              label="Bootstrap invite"
-              value={healthQuery.data?.bootstrapInviteActive ? "Active" : "None"}
+              label={t("Bootstrap invite", { defaultValue: "Bootstrap invite" })}
+              value={healthQuery.data?.bootstrapInviteActive
+                ? t("Active", { defaultValue: "Active" })
+                : t("None", { defaultValue: "None" })}
             />
           </div>
         </div>

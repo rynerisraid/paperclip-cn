@@ -3,6 +3,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import {
   BookOpen,
+  Check,
+  Languages,
   LogOut,
   type LucideIcon,
   Moon,
@@ -10,11 +12,10 @@ import {
   Sun,
   UserRoundPen,
 } from "lucide-react";
-import type { DeploymentMode } from "@penclipai/shared";
+import { normalizeUiLocale, type DeploymentMode } from "@penclipai/shared";
 import { Link } from "@/lib/router";
 import { authApi } from "@/api/auth";
 import { queryKeys } from "@/lib/queryKeys";
-import { LanguageSwitcher } from "./LanguageSwitcher";
 import { useSidebar } from "../context/SidebarContext";
 import { useTheme } from "../context/ThemeContext";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -91,7 +92,7 @@ export function SidebarAccountMenu({
   instanceSettingsTarget,
   version,
 }: SidebarAccountMenuProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [open, setOpen] = useState(false);
   const queryClient = useQueryClient();
   const { isMobile, setSidebarOpen } = useSidebar();
@@ -110,7 +111,11 @@ export function SidebarAccountMenu({
     },
   });
 
-  const displayName = session?.user.name?.trim() || t("Board", { defaultValue: "Board" });
+  const rawDisplayName = session?.user.name?.trim() || "";
+  const isLocalBoardAccount = session?.user.id === "local-board";
+  const displayName = isLocalBoardAccount && (!rawDisplayName || rawDisplayName === "Board")
+    ? t("Board", { defaultValue: "Board" })
+    : rawDisplayName || t("Board", { defaultValue: "Board" });
   const secondaryLabel =
     session?.user.email?.trim() || (deploymentMode === "authenticated"
       ? t("Signed in", { defaultValue: "Signed in" })
@@ -119,6 +124,11 @@ export function SidebarAccountMenu({
     ? t("Account", { defaultValue: "Account" })
     : t("Local", { defaultValue: "Local" });
   const initials = deriveInitials(displayName);
+  const currentLanguage = normalizeUiLocale(i18n.resolvedLanguage ?? i18n.language);
+  const localeOptions = [
+    { value: "zh-CN", label: t("language.zh-CN"), shortLabel: "中文" },
+    { value: "en", label: t("language.en"), shortLabel: "English" },
+  ] as const;
 
   function closeNavigationChrome() {
     setOpen(false);
@@ -128,27 +138,19 @@ export function SidebarAccountMenu({
   return (
     <div className="border-t border-r border-border bg-background px-3 py-2">
       <Popover open={open} onOpenChange={setOpen}>
-        <div className="flex items-center gap-1">
-          <LanguageSwitcher
-            align="start"
-            side="top"
-            sideOffset={10}
-            triggerClassName="h-9 w-9 rounded-lg hover:bg-accent/50"
-          />
-          <PopoverTrigger asChild>
-            <button
-              type="button"
-              className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px] font-medium text-foreground/80 transition-colors hover:bg-accent/50 hover:text-foreground"
-              aria-label={t("Open account menu", { defaultValue: "Open account menu" })}
-            >
-              <Avatar size="sm">
-                {session?.user.image ? <AvatarImage src={session.user.image} alt={displayName} /> : null}
-                <AvatarFallback>{initials}</AvatarFallback>
-              </Avatar>
-              <span className="min-w-0 flex-1 truncate">{displayName}</span>
-            </button>
-          </PopoverTrigger>
-        </div>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px] font-medium text-foreground/80 transition-colors hover:bg-accent/50 hover:text-foreground"
+            aria-label={t("Open account menu", { defaultValue: "Open account menu" })}
+          >
+            <Avatar size="sm">
+              {session?.user.image ? <AvatarImage src={session.user.image} alt={displayName} /> : null}
+              <AvatarFallback>{initials}</AvatarFallback>
+            </Avatar>
+            <span className="min-w-0 flex-1 truncate">{displayName}</span>
+          </button>
+        </PopoverTrigger>
         <PopoverContent
           side="top"
           align="start"
@@ -222,6 +224,49 @@ export function SidebarAccountMenu({
                   setOpen(false);
                 }}
               />
+              <div className="rounded-xl border border-border/70 bg-background/40 px-3 py-3">
+                <div className="flex items-start gap-3">
+                  <span className="mt-0.5 rounded-lg border border-border bg-background/70 p-2 text-muted-foreground">
+                    <Languages className="size-4" />
+                  </span>
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <div className="space-y-0.5">
+                      <div className="text-sm font-medium text-foreground">
+                        {t("layout.languageSwitcherLabel", { defaultValue: "Switch language" })}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {t("sidebarAccountMenu.languageDescription", {
+                          defaultValue: "Choose the interface language for this browser.",
+                        })}
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {localeOptions.map((option) => {
+                        const selected = currentLanguage === option.value;
+                        return (
+                          <button
+                            key={option.value}
+                            type="button"
+                            className={cn(
+                              "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs transition-colors",
+                              selected
+                                ? "border-foreground bg-accent text-foreground"
+                                : "border-border text-muted-foreground hover:bg-accent/60 hover:text-foreground",
+                            )}
+                            onClick={() => {
+                              void i18n.changeLanguage(option.value);
+                              setOpen(false);
+                            }}
+                          >
+                            <span>{option.shortLabel}</span>
+                            {selected ? <Check className="h-3.5 w-3.5" /> : null}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </div>
               {deploymentMode === "authenticated" ? (
                 <button
                   type="button"

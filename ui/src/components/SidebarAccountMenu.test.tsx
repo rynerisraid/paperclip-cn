@@ -6,6 +6,14 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SidebarAccountMenu } from "./SidebarAccountMenu";
 
+const translations: Record<string, string> = {
+  Board: "董事会",
+  "language.zh-CN": "简体中文",
+  "language.en": "English",
+  "layout.languageSwitcherLabel": "Switch language",
+  "sidebarAccountMenu.languageDescription": "Choose the interface language for this browser.",
+};
+
 vi.mock("react-i18next", async (importOriginal) => {
   const actual = await importOriginal<typeof import("react-i18next")>();
   return {
@@ -18,7 +26,7 @@ vi.mock("react-i18next", async (importOriginal) => {
         changeLanguage: vi.fn(),
       },
       t: (key: string, options?: Record<string, unknown>) => {
-        const template = typeof options?.defaultValue === "string" ? options.defaultValue : key;
+        const template = translations[key] ?? (typeof options?.defaultValue === "string" ? options.defaultValue : key);
         return template.replace(/\{\{(\w+)\}\}/g, (_match, token) => String(options?.[token] ?? ""));
       },
     }),
@@ -115,6 +123,7 @@ describe("SidebarAccountMenu", () => {
 
     expect(container.textContent).toContain("Jane Example");
     expect(container.textContent).not.toContain("jane@example.com");
+    expect(container.querySelector('button[aria-label="Switch language"]')).toBeNull();
 
     const trigger = container.querySelector('button[aria-label="Open account menu"]');
     expect(trigger).not.toBeNull();
@@ -128,6 +137,48 @@ describe("SidebarAccountMenu", () => {
     expect(document.body.textContent).toContain("Documentation");
     expect(document.body.textContent).toContain("Paperclip v1.2.3");
     expect(document.body.textContent).toContain("jane@example.com");
+    expect(document.body.textContent).toContain("Switch language");
+    expect(document.body.textContent).toContain("Choose the interface language for this browser.");
+    expect(document.body.textContent).toContain("中文");
+    expect(document.body.textContent).toContain("English");
+
+    await act(async () => {
+      root.unmount();
+    });
+  });
+
+  it("localizes the local board display name", async () => {
+    mockAuthApi.getSession.mockResolvedValue({
+      session: { id: "session-local", userId: "local-board" },
+      user: {
+        id: "local-board",
+        name: "Board",
+        email: null,
+        image: null,
+      },
+    });
+
+    const root = createRoot(container);
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+
+    await act(async () => {
+      root.render(
+        <QueryClientProvider client={queryClient}>
+          <SidebarAccountMenu
+            deploymentMode="local_trusted"
+            instanceSettingsTarget="/instance/settings/general"
+            version="1.2.3"
+          />
+        </QueryClientProvider>,
+      );
+    });
+    await flushReact();
+    await flushReact();
+
+    expect(container.textContent).toContain("董事会");
+    expect(container.textContent).not.toContain("Board");
 
     await act(async () => {
       root.unmount();

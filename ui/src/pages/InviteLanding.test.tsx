@@ -7,6 +7,25 @@ import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { InviteLandingPage } from "./InviteLanding";
 
+vi.mock("react-i18next", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("react-i18next")>();
+  return {
+    ...actual,
+    initReactI18next: { type: "3rdParty", init: () => {} },
+    useTranslation: () => ({
+      i18n: {
+        resolvedLanguage: "en",
+        language: "en",
+        changeLanguage: vi.fn(),
+      },
+      t: (key: string, options?: Record<string, unknown>) => {
+        const template = typeof options?.defaultValue === "string" ? options.defaultValue : key;
+        return template.replace(/\{\{(\w+)\}\}/g, (_match, token) => String(options?.[token] ?? ""));
+      },
+    }),
+  };
+});
+
 const getInviteMock = vi.hoisted(() => vi.fn());
 const acceptInviteMock = vi.hoisted(() => vi.fn());
 const getSessionMock = vi.hoisted(() => vi.fn());

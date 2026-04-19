@@ -1,4 +1,5 @@
 import type { DeploymentExposure, DeploymentMode } from "@penclipai/shared";
+import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 
 export function ModeBadge({
@@ -8,12 +9,15 @@ export function ModeBadge({
   deploymentMode?: DeploymentMode;
   deploymentExposure?: DeploymentExposure;
 }) {
+  const { t } = useTranslation();
   if (!deploymentMode) return null;
 
   const label =
     deploymentMode === "local_trusted"
-      ? "Local trusted"
-      : `Authenticated ${deploymentExposure ?? "private"}`;
+      ? t("modeBadge.localTrusted", { defaultValue: "Local trusted" })
+      : deploymentExposure === "public"
+        ? t("modeBadge.authenticatedPublic", { defaultValue: "Authenticated public" })
+        : t("modeBadge.authenticatedPrivate", { defaultValue: "Authenticated private" });
 
   return <Badge variant="outline">{label}</Badge>;
 }
