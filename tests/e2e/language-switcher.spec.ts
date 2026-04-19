@@ -19,6 +19,8 @@ type CompanySummary = {
 
 const SWITCHER_SELECTOR =
   'button[aria-label="切换语言"], button[aria-label="Switch language"]';
+const ACCOUNT_MENU_SELECTOR =
+  'button[aria-label="打开账号菜单"], button[aria-label="Open account menu"]';
 
 async function createCompany(
   request: APIRequestContext,
@@ -38,6 +40,16 @@ async function openLanguageMenu(container: Page | Locator): Promise<Locator> {
   return switcher;
 }
 
+async function openAccountLanguageMenu(page: Page): Promise<Locator> {
+  const accountMenu = page.locator(ACCOUNT_MENU_SELECTOR).first();
+  await expect(accountMenu).toBeVisible();
+  await accountMenu.click();
+
+  const languageSection = page.getByText(/切换语言|Switch language/).first();
+  await expect(languageSection).toBeVisible();
+  return languageSection;
+}
+
 test.describe("Language switcher", () => {
   test("switches language in dashboard and onboarding dialog", async ({
     page,
@@ -53,7 +65,7 @@ test.describe("Language switcher", () => {
     await expect(page.locator("html")).toHaveAttribute("lang", "zh-CN");
     await expect(page).toHaveTitle(/仪表盘/);
 
-    await openLanguageMenu(page);
+    await openAccountLanguageMenu(page);
     await page.getByRole("button", { name: "English" }).click();
 
     await expect(page.locator("html")).toHaveAttribute("lang", "en");
