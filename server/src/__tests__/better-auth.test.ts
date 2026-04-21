@@ -1,43 +1,43 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { resolveBetterAuthSecret } from "../auth/better-auth.js";
+import { afterEach, describe, expect, it } from "vitest";
+import type { BetterAuthOptions } from "better-auth";
+import { getCookies } from "better-auth/cookies";
+import {
+  buildBetterAuthAdvancedOptions,
+  deriveAuthCookiePrefix,
+} from "../auth/better-auth.js";
 
-describe("resolveBetterAuthSecret", () => {
-  const originalBetterAuthSecret = process.env.BETTER_AUTH_SECRET;
-  const originalAgentJwtSecret = process.env.PAPERCLIP_AGENT_JWT_SECRET;
+const ORIGINAL_INSTANCE_ID = process.env.PAPERCLIP_INSTANCE_ID;
 
-  beforeEach(() => {
-    delete process.env.BETTER_AUTH_SECRET;
-    delete process.env.PAPERCLIP_AGENT_JWT_SECRET;
+afterEach(() => {
+  if (ORIGINAL_INSTANCE_ID === undefined) delete process.env.PAPERCLIP_INSTANCE_ID;
+  else process.env.PAPERCLIP_INSTANCE_ID = ORIGINAL_INSTANCE_ID;
+});
+
+describe("Better Auth cookie scoping", () => {
+  it("derives an instance-scoped cookie prefix", () => {
+    expect(deriveAuthCookiePrefix("default")).toBe("paperclip-default");
+    expect(deriveAuthCookiePrefix("PAP-1601-worktree")).toBe("paperclip-PAP-1601-worktree");
   });
 
-  afterEach(() => {
-    if (originalBetterAuthSecret === undefined) delete process.env.BETTER_AUTH_SECRET;
-    else process.env.BETTER_AUTH_SECRET = originalBetterAuthSecret;
+  it("uses PAPERCLIP_INSTANCE_ID for the Better Auth cookie prefix", () => {
+    process.env.PAPERCLIP_INSTANCE_ID = "sat-worktree";
 
-    if (originalAgentJwtSecret === undefined) delete process.env.PAPERCLIP_AGENT_JWT_SECRET;
-    else process.env.PAPERCLIP_AGENT_JWT_SECRET = originalAgentJwtSecret;
-  });
+    const advanced = buildBetterAuthAdvancedOptions({ disableSecureCookies: false });
 
-  it("uses the first non-empty trimmed secret", () => {
-    process.env.BETTER_AUTH_SECRET = "  better-auth-secret  ";
-    process.env.PAPERCLIP_AGENT_JWT_SECRET = "agent-jwt-secret";
-
-    expect(resolveBetterAuthSecret()).toBe("better-auth-secret");
-  });
-
-  it("falls back to the agent JWT secret when the Better Auth secret is blank", () => {
-    process.env.BETTER_AUTH_SECRET = "   ";
-    process.env.PAPERCLIP_AGENT_JWT_SECRET = "  agent-jwt-secret  ";
-
-    expect(resolveBetterAuthSecret()).toBe("agent-jwt-secret");
-  });
-
-  it("throws when both candidate secrets are missing or whitespace-only", () => {
-    process.env.BETTER_AUTH_SECRET = "   ";
-    process.env.PAPERCLIP_AGENT_JWT_SECRET = "\t";
-
-    expect(() => resolveBetterAuthSecret()).toThrow(
-      "BETTER_AUTH_SECRET (or PAPERCLIP_AGENT_JWT_SECRET) must be set.",
+    expect(advanced).toEqual({
+      cookiePrefix: "paperclip-sat-worktree",
+    });
+    expect(getCookies({ advanced } as BetterAuthOptions).sessionToken.name).toBe(
+      "paperclip-sat-worktree.session_token",
     );
+  });
+
+  it("keeps local http auth cookies non-secure while preserving the scoped prefix", () => {
+    process.env.PAPERCLIP_INSTANCE_ID = "pap-worktree";
+
+    expect(buildBetterAuthAdvancedOptions({ disableSecureCookies: true })).toEqual({
+      cookiePrefix: "paperclip-pap-worktree",
+      useSecureCookies: false,
+    });
   });
 });

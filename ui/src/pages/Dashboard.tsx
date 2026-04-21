@@ -8,7 +8,6 @@ import { accessApi } from "../api/access";
 import { issuesApi } from "../api/issues";
 import { agentsApi } from "../api/agents";
 import { projectsApi } from "../api/projects";
-import { heartbeatsApi } from "../api/heartbeats";
 import { buildCompanyUserProfileMap } from "../lib/company-members";
 import { useCompany } from "../context/CompanyContext";
 import { useDialog } from "../context/DialogContext";
@@ -29,8 +28,6 @@ import { PageSkeleton } from "../components/PageSkeleton";
 import type { Agent, Issue } from "@penclipai/shared";
 import { PluginSlotOutlet } from "@/plugins/slots";
 import { displaySeededName } from "../lib/seeded-display";
-
-const DASHBOARD_HEARTBEAT_RUN_LIMIT = 100;
 
 function getRecentIssues(issues: Issue[]): Issue[] {
   return [...issues]
@@ -78,12 +75,6 @@ export function Dashboard() {
   const { data: projects } = useQuery({
     queryKey: queryKeys.projects.list(selectedCompanyId!),
     queryFn: () => projectsApi.list(selectedCompanyId!),
-    enabled: !!selectedCompanyId,
-  });
-
-  const { data: runs } = useQuery({
-    queryKey: [...queryKeys.heartbeats(selectedCompanyId!), "limit", DASHBOARD_HEARTBEAT_RUN_LIMIT],
-    queryFn: () => heartbeatsApi.list(selectedCompanyId!, undefined, DASHBOARD_HEARTBEAT_RUN_LIMIT),
     enabled: !!selectedCompanyId,
   });
 
@@ -310,8 +301,8 @@ export function Dashboard() {
           </div>
 
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <ChartCard title={t("dashboard.runActivity")} subtitle={t("dashboard.last14Days")}>
-              <RunActivityChart runs={runs ?? []} />
+            <ChartCard title="Run Activity" subtitle="Last 14 days">
+              <RunActivityChart activity={data.runActivity} />
             </ChartCard>
             <ChartCard title={t("dashboard.issuesByPriority")} subtitle={t("dashboard.last14Days")}>
               <PriorityChart issues={issues ?? []} />
@@ -319,8 +310,8 @@ export function Dashboard() {
             <ChartCard title={t("dashboard.issuesByStatus")} subtitle={t("dashboard.last14Days")}>
               <IssueStatusChart issues={issues ?? []} />
             </ChartCard>
-            <ChartCard title={t("dashboard.successRate")} subtitle={t("dashboard.last14Days")}>
-              <SuccessRateChart runs={runs ?? []} />
+            <ChartCard title="Success Rate" subtitle="Last 14 days">
+              <SuccessRateChart activity={data.runActivity} />
             </ChartCard>
           </div>
 

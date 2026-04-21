@@ -724,11 +724,7 @@ export function getApprovalsForTab(
   );
 
   if (tab === "mine") {
-    if (!currentUserId) return [];
-    return sortedApprovals.filter(
-      (approval) =>
-        approval.requestedByUserId === currentUserId || approval.decidedByUserId === currentUserId,
-    );
+    return sortedApprovals.filter((approval) => isApprovalVisibleInMine(approval, currentUserId));
   }
   if (tab === "recent") return sortedApprovals;
   if (tab === "unread") {
@@ -740,6 +736,15 @@ export function getApprovalsForTab(
     const isActionable = ACTIONABLE_APPROVAL_STATUSES.has(approval.status);
     return filter === "actionable" ? isActionable : !isActionable;
   });
+}
+
+export function isApprovalVisibleInMine(
+  approval: Approval,
+  currentUserId?: string | null,
+): boolean {
+  if (ACTIONABLE_APPROVAL_STATUSES.has(approval.status)) return true;
+  if (!currentUserId) return false;
+  return approval.requestedByUserId === currentUserId || approval.decidedByUserId === currentUserId;
 }
 
 export function approvalActivityTimestamp(approval: Approval): number {
@@ -1048,8 +1053,7 @@ export function computeInboxBadgeData({
 }): InboxBadgeData {
   const actionableApprovals = approvals.filter(
     (approval) =>
-      !!currentUserId &&
-      (approval.requestedByUserId === currentUserId || approval.decidedByUserId === currentUserId) &&
+      isApprovalVisibleInMine(approval, currentUserId) &&
       ACTIONABLE_APPROVAL_STATUSES.has(approval.status) &&
       !isInboxEntityDismissed(dismissedAtByKey, `approval:${approval.id}`, approval.updatedAt),
   ).length;

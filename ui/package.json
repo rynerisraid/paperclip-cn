@@ -16,9 +16,11 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "storybook": "storybook dev -p 6006 -c storybook/.storybook",
+    "build-storybook": "storybook build -c storybook/.storybook -o storybook-static",
     "preview": "vite preview",
     "typecheck": "tsc -b",
-    "clean": "node ../scripts/fs-ops.mjs rm dist tsconfig.tsbuildinfo",
+    "clean": "node ../scripts/fs-ops.mjs rm dist storybook-static tsconfig.tsbuildinfo",
     "prepack": "node ../scripts/fs-ops.mjs rm package.dev.json && node ../scripts/fs-ops.mjs cp package.json package.dev.json && node ../scripts/generate-ui-package-json.mjs",
     "postpack": "node ../scripts/fs-ops.mjs mv package.dev.json package.json --if-exists"
   },
@@ -66,12 +68,16 @@
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.0.7",
+    "@storybook/addon-a11y": "10.3.5",
+    "@storybook/addon-docs": "10.3.5",
+    "@storybook/react-vite": "10.3.5",
     "@types/node": "^25.2.3",
     "@types/react": "^19.0.8",
     "@types/react-dom": "^19.0.3",
     "@vitejs/plugin-react": "^4.3.4",
     "tailwindcss": "^4.0.7",
     "typescript": "^5.7.3",
+    "storybook": "10.3.5",
     "vite": "^6.1.0",
     "vitest": "^3.0.5"
   }

@@ -16,6 +16,7 @@ import { buildCompanyUserInlineOptions, buildMarkdownMentionOptions } from "../l
 import { queryKeys } from "../lib/queryKeys";
 import { useProjectOrder } from "../hooks/useProjectOrder";
 import { getRecentAssigneeIds, sortAgentsByRecency, trackRecentAssignee } from "../lib/recent-assignees";
+import { getRecentProjectIds, trackRecentProject } from "../lib/recent-projects";
 import { buildExecutionPolicy } from "../lib/issue-execution-policy";
 import { useToastActions } from "../context/ToastContext";
 import {
@@ -859,6 +860,11 @@ export function NewIssueDialog() {
         ? ISSUE_THINKING_EFFORT_OPTIONS.opencode_local
       : ISSUE_THINKING_EFFORT_OPTIONS.claude_local;
   const recentAssigneeIds = useMemo(() => getRecentAssigneeIds(), [newIssueOpen]);
+  const recentAssigneeOptionIds = useMemo(
+    () => recentAssigneeIds.map((id) => assigneeValueFromSelection({ assigneeAgentId: id })),
+    [recentAssigneeIds],
+  );
+  const recentProjectIds = useMemo(() => getRecentProjectIds(), [newIssueOpen]);
   const assigneeOptions = useMemo<InlineEntityOption[]>(
     () => [
       ...currentUserAssigneeOption(currentUserId),
@@ -892,6 +898,7 @@ export function NewIssueDialog() {
   const stagedAttachments = stagedFiles.filter((file) => file.kind === "attachment");
 
   const handleProjectChange = useCallback((nextProjectId: string) => {
+    if (nextProjectId) trackRecentProject(nextProjectId);
     setProjectId(nextProjectId);
     const nextProject = orderedProjects.find((project) => project.id === nextProjectId);
     executionWorkspaceDefaultProjectId.current = nextProjectId || null;
@@ -1105,7 +1112,8 @@ export function NewIssueDialog() {
                 ref={assigneeSelectorRef}
                 value={assigneeValue}
                 options={assigneeOptions}
-                placeholder={t("Assignee", { defaultValue: "Assignee" })}
+                recentOptionIds={recentAssigneeOptionIds}
+                placeholder="Assignee"
                 disablePortal
                 noneLabel={t("No assignee", { defaultValue: "No assignee" })}
                 searchPlaceholder={t("Search assignees...", { defaultValue: "Search assignees..." })}
@@ -1156,7 +1164,8 @@ export function NewIssueDialog() {
                 ref={projectSelectorRef}
                 value={projectId}
                 options={projectOptions}
-                placeholder={t("Project", { defaultValue: "Project" })}
+                recentOptionIds={recentProjectIds}
+                placeholder="Project"
                 disablePortal
                 noneLabel={t("No project", { defaultValue: "No project" })}
                 searchPlaceholder={t("Search projects...", { defaultValue: "Search projects..." })}
@@ -1244,7 +1253,8 @@ export function NewIssueDialog() {
                 <InlineEntitySelector
                 value={reviewerValue}
                 options={assigneeOptions}
-                placeholder={t("Reviewer", { defaultValue: "Reviewer" })}
+                recentOptionIds={recentAssigneeOptionIds}
+                placeholder="Reviewer"
                 disablePortal
                 noneLabel={t("None", { defaultValue: "None" })}
                 searchPlaceholder={t("Search reviewers...", { defaultValue: "Search reviewers..." })}
@@ -1288,7 +1298,8 @@ export function NewIssueDialog() {
                 <InlineEntitySelector
                 value={approverValue}
                 options={assigneeOptions}
-                placeholder={t("Approver", { defaultValue: "Approver" })}
+                recentOptionIds={recentAssigneeOptionIds}
+                placeholder="Approver"
                 disablePortal
                 noneLabel={t("None", { defaultValue: "None" })}
                 searchPlaceholder={t("Search approvers...", { defaultValue: "Search approvers..." })}

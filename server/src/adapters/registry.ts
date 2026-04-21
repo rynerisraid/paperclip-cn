@@ -249,7 +249,7 @@ const qwenLocalAdapter: ServerAdapterModule = {
   supportsLocalAgentJwt: true,
   supportsInstructionsBundle: true,
   instructionsPathKey: "instructionsFilePath",
-  requiresMaterializedRuntimeSkills: false,
+  requiresMaterializedRuntimeSkills: true,
   agentConfigurationDoc: qwenAgentConfigurationDoc,
 };
 

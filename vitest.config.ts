@@ -8,7 +8,7 @@ export default defineConfig({
     maxWorkers: process.platform === "win32" ? 4 : undefined,
     projects: [
       "packages/db",
-      "packages/desktop-electron",
+      "packages/adapter-utils",
       "packages/adapters/codex-local",
       "packages/adapters/opencode-local",
       "server",

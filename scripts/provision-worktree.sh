@@ -458,18 +458,15 @@ main().catch((error) => {
 EOF
 }
 
-if ! run_isolated_worktree_init; then
-  resolve_penclip_invoker
-  if [[ "$resolved_penclip_invoker" == "none" ]]; then
-    echo "penclip CLI not available in this workspace; writing isolated fallback config without DB seeding." >&2
-    write_fallback_worktree_config
+if [[ -e "$worktree_config_path" && -e "$worktree_env_path" ]]; then
+  echo "Reusing existing isolated Paperclip worktree config at $worktree_config_path" >&2
+else
+  if paperclipai_command_available; then
+    run_isolated_worktree_init
   else
-    echo "penclip worktree init failed after CLI detection; refusing to write fallback config." >&2
-    exit 1
+    echo "paperclipai CLI not available in this workspace; writing isolated fallback config without DB seeding." >&2
+    write_fallback_worktree_config
   fi
-elif [[ ! -e "$(to_shell_path "$worktree_config_path_raw")" || ! -e "$(to_shell_path "$worktree_env_path_raw")" ]]; then
-  echo "penclip worktree init did not materialize repo-local config; writing isolated fallback config." >&2
-  write_fallback_worktree_config
 fi
 
 disable_seeded_routines() {

@@ -300,6 +300,11 @@ describeEmbeddedPostgres("penclip company import/export e2e", () => {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ name: `CLI Export Source ${Date.now()}` }),
     });
+    await api(apiBase, `/api/companies/${sourceCompany.id}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ requireBoardApprovalForNewAgents: false }),
+    });
 
     const sourceAgent = await api<{ id: string; name: string }>(
       apiBase,
