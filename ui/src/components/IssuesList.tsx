@@ -1082,7 +1082,7 @@ export function IssuesList({
                                           <span className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-dashed border-muted-foreground/35 bg-muted/30">
                                             <User className="h-3.5 w-3.5" />
                                           </span>
-                                          Assignee
+                                          {t("Assignee", { defaultValue: "Assignee" })}
                                         </span>
                                       )}
                                     </button>
