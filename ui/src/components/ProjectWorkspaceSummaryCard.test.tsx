@@ -8,6 +8,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ProjectWorkspaceSummary } from "../lib/project-workspaces-tab";
 import { ProjectWorkspaceSummaryCard } from "./ProjectWorkspaceSummaryCard";
 
+vi.mock("react-i18next", () => ({
+  initReactI18next: { type: "3rdParty", init: () => {} },
+  useTranslation: () => ({
+    t: (key: string, options?: Record<string, unknown>) =>
+      typeof options?.defaultValue === "string" ? options.defaultValue : key,
+  }),
+}));
+
 vi.mock("@/lib/router", () => ({
   Link: ({ children, to, ...props }: ComponentProps<"a"> & { to: string }) => <a href={to} {...props}>{children}</a>,
 }));

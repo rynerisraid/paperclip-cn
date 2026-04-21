@@ -4,11 +4,18 @@ import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { OrgChart } from "./OrgChart";
 
-const navigateMock = vi.fn();
-const orgMock = vi.fn();
-const listMock = vi.fn();
+const navigateMock = vi.hoisted(() => vi.fn());
+const orgMock = vi.hoisted(() => vi.fn());
+const listMock = vi.hoisted(() => vi.fn());
+
+vi.mock("react-i18next", () => ({
+  initReactI18next: { type: "3rdParty", init: () => {} },
+  useTranslation: () => ({
+    t: (key: string, options?: Record<string, unknown>) =>
+      typeof options?.defaultValue === "string" ? options.defaultValue : key,
+  }),
+}));
 
 vi.mock("@/lib/router", () => ({
   Link: ({ to, children }: { to: string; children: React.ReactNode }) => <a href={to}>{children}</a>,
@@ -19,11 +26,26 @@ vi.mock("../context/CompanyContext", () => ({
   useCompany: () => ({ selectedCompanyId: "company-1" }),
 }));
 
+vi.mock("@/context/CompanyContext", () => ({
+  useCompany: () => ({ selectedCompanyId: "company-1" }),
+}));
+
 vi.mock("../context/BreadcrumbContext", () => ({
   useBreadcrumbs: () => ({ setBreadcrumbs: vi.fn() }),
 }));
 
+vi.mock("@/context/BreadcrumbContext", () => ({
+  useBreadcrumbs: () => ({ setBreadcrumbs: vi.fn() }),
+}));
+
 vi.mock("../api/agents", () => ({
+  agentsApi: {
+    org: () => orgMock(),
+    list: () => listMock(),
+  },
+}));
+
+vi.mock("@/api/agents", () => ({
   agentsApi: {
     org: () => orgMock(),
     list: () => listMock(),
@@ -191,6 +213,7 @@ describe("OrgChart mobile gestures", () => {
   });
 
   async function renderOrgChart() {
+    const { OrgChart } = await import("./OrgChart");
     root = createRoot(container);
     await act(async () => {
       root.render(
@@ -201,10 +224,13 @@ describe("OrgChart mobile gestures", () => {
     });
     await flushReact();
     await flushReact();
-    return {
-      viewport: container.querySelector('[data-testid="org-chart-viewport"]') as HTMLDivElement,
-      layer: container.querySelector('[data-testid="org-chart-card-layer"]') as HTMLDivElement,
-    };
+    for (let attempt = 0; attempt < 20; attempt += 1) {
+      const viewport = container.querySelector('[data-testid="org-chart-viewport"]') as HTMLDivElement | null;
+      const layer = container.querySelector('[data-testid="org-chart-card-layer"]') as HTMLDivElement | null;
+      if (viewport && layer) return { viewport, layer };
+      await flushReact();
+    }
+    throw new Error("Org chart did not render the interactive viewport");
   }
 
   it("pans the chart with one-finger touch drag", async () => {
