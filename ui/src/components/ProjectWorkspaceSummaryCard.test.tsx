@@ -11,8 +11,10 @@ import { ProjectWorkspaceSummaryCard } from "./ProjectWorkspaceSummaryCard";
 vi.mock("react-i18next", () => ({
   initReactI18next: { type: "3rdParty", init: () => {} },
   useTranslation: () => ({
-    t: (key: string, options?: Record<string, unknown>) =>
-      typeof options?.defaultValue === "string" ? options.defaultValue : key,
+    t: (key: string, options?: Record<string, unknown>) => {
+      const template = typeof options?.defaultValue === "string" ? options.defaultValue : key;
+      return template.replace(/\{\{(\w+)\}\}/g, (_match, token) => String(options?.[token] ?? ""));
+    },
   }),
 }));
 

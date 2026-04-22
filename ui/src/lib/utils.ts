@@ -75,10 +75,10 @@ export function formatTime(
 }
 
 export function formatShortDate(date: Date | string): string {
-  return new Date(date).toLocaleString("en-US", {
+  return new Intl.DateTimeFormat(getCurrentLocale(), {
     month: "short",
     day: "numeric",
-  });
+  }).format(new Date(date));
 }
 
 export function relativeTime(date: Date | string): string {

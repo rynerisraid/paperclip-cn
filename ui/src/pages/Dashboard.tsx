@@ -301,7 +301,7 @@ export function Dashboard() {
           </div>
 
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <ChartCard title="Run Activity" subtitle="Last 14 days">
+            <ChartCard title={t("dashboard.runActivity")} subtitle={t("dashboard.last14Days")}>
               <RunActivityChart activity={data.runActivity} />
             </ChartCard>
             <ChartCard title={t("dashboard.issuesByPriority")} subtitle={t("dashboard.last14Days")}>
@@ -310,7 +310,7 @@ export function Dashboard() {
             <ChartCard title={t("dashboard.issuesByStatus")} subtitle={t("dashboard.last14Days")}>
               <IssueStatusChart issues={issues ?? []} />
             </ChartCard>
-            <ChartCard title="Success Rate" subtitle="Last 14 days">
+            <ChartCard title={t("dashboard.successRate")} subtitle={t("dashboard.last14Days")}>
               <SuccessRateChart activity={data.runActivity} />
             </ChartCard>
           </div>

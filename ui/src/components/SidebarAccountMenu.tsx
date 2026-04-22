@@ -196,7 +196,7 @@ export function SidebarAccountMenu({
                   </span>
                 </div>
                 <p className="truncate text-sm text-muted-foreground">{secondaryLabel}</p>
-                {version ? (
+              {version ? (
                   <p className="mt-1 text-xs text-muted-foreground">
                     {t("Paperclip v{{version}}", { defaultValue: "Paperclip v{{version}}", version })}
                   </p>
@@ -206,15 +206,19 @@ export function SidebarAccountMenu({
 
             <div className="mt-4 space-y-1">
               <MenuAction
-                label="View profile"
-                description="Open your activity, task, and usage ledger."
+                label={t("View profile", { defaultValue: "View profile" })}
+                description={t("Open your activity, task, and usage ledger.", {
+                  defaultValue: "Open your activity, task, and usage ledger.",
+                })}
                 icon={UserRound}
                 href={profileHref}
                 onClick={closeNavigationChrome}
               />
               <MenuAction
-                label="Edit profile"
-                description="Update your display name and avatar."
+                label={t("Edit profile", { defaultValue: "Edit profile" })}
+                description={t("Update your display name and avatar.", {
+                  defaultValue: "Update your display name and avatar.",
+                })}
                 icon={UserRoundPen}
                 href={PROFILE_SETTINGS_PATH}
                 onClick={closeNavigationChrome}

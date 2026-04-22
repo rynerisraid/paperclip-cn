@@ -254,7 +254,7 @@ export function SuccessRateChart(props: RunChartProps) {
   const grouped = new Map(activity.map((day) => [day.date, day]));
 
   const hasData = activity.some(v => v.total > 0);
-  if (!hasData) return <p className="text-xs text-muted-foreground">No runs yet</p>;
+  if (!hasData) return <p className="text-xs text-muted-foreground">{translateInstant("No runs yet")}</p>;
 
   return (
     <div>

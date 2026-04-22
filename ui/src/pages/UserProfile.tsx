@@ -1,7 +1,12 @@
 import { useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AlertCircle, UserRound } from "lucide-react";
-import type { UserProfileDailyPoint, UserProfileWindowStats } from "@penclipai/shared";
+import {
+  HUMAN_COMPANY_MEMBERSHIP_ROLE_LABELS,
+  type UserProfileDailyPoint,
+  type UserProfileWindowStats,
+} from "@penclipai/shared";
+import { useTranslation } from "react-i18next";
 import { Link, useParams } from "@/lib/router";
 import { userProfilesApi } from "../api/userProfiles";
 import { Avatar, AvatarFallback, AvatarImage } from "../components/ui/avatar";
@@ -11,6 +16,8 @@ import { StatusBadge } from "../components/StatusBadge";
 import { useBreadcrumbs } from "../context/BreadcrumbContext";
 import { useCompany } from "../context/CompanyContext";
 import { queryKeys } from "../lib/queryKeys";
+import { formatActivityVerb } from "../lib/activity-format";
+import { translateEntityTypeLabel, translateStatusLabel } from "../lib/i18n-labels";
 import {
   formatCents,
   formatDate,
@@ -23,8 +30,8 @@ import {
 
 const NO_COMPANY = "__none__";
 
-function initials(name: string | null | undefined) {
-  const value = name?.trim() || "User";
+function initials(name: string | null | undefined, fallbackLabel: string) {
+  const value = name?.trim() || fallbackLabel;
   const parts = value.split(/\s+/).filter(Boolean);
   if (parts.length > 1) return `${parts[0]?.[0] ?? ""}${parts[parts.length - 1]?.[0] ?? ""}`.toUpperCase();
   return value.slice(0, 2).toUpperCase();
@@ -39,6 +46,12 @@ function completionRate(stats: UserProfileWindowStats) {
   return `${Math.round((stats.completedIssues / stats.touchedIssues) * 100)}%`;
 }
 
+function windowStatsLabel(key: UserProfileWindowStats["key"], t: ReturnType<typeof useTranslation>["t"]) {
+  if (key === "last7") return t("Last 7 Days", { defaultValue: "Last 7 days" });
+  if (key === "last30") return t("Last 30 Days", { defaultValue: "Last 30 days" });
+  return t("All time", { defaultValue: "All time" });
+}
+
 function HeroStat({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
     <div className="min-w-0">
@@ -49,30 +62,34 @@ function HeroStat({ label, value, hint }: { label: string; value: string; hint?:
   );
 }
 
-function WindowColumn({ stats }: { stats: UserProfileWindowStats }) {
+function WindowColumn({ stats, t }: { stats: UserProfileWindowStats; t: ReturnType<typeof useTranslation>["t"] }) {
   const tokens = totalTokens(stats);
   return (
     <div className="flex min-w-0 flex-col gap-4 border-l border-border pl-5 first:border-l-0 first:pl-0">
       <div className="flex items-baseline justify-between gap-3">
-        <h2 className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{stats.label}</h2>
-        <span className="text-[11px] text-muted-foreground tabular-nums">{completionRate(stats)} done</span>
+        <h2 className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+          {windowStatsLabel(stats.key, t)}
+        </h2>
+        <span className="text-[11px] text-muted-foreground tabular-nums">
+          {completionRate(stats)} {t("status.done", { defaultValue: "done" })}
+        </span>
       </div>
 
       <div className="grid grid-cols-2 gap-x-5 gap-y-3">
-        <Metric value={String(stats.touchedIssues)} label="Touched" />
-        <Metric value={String(stats.completedIssues)} label="Completed" />
-        <Metric value={String(stats.commentCount)} label="Comments" />
-        <Metric value={String(stats.activityCount)} label="Actions" />
+        <Metric value={String(stats.touchedIssues)} label={t("Touched", { defaultValue: "Touched" })} />
+        <Metric value={String(stats.completedIssues)} label={t("Completed", { defaultValue: "Completed" })} />
+        <Metric value={String(stats.commentCount)} label={t("Comments", { defaultValue: "Comments" })} />
+        <Metric value={String(stats.activityCount)} label={t("Actions", { defaultValue: "Actions" })} />
       </div>
 
       <div className="grid grid-cols-2 gap-x-5 gap-y-1.5 pt-3 text-xs tabular-nums text-muted-foreground">
-        <span>Tokens</span>
+        <span>{t("Tokens", { defaultValue: "Tokens" })}</span>
         <span className="text-right text-foreground">{formatTokens(tokens)}</span>
-        <span>Spend</span>
+        <span>{t("Spend", { defaultValue: "Spend" })}</span>
         <span className="text-right text-foreground">{formatCents(stats.costCents)}</span>
-        <span>Created</span>
+        <span>{t("Created", { defaultValue: "Created" })}</span>
         <span className="text-right text-foreground">{stats.createdIssues}</span>
-        <span>Open</span>
+        <span>{t("Open", { defaultValue: "Open" })}</span>
         <span className="text-right text-foreground">{stats.assignedOpenIssues}</span>
       </div>
     </div>
@@ -88,7 +105,13 @@ function Metric({ value, label }: { value: string; label: string }) {
   );
 }
 
-function UsageChart({ points }: { points: UserProfileDailyPoint[] }) {
+function UsageChart({
+  points,
+  t,
+}: {
+  points: UserProfileDailyPoint[];
+  t: ReturnType<typeof useTranslation>["t"];
+}) {
   const totals = points.map((point) => totalTokens(point));
   const maxTokens = Math.max(1, ...totals);
   const maxCompleted = Math.max(1, ...points.map((point) => point.completedIssues));
@@ -97,10 +120,10 @@ function UsageChart({ points }: { points: UserProfileDailyPoint[] }) {
   return (
     <section>
       <div className="flex flex-wrap items-baseline justify-between gap-3 border-b border-border pb-3">
-        <h2 className="text-sm font-semibold">Last 14 days</h2>
+        <h2 className="text-sm font-semibold">{t("Last 14 days", { defaultValue: "Last 14 days" })}</h2>
         <div className="flex items-baseline gap-4 text-xs text-muted-foreground">
           <span className="tabular-nums text-foreground">{formatTokens(totalTokensSum)}</span>
-          <span>tokens total</span>
+          <span>{t("tokens total", { defaultValue: "tokens total" })}</span>
         </div>
       </div>
       <div className="mt-6 grid grid-cols-[repeat(14,minmax(0,1fr))] items-end gap-1.5 sm:gap-2">
@@ -136,10 +159,10 @@ function UsageChart({ points }: { points: UserProfileDailyPoint[] }) {
       </div>
       <div className="mt-4 flex flex-wrap items-center gap-4 text-[10px] uppercase tracking-wide text-muted-foreground">
         <span className="inline-flex items-center gap-1.5">
-          <span className="h-2 w-2 bg-foreground/80" /> tokens / day
+          <span className="h-2 w-2 bg-foreground/80" /> {t("userProfile.tokensPerDay", { defaultValue: "tokens / day" })}
         </span>
         <span className="inline-flex items-center gap-1.5">
-          <span className="h-[3px] w-4 rounded-full bg-emerald-500/80" /> completions
+          <span className="h-[3px] w-4 rounded-full bg-emerald-500/80" /> {t("userProfile.completions", { defaultValue: "completions" })}
         </span>
       </div>
     </section>
@@ -194,6 +217,7 @@ function UsageList({
 }
 
 export function UserProfile() {
+  const { t } = useTranslation();
   const { userSlug = "" } = useParams<{ userSlug: string }>();
   const { selectedCompanyId } = useCompany();
   const { setBreadcrumbs } = useBreadcrumbs();
@@ -205,20 +229,23 @@ export function UserProfile() {
     enabled: !!selectedCompanyId && !!userSlug,
   });
 
+  const displayName = data?.user.id === "local-board" && (!data?.user.name || data.user.name === "Board")
+    ? t("Board", { defaultValue: "Board" })
+    : data?.user.name?.trim() || data?.user.email?.split("@")[0] || t("User", { defaultValue: "User" });
+
   useEffect(() => {
-    setBreadcrumbs([{ label: "Users" }, { label: data?.user.name ?? userSlug }]);
-  }, [data?.user.name, setBreadcrumbs, userSlug]);
+    setBreadcrumbs([{ label: t("Users", { defaultValue: "Users" }) }, { label: displayName || userSlug }]);
+  }, [displayName, setBreadcrumbs, t, userSlug]);
 
   const allTime = data?.stats.find((entry) => entry.key === "all");
   const last7 = data?.stats.find((entry) => entry.key === "last7");
-  const displayName = data?.user.name?.trim() || data?.user.email?.split("@")[0] || "User";
 
   const agentUsageRows = useMemo<UsageRow[]>(
     () =>
       (data?.topAgents ?? []).map((row) => ({
         key: row.agentId ?? "unknown",
-        label: row.agentName ?? (row.agentId ? row.agentId.slice(0, 8) : "unknown"),
-        sublabel: "Issue-linked usage",
+        label: row.agentName ?? (row.agentId ? row.agentId.slice(0, 8) : t("Unknown", { defaultValue: "Unknown" })),
+        sublabel: t("Issue-linked usage", { defaultValue: "Issue-linked usage" }),
         costCents: row.costCents,
         inputTokens: row.inputTokens,
         cachedInputTokens: row.cachedInputTokens,
@@ -232,17 +259,27 @@ export function UserProfile() {
       (data?.topProviders ?? []).map((row) => ({
         key: `${row.provider}:${row.biller}:${row.model}`,
         label: `${providerDisplayName(row.provider)} / ${row.model}`,
-        sublabel: `Billed through ${providerDisplayName(row.biller)}`,
+        sublabel: t("Billed through {{name}}", {
+          name: providerDisplayName(row.biller),
+          defaultValue: "Billed through {{name}}",
+        }),
         costCents: row.costCents,
         inputTokens: row.inputTokens,
         cachedInputTokens: row.cachedInputTokens,
         outputTokens: row.outputTokens,
       })),
-    [data?.topProviders],
+    [data?.topProviders, t],
   );
 
   if (!selectedCompanyId) {
-    return <EmptyState icon={UserRound} message="Select a company to view user profiles." />;
+    return (
+      <EmptyState
+        icon={UserRound}
+        message={t("Select a company to view user profiles.", {
+          defaultValue: "Select a company to view user profiles.",
+        })}
+      />
+    );
   }
 
   if (isLoading) {
@@ -250,14 +287,26 @@ export function UserProfile() {
   }
 
   if (error || !data) {
-    return <EmptyState icon={AlertCircle} message="User profile not found for this company." />;
+    return (
+      <EmptyState
+        icon={AlertCircle}
+        message={t("User profile not found for this company.", {
+          defaultValue: "User profile not found for this company.",
+        })}
+      />
+    );
   }
 
   const allTimeTokens = allTime ? totalTokens(allTime) : 0;
+  const membershipRoleLabel = data.user.membershipRole
+    ? t(HUMAN_COMPANY_MEMBERSHIP_ROLE_LABELS[data.user.membershipRole as keyof typeof HUMAN_COMPANY_MEMBERSHIP_ROLE_LABELS], {
+        defaultValue: HUMAN_COMPANY_MEMBERSHIP_ROLE_LABELS[data.user.membershipRole as keyof typeof HUMAN_COMPANY_MEMBERSHIP_ROLE_LABELS],
+      })
+    : t("Member", { defaultValue: "Member" });
   const metaParts = [
-    data.user.membershipRole ?? "member",
-    data.user.membershipStatus,
-    `joined ${formatDate(data.user.joinedAt)}`,
+    membershipRoleLabel,
+    translateStatusLabel(t, data.user.membershipStatus),
+    t("joined {{date}}", { date: formatDate(data.user.joinedAt), defaultValue: "joined {{date}}" }),
   ];
 
   return (
@@ -266,7 +315,7 @@ export function UserProfile() {
         <div className="flex flex-wrap items-center gap-5">
           <Avatar className="size-16 border border-border" size="lg">
             {data.user.image ? <AvatarImage src={data.user.image} alt={displayName} /> : null}
-            <AvatarFallback className="text-lg font-semibold">{initials(displayName)}</AvatarFallback>
+            <AvatarFallback className="text-lg font-semibold">{initials(displayName, t("User", { defaultValue: "User" }))}</AvatarFallback>
           </Avatar>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
@@ -282,27 +331,56 @@ export function UserProfile() {
         </div>
 
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          <HeroStat label="All-time tokens" value={formatTokens(allTimeTokens)} hint={formatCents(allTime?.costCents ?? 0) + " spent"} />
-          <HeroStat label="Completed" value={String(allTime?.completedIssues ?? 0)} hint={allTime ? `${completionRate(allTime)} rate` : undefined} />
-          <HeroStat label="Open assigned" value={String(allTime?.assignedOpenIssues ?? 0)} hint={`${allTime?.createdIssues ?? 0} created`} />
-          <HeroStat label="7-day actions" value={String(last7?.activityCount ?? 0)} hint={`${last7?.commentCount ?? 0} comments`} />
+          <HeroStat
+            label={t("All-time tokens", { defaultValue: "All-time tokens" })}
+            value={formatTokens(allTimeTokens)}
+            hint={t("{{amount}} spent", {
+              amount: formatCents(allTime?.costCents ?? 0),
+              defaultValue: "{{amount}} spent",
+            })}
+          />
+          <HeroStat
+            label={t("Completed", { defaultValue: "Completed" })}
+            value={String(allTime?.completedIssues ?? 0)}
+            hint={allTime
+              ? t("{{rate}} rate", { rate: completionRate(allTime), defaultValue: "{{rate}} rate" })
+              : undefined}
+          />
+          <HeroStat
+            label={t("Open assigned", { defaultValue: "Open assigned" })}
+            value={String(allTime?.assignedOpenIssues ?? 0)}
+            hint={t("{{count}} created", {
+              count: allTime?.createdIssues ?? 0,
+              defaultValue: "{{count}} created",
+            })}
+          />
+          <HeroStat
+            label={t("7-day actions", { defaultValue: "7-day actions" })}
+            value={String(last7?.activityCount ?? 0)}
+            hint={t("{{count}} comments", {
+              count: last7?.commentCount ?? 0,
+              defaultValue: "{{count}} comments",
+            })}
+          />
         </div>
       </section>
 
       <section className="grid gap-8 border-b border-border pb-8 lg:grid-cols-3">
-        {data.stats.map((entry) => <WindowColumn key={entry.key} stats={entry} />)}
+        {data.stats.map((entry) => <WindowColumn key={entry.key} stats={entry} t={t} />)}
       </section>
 
-      <UsageChart points={data.daily} />
+      <UsageChart points={data.daily} t={t} />
 
       <div className="grid gap-10 pt-2 xl:grid-cols-2">
         <section>
           <div className="flex items-baseline justify-between gap-3 border-b border-border pb-3">
-            <h2 className="text-sm font-semibold">Recent tasks</h2>
+            <h2 className="text-sm font-semibold">{t("Recent tasks", { defaultValue: "Recent tasks" })}</h2>
             <span className="text-xs text-muted-foreground tabular-nums">{data.recentIssues.length}</span>
           </div>
           {data.recentIssues.length === 0 ? (
-            <div className="pt-4 text-sm text-muted-foreground">No touched tasks yet.</div>
+            <div className="pt-4 text-sm text-muted-foreground">
+              {t("No touched tasks yet.", { defaultValue: "No touched tasks yet." })}
+            </div>
           ) : (
             <ul className="divide-y divide-border">
               {data.recentIssues.map((issue) => (
@@ -326,19 +404,23 @@ export function UserProfile() {
 
         <section>
           <div className="flex items-baseline justify-between gap-3 border-b border-border pb-3">
-            <h2 className="text-sm font-semibold">Recent activity</h2>
+            <h2 className="text-sm font-semibold">{t("Recent activity", { defaultValue: "Recent activity" })}</h2>
             <span className="text-xs text-muted-foreground tabular-nums">{data.recentActivity.length}</span>
           </div>
           {data.recentActivity.length === 0 ? (
-            <div className="pt-4 text-sm text-muted-foreground">No direct user actions recorded yet.</div>
+            <div className="pt-4 text-sm text-muted-foreground">
+              {t("No direct user actions recorded yet.", {
+                defaultValue: "No direct user actions recorded yet.",
+              })}
+            </div>
           ) : (
             <ul className="divide-y divide-border">
               {data.recentActivity.map((event) => (
                 <li key={event.id} className="grid gap-2 py-2.5 sm:grid-cols-[1fr_auto] sm:items-center">
                   <div className="min-w-0">
-                    <div className="truncate text-sm">{event.action.replaceAll("_", " ")}</div>
+                    <div className="truncate text-sm">{formatActivityVerb(event.action, event.details)}</div>
                     <div className="truncate text-xs text-muted-foreground">
-                      {event.entityType} · {event.entityId.slice(0, 12)}
+                      {translateEntityTypeLabel(t, event.entityType)} · {event.entityId.slice(0, 12)}
                     </div>
                   </div>
                   <span className="text-xs tabular-nums text-muted-foreground sm:justify-self-end">{relativeTime(event.createdAt)}</span>
@@ -350,8 +432,16 @@ export function UserProfile() {
       </div>
 
       <div className="grid gap-10 xl:grid-cols-2">
-        <UsageList title="Agent attribution" empty="No issue-linked token usage yet." rows={agentUsageRows} />
-        <UsageList title="Provider mix" empty="No provider usage attributed yet." rows={providerUsageRows} />
+        <UsageList
+          title={t("Agent attribution", { defaultValue: "Agent attribution" })}
+          empty={t("No issue-linked token usage yet.", { defaultValue: "No issue-linked token usage yet." })}
+          rows={agentUsageRows}
+        />
+        <UsageList
+          title={t("Provider mix", { defaultValue: "Provider mix" })}
+          empty={t("No provider usage attributed yet.", { defaultValue: "No provider usage attributed yet." })}
+          rows={providerUsageRows}
+        />
       </div>
     </div>
   );
