@@ -117,10 +117,8 @@ export function InstanceGeneralSettings() {
           <h1 className="text-lg font-semibold">{t("General", { defaultValue: "General" })}</h1>
         </div>
         <p className="text-sm text-muted-foreground">
-          {t(
-            "Configure instance-wide defaults that affect operator-visible logs and agent runtime guidance.",
-            { defaultValue: "Configure instance-wide defaults that affect operator-visible logs and agent runtime guidance." },
-          )}
+          Configure instance-wide preferences including log display, keyboard shortcuts, backup
+          retention, and data sharing.
         </p>
       </div>
 
@@ -227,7 +225,9 @@ export function InstanceGeneralSettings() {
           <div className="space-y-1.5">
             <h2 className="text-sm font-semibold">{t("instanceGeneralSettings.backupRetentionTitle")}</h2>
             <p className="max-w-2xl text-sm text-muted-foreground">
-              {t("instanceGeneralSettings.backupRetentionDescription")}
+              Configure how long automatic database backups are retained. Backups run roughly
+              every hour and are compressed with gzip. Within the daily window all backups are
+              kept; beyond that, one backup per week and one per month are preserved.
             </p>
           </div>
 

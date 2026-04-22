@@ -21,6 +21,7 @@ import { translateEntityTypeLabel, translateStatusLabel } from "../lib/i18n-labe
 import {
   formatCents,
   formatDate,
+  formatNumber,
   formatShortDate,
   formatTokens,
   issueUrl,
@@ -76,10 +77,10 @@ function WindowColumn({ stats, t }: { stats: UserProfileWindowStats; t: ReturnTy
       </div>
 
       <div className="grid grid-cols-2 gap-x-5 gap-y-3">
-        <Metric value={String(stats.touchedIssues)} label={t("Touched", { defaultValue: "Touched" })} />
-        <Metric value={String(stats.completedIssues)} label={t("Completed", { defaultValue: "Completed" })} />
-        <Metric value={String(stats.commentCount)} label={t("Comments", { defaultValue: "Comments" })} />
-        <Metric value={String(stats.activityCount)} label={t("Actions", { defaultValue: "Actions" })} />
+        <Metric value={formatNumber(stats.touchedIssues)} label="Touched" />
+        <Metric value={formatNumber(stats.completedIssues)} label="Completed" />
+        <Metric value={formatNumber(stats.commentCount)} label="Comments" />
+        <Metric value={formatNumber(stats.activityCount)} label="Actions" />
       </div>
 
       <div className="grid grid-cols-2 gap-x-5 gap-y-1.5 pt-3 text-xs tabular-nums text-muted-foreground">
@@ -87,10 +88,10 @@ function WindowColumn({ stats, t }: { stats: UserProfileWindowStats; t: ReturnTy
         <span className="text-right text-foreground">{formatTokens(tokens)}</span>
         <span>{t("Spend", { defaultValue: "Spend" })}</span>
         <span className="text-right text-foreground">{formatCents(stats.costCents)}</span>
-        <span>{t("Created", { defaultValue: "Created" })}</span>
-        <span className="text-right text-foreground">{stats.createdIssues}</span>
-        <span>{t("Open", { defaultValue: "Open" })}</span>
-        <span className="text-right text-foreground">{stats.assignedOpenIssues}</span>
+        <span>Created</span>
+        <span className="text-right text-foreground">{formatNumber(stats.createdIssues)}</span>
+        <span>Open</span>
+        <span className="text-right text-foreground">{formatNumber(stats.assignedOpenIssues)}</span>
       </div>
     </div>
   );
@@ -331,37 +332,10 @@ export function UserProfile() {
         </div>
 
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          <HeroStat
-            label={t("All-time tokens", { defaultValue: "All-time tokens" })}
-            value={formatTokens(allTimeTokens)}
-            hint={t("{{amount}} spent", {
-              amount: formatCents(allTime?.costCents ?? 0),
-              defaultValue: "{{amount}} spent",
-            })}
-          />
-          <HeroStat
-            label={t("Completed", { defaultValue: "Completed" })}
-            value={String(allTime?.completedIssues ?? 0)}
-            hint={allTime
-              ? t("{{rate}} rate", { rate: completionRate(allTime), defaultValue: "{{rate}} rate" })
-              : undefined}
-          />
-          <HeroStat
-            label={t("Open assigned", { defaultValue: "Open assigned" })}
-            value={String(allTime?.assignedOpenIssues ?? 0)}
-            hint={t("{{count}} created", {
-              count: allTime?.createdIssues ?? 0,
-              defaultValue: "{{count}} created",
-            })}
-          />
-          <HeroStat
-            label={t("7-day actions", { defaultValue: "7-day actions" })}
-            value={String(last7?.activityCount ?? 0)}
-            hint={t("{{count}} comments", {
-              count: last7?.commentCount ?? 0,
-              defaultValue: "{{count}} comments",
-            })}
-          />
+          <HeroStat label="All-time tokens" value={formatTokens(allTimeTokens)} hint={formatCents(allTime?.costCents ?? 0) + " spent"} />
+          <HeroStat label="Completed" value={formatNumber(allTime?.completedIssues ?? 0)} hint={allTime ? `${completionRate(allTime)} rate` : undefined} />
+          <HeroStat label="Open assigned" value={formatNumber(allTime?.assignedOpenIssues ?? 0)} hint={`${formatNumber(allTime?.createdIssues ?? 0)} created`} />
+          <HeroStat label="7-day actions" value={formatNumber(last7?.activityCount ?? 0)} hint={`${formatNumber(last7?.commentCount ?? 0)} comments`} />
         </div>
       </section>
 

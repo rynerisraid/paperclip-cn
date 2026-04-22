@@ -112,6 +112,20 @@ function getInitialViewState(key: string, initialAssignees?: string[]): IssueVie
   };
 }
 
+function getInitialWorkspaceViewState(
+  key: string,
+  initialAssignees?: string[],
+  initialWorkspaces?: string[],
+): IssueViewState {
+  const stored = getInitialViewState(key, initialAssignees);
+  if (!initialWorkspaces) return stored;
+  return {
+    ...stored,
+    workspaces: initialWorkspaces,
+    statuses: [],
+  };
+}
+
 function getIssueColumnsStorageKey(key: string): string {
   return `${key}:issue-columns`;
 }
@@ -189,6 +203,7 @@ interface IssuesListProps {
   viewStateKey: string;
   issueLinkState?: unknown;
   initialAssignees?: string[];
+  initialWorkspaces?: string[];
   initialSearch?: string;
   searchFilters?: Omit<IssueListRequestFilters, "q" | "projectId" | "limit" | "includeRoutineExecutions">;
   baseCreateIssueDefaults?: Record<string, unknown>;
@@ -272,6 +287,7 @@ export function IssuesList({
   viewStateKey,
   issueLinkState,
   initialAssignees,
+  initialWorkspaces,
   initialSearch,
   searchFilters,
   baseCreateIssueDefaults,
@@ -303,8 +319,11 @@ export function IssuesList({
   // Scope the storage key per company so folding/view state is independent across companies.
   const scopedKey = selectedCompanyId ? `${viewStateKey}:${selectedCompanyId}` : viewStateKey;
   const initialAssigneesKey = initialAssignees?.join("|") ?? "";
+  const initialWorkspacesKey = initialWorkspaces?.join("|") ?? "";
 
-  const [viewState, setViewState] = useState<IssueViewState>(() => getInitialViewState(scopedKey, initialAssignees));
+  const [viewState, setViewState] = useState<IssueViewState>(() =>
+    getInitialWorkspaceViewState(scopedKey, initialAssignees, initialWorkspaces),
+  );
   const [assigneePickerIssueId, setAssigneePickerIssueId] = useState<string | null>(null);
   const [assigneeSearch, setAssigneeSearch] = useState("");
   const [issueSearch, setIssueSearch] = useState(initialSearch ?? "");
@@ -318,14 +337,14 @@ export function IssuesList({
   }, [initialSearch]);
 
   // Reload view state whenever the persisted context changes.
-  const prevViewStateContextKey = useRef(`${scopedKey}::${initialAssigneesKey}`);
+  const prevViewStateContextKey = useRef(`${scopedKey}::${initialAssigneesKey}::${initialWorkspacesKey}`);
   useEffect(() => {
-    const nextContextKey = `${scopedKey}::${initialAssigneesKey}`;
+    const nextContextKey = `${scopedKey}::${initialAssigneesKey}::${initialWorkspacesKey}`;
     if (prevViewStateContextKey.current !== nextContextKey) {
       prevViewStateContextKey.current = nextContextKey;
-      setViewState(getInitialViewState(scopedKey, initialAssignees));
+      setViewState(getInitialWorkspaceViewState(scopedKey, initialAssignees, initialWorkspaces));
     }
-  }, [scopedKey, initialAssignees, initialAssigneesKey]);
+  }, [scopedKey, initialAssignees, initialAssigneesKey, initialWorkspaces, initialWorkspacesKey]);
 
   const prevColumnsScopedKey = useRef(scopedKey);
   useEffect(() => {

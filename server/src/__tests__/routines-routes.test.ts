@@ -84,13 +84,27 @@ const mockTrackRoutineCreated = vi.hoisted(() => vi.fn());
 const mockGetTelemetryClient = vi.hoisted(() => vi.fn());
 
 function registerModuleMocks() {
-  vi.doMock("@penclipai/shared/telemetry", () => ({
+  vi.doMock("../routes/authz.js", async () => vi.importActual("../routes/authz.js"));
+
+  vi.doMock("@paperclipai/shared/telemetry", () => ({
     trackRoutineCreated: mockTrackRoutineCreated,
     trackErrorHandlerCrash: vi.fn(),
   }));
 
   vi.doMock("../telemetry.js", () => ({
     getTelemetryClient: mockGetTelemetryClient,
+  }));
+
+  vi.doMock("../services/access.js", () => ({
+    accessService: () => mockAccessService,
+  }));
+
+  vi.doMock("../services/routines.js", () => ({
+    routineService: () => mockRoutineService,
+  }));
+
+  vi.doMock("../services/activity-log.js", () => ({
+    logActivity: mockLogActivity,
   }));
 
   vi.doMock("../services/index.js", () => ({
@@ -121,7 +135,10 @@ describe("routine routes", () => {
     vi.resetModules();
     vi.doUnmock("@penclipai/shared/telemetry");
     vi.doUnmock("../telemetry.js");
+    vi.doUnmock("../services/access.js");
     vi.doUnmock("../services/index.js");
+    vi.doUnmock("../services/activity-log.js");
+    vi.doUnmock("../services/routines.js");
     vi.doUnmock("../routes/routines.js");
     vi.doUnmock("../routes/authz.js");
     vi.doUnmock("../middleware/index.js");

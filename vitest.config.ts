@@ -7,6 +7,7 @@ export default defineConfig({
     // `pnpm test:run` stable without changing individual suite semantics.
     maxWorkers: process.platform === "win32" ? 4 : undefined,
     projects: [
+      "packages/shared",
       "packages/db",
       "packages/adapter-utils",
       "packages/adapters/codex-local",

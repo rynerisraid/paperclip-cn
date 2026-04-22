@@ -16,18 +16,12 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function formatUsdAmount(
-  amountUsd: number,
-  options?: { minimumFractionDigits?: number; maximumFractionDigits?: number },
-): string {
-  const locale = getCurrentLocale();
-  return new Intl.NumberFormat(locale, {
-    style: "currency",
-    currency: DISPLAY_CURRENCY,
-    currencyDisplay: "narrowSymbol",
-    minimumFractionDigits: options?.minimumFractionDigits ?? 2,
-    maximumFractionDigits: options?.maximumFractionDigits ?? 2,
-  }).format(amountUsd);
+export function formatCents(cents: number): string {
+  return `$${(cents / 100).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+export function formatNumber(n: number): string {
+  return n.toLocaleString("en-US");
 }
 
 export function formatCents(cents: number): string {
@@ -102,6 +96,7 @@ export function relativeTime(date: Date | string): string {
 }
 
 export function formatTokens(n: number): string {
+  if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(1)}B`;
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
   if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
   return String(n);

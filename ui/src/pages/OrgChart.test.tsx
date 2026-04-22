@@ -271,7 +271,6 @@ describe("OrgChart mobile gestures", () => {
 
     expect(navigateMock).toHaveBeenCalledWith("/agents/ceo");
   });
-
   it("pinch-zooms toward the touch center", async () => {
     const { viewport, layer } = await renderOrgChart();
 
