@@ -4,7 +4,7 @@ import { execFile as execFileCallback } from "node:child_process";
 import { promisify } from "node:util";
 import { randomUUID } from "node:crypto";
 import { and, asc, desc, eq, getTableColumns, gt, inArray, isNull, lte, notInArray, or, sql } from "drizzle-orm";
-import type { Db } from "@paperclipai/db";
+import type { Db } from "@penclipai/db";
 import {
   AGENT_DEFAULT_MAX_CONCURRENT_RUNS,
   ISSUE_CONTINUATION_SUMMARY_DOCUMENT_KEY,
@@ -6491,15 +6491,19 @@ export function heartbeatService(db: Db) {
           allowsBlockedIssueInteractionWake(enrichedContextSnapshot);
 
         if (blockedInteractionWake) {
-          enrichedContextSnapshot.dependencyBlockedInteraction = true;
-          enrichedContextSnapshot.unresolvedBlockerIssueIds = dependencyReadiness.unresolvedBlockerIssueIds;
-          enrichedContextSnapshot.unresolvedBlockerCount = dependencyReadiness.unresolvedBlockerCount;
-          enrichedContextSnapshot.unresolvedBlockerSummaries = await listUnresolvedBlockerSummaries(
-            tx,
-            issue.companyId,
-            issue.id,
-            dependencyReadiness.unresolvedBlockerIssueIds,
-          );
+          const dependencyBlockedInteractionContext = {
+            dependencyBlockedInteraction: true,
+            unresolvedBlockerIssueIds: dependencyReadiness.unresolvedBlockerIssueIds,
+            unresolvedBlockerCount: dependencyReadiness.unresolvedBlockerCount,
+            unresolvedBlockerSummaries: await listUnresolvedBlockerSummaries(
+              tx,
+              issue.companyId,
+              issue.id,
+              dependencyReadiness.unresolvedBlockerIssueIds,
+            ),
+          };
+          Object.assign(enrichedContextSnapshot, dependencyBlockedInteractionContext);
+          Object.assign(localizedContextSnapshot, dependencyBlockedInteractionContext);
         }
 
         if (!activeExecutionRun && dependencyReadiness && !dependencyReadiness.isDependencyReady && !blockedInteractionWake) {

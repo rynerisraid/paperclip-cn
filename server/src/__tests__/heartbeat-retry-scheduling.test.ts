@@ -8,7 +8,7 @@ import {
   createDb,
   heartbeatRunEvents,
   heartbeatRuns,
-} from "@paperclipai/db";
+} from "@penclipai/db";
 import {
   getEmbeddedPostgresTestSupport,
   startEmbeddedPostgresTestDatabase,

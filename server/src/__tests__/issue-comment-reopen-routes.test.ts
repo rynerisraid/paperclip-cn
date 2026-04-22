@@ -189,7 +189,7 @@ function makeIssue(status: "todo" | "done" | "blocked") {
 describe("issue comment reopen routes", () => {
   beforeEach(() => {
     vi.resetModules();
-    vi.doUnmock("@paperclipai/shared/telemetry");
+    vi.doUnmock("@penclipai/shared/telemetry");
     vi.doUnmock("../telemetry.js");
     vi.doUnmock("../services/access.js");
     vi.doUnmock("../services/activity-log.js");

@@ -43,7 +43,7 @@ import type {
   PaperclipPluginManifestV1,
   RequestConfirmationInteraction,
   SuggestTasksInteraction,
-} from "@paperclipai/shared";
+} from "@penclipai/shared";
 
 import type { PaperclipPlugin } from "./define-plugin.js";
 import type {

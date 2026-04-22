@@ -1,4 +1,4 @@
-import type { IssueRelationIssueSummary } from "@paperclipai/shared";
+import type { IssueRelationIssueSummary } from "@penclipai/shared";
 import { Link } from "@/lib/router";
 import { cn } from "../lib/utils";
 import { StatusIcon } from "./StatusIcon";

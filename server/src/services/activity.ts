@@ -1,5 +1,5 @@
 import { and, asc, desc, eq, inArray, isNull, or, sql } from "drizzle-orm";
-import type { Db } from "@paperclipai/db";
+import type { Db } from "@penclipai/db";
 import {
   activityLog,
   agents,

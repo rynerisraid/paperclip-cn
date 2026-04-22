@@ -29,6 +29,14 @@ vi.mock("@/lib/router", () => ({
   ),
 }));
 
+vi.mock("../i18n", () => ({
+  getCurrentLocale: () => "en",
+  translateInstant: (key: string, options?: Record<string, unknown>) => {
+    const template = typeof options?.defaultValue === "string" ? options.defaultValue : key;
+    return template.replace(/\{\{(\w+)\}\}/g, (_match, token) => String(options?.[token] ?? ""));
+  },
+}));
+
 function renderCard(
   props: Partial<ComponentProps<typeof IssueThreadInteractionCard>> = {},
 ) {

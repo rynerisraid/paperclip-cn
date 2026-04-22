@@ -103,7 +103,6 @@ import {
   MessageSquare,
   MoreHorizontal,
   MoreVertical,
-  ListTree,
   Paperclip,
   Plus,
   Repeat,
@@ -124,7 +123,7 @@ import {
   type IssueThreadInteraction,
   type RequestConfirmationInteraction,
   type SuggestTasksInteraction,
-} from "@paperclipai/shared";
+} from "@penclipai/shared";
 
 type CommentReassignment = IssueCommentReassignment;
 type ActionableIssueThreadInteraction = SuggestTasksInteraction | RequestConfirmationInteraction;
@@ -1581,17 +1580,21 @@ export function IssueDetail() {
         : 0;
       pushToast({
         title: interaction.kind === "request_confirmation"
-          ? "Request confirmed"
+          ? t("issueThreadInteraction.requestConfirmed", { defaultValue: "Request confirmed" })
           : skippedCount > 0
-          ? `Accepted ${createdCount} draft${createdCount === 1 ? "" : "s"} and skipped ${skippedCount}`
-          : "Suggested tasks accepted",
+          ? t("issueThreadInteraction.acceptedDraftsAndSkipped", {
+              count: createdCount,
+              skipped: skippedCount,
+              defaultValue: "Accepted {{count}} drafts and skipped {{skipped}}",
+            })
+          : t("issueThreadInteraction.suggestedTasksAccepted", { defaultValue: "Suggested tasks accepted" }),
         tone: "success",
       });
     },
     onError: (err) => {
       pushToast({
-        title: "Accept failed",
-        body: err instanceof Error ? err.message : "Unable to accept the suggested tasks",
+        title: t("issueThreadInteraction.acceptFailed", { defaultValue: "Accept failed" }),
+        body: err instanceof Error ? err.message : t("issueThreadInteraction.unableToAcceptSuggestedTasks", { defaultValue: "Unable to accept the suggested tasks" }),
         tone: "error",
       });
     },
@@ -1604,14 +1607,16 @@ export function IssueDetail() {
       invalidateIssueDetail();
       invalidateIssueCollections();
       pushToast({
-        title: interaction.kind === "request_confirmation" ? "Request declined" : "Suggestion rejected",
+        title: interaction.kind === "request_confirmation"
+          ? t("issueThreadInteraction.requestDeclined", { defaultValue: "Request declined" })
+          : t("issueThreadInteraction.suggestionRejected", { defaultValue: "Suggestion rejected" }),
         tone: "success",
       });
     },
     onError: (err) => {
       pushToast({
-        title: "Reject failed",
-        body: err instanceof Error ? err.message : "Unable to reject the suggested tasks",
+        title: t("issueThreadInteraction.rejectFailed", { defaultValue: "Reject failed" }),
+        body: err instanceof Error ? err.message : t("issueThreadInteraction.unableToRejectSuggestedTasks", { defaultValue: "Unable to reject the suggested tasks" }),
         tone: "error",
       });
     },
@@ -1629,14 +1634,14 @@ export function IssueDetail() {
       invalidateIssueDetail();
       invalidateIssueCollections();
       pushToast({
-        title: "Answers submitted",
+        title: t("issueThreadInteraction.answersSubmitted", { defaultValue: "Answers submitted" }),
         tone: "success",
       });
     },
     onError: (err) => {
       pushToast({
-        title: "Submit failed",
-        body: err instanceof Error ? err.message : "Unable to submit answers",
+        title: t("issueThreadInteraction.submitFailed", { defaultValue: "Submit failed" }),
+        body: err instanceof Error ? err.message : t("issueThreadInteraction.unableToSubmitAnswers", { defaultValue: "Unable to submit answers" }),
         tone: "error",
       });
     },
@@ -1861,15 +1866,15 @@ export function IssueDetail() {
       invalidateIssueThreadLazily();
       invalidateIssueCollections();
       pushToast({
-        title: "Queued comment canceled",
-        body: "The queued message was restored to the composer.",
+        title: t("issueThreadInteraction.queuedCommentCanceled", { defaultValue: "Queued comment canceled" }),
+        body: t("issueThreadInteraction.queuedMessageRestored", { defaultValue: "The queued message was restored to the composer." }),
         tone: "success",
       });
     },
     onError: (err) => {
       pushToast({
-        title: "Cancel failed",
-        body: err instanceof Error ? err.message : "Unable to cancel the queued comment",
+        title: t("Cancel failed", { defaultValue: "Cancel failed" }),
+        body: err instanceof Error ? err.message : t("issueThreadInteraction.unableToCancelQueuedComment", { defaultValue: "Unable to cancel the queued comment" }),
         tone: "error",
       });
     },
@@ -1887,8 +1892,8 @@ export function IssueDetail() {
       if (cancelledCommentBody) {
         restoreQueuedCommentDraft(cancelledCommentBody);
         pushToast({
-          title: "Queued comment canceled",
-          body: "The queued message was restored to the composer.",
+          title: t("issueThreadInteraction.queuedCommentCanceled", { defaultValue: "Queued comment canceled" }),
+          body: t("issueThreadInteraction.queuedMessageRestored", { defaultValue: "The queued message was restored to the composer." }),
           tone: "success",
         });
       }

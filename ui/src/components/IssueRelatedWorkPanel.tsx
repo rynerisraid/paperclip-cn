@@ -1,5 +1,6 @@
-import type { IssueRelatedWorkItem, IssueRelatedWorkSummary } from "@paperclipai/shared";
+import type { IssueRelatedWorkItem, IssueRelatedWorkSummary } from "@penclipai/shared";
 import { IssueReferencePill } from "./IssueReferencePill";
+import { translateInstant } from "../i18n";
 
 type GroupedSource = {
   label: string;
@@ -94,16 +95,24 @@ export function IssueRelatedWorkPanel({
   return (
     <div className="space-y-3">
       <Section
-        title="References"
-        description="Other tasks this issue currently points at in its title, description, comments, or documents."
+        title={translateInstant("issueRelatedWork.references", { defaultValue: "References" })}
+        description={translateInstant("issueRelatedWork.referencesDescription", {
+          defaultValue: "Other tasks this issue currently points at in its title, description, comments, or documents.",
+        })}
         items={outbound}
-        emptyLabel="This issue does not reference any other tasks yet."
+        emptyLabel={translateInstant("issueRelatedWork.noReferences", {
+          defaultValue: "This issue does not reference any other tasks yet.",
+        })}
       />
       <Section
-        title="Referenced by"
-        description="Other tasks that currently point at this issue."
+        title={translateInstant("issueRelatedWork.referencedBy", { defaultValue: "Referenced by" })}
+        description={translateInstant("issueRelatedWork.referencedByDescription", {
+          defaultValue: "Other tasks that currently point at this issue.",
+        })}
         items={inbound}
-        emptyLabel="No other tasks reference this issue yet."
+        emptyLabel={translateInstant("issueRelatedWork.noReferencedBy", {
+          defaultValue: "No other tasks reference this issue yet.",
+        })}
       />
     </div>
   );

@@ -70,7 +70,7 @@ function MarkdownIssueLink({
       className="inline-flex items-center gap-1 align-baseline font-medium"
       data-mention-kind="issue"
     >
-      {data ? <StatusIcon status={data.status} className="h-3.5 w-3.5" /> : null}
+      {issue ? <StatusIcon status={issue.status} className="h-3.5 w-3.5" /> : null}
       <span>{children}</span>
     </Link>
   );

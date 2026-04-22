@@ -36,6 +36,17 @@ vi.mock("../services/index.js", () => ({
     })),
   }),
   issueApprovalService: () => ({}),
+  issueReferenceService: () => ({
+    emptySummary: vi.fn(() => ({ outbound: [], inbound: [] })),
+    listIssueReferenceSummary: vi.fn(async () => ({ outbound: [], inbound: [] })),
+    diffIssueReferenceSummary: vi.fn(() => ({
+      addedReferencedIssues: [],
+      removedReferencedIssues: [],
+      currentReferencedIssues: [],
+    })),
+    syncIssue: vi.fn(async () => undefined),
+    syncIssueReferences: vi.fn(async () => ({ added: [], removed: [] })),
+  }),
   issueService: () => mockIssueService,
   logActivity: mockLogActivity,
   projectService: () => ({}),

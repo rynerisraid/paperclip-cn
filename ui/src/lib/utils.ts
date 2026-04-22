@@ -20,15 +20,19 @@ export function formatCents(cents: number): string {
   return `$${(cents / 100).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-export function formatNumber(n: number): string {
-  return n.toLocaleString("en-US");
+export function formatUsdAmount(
+  amount: number,
+  options?: Intl.NumberFormatOptions,
+): string {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: DISPLAY_CURRENCY,
+    ...options,
+  }).format(amount);
 }
 
-export function formatCents(cents: number): string {
-  return formatUsdAmount(cents / 100, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
+export function formatNumber(n: number): string {
+  return new Intl.NumberFormat(getCurrentLocale()).format(n);
 }
 
 export function formatBudgetInputValue(cents: number): string {

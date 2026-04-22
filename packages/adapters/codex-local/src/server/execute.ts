@@ -21,7 +21,7 @@ import {
   DEFAULT_PAPERCLIP_AGENT_PROMPT_TEMPLATE,
   joinPromptSections,
   runChildProcess,
-} from "@paperclipai/adapter-utils/server-utils";
+} from "@penclipai/adapter-utils/server-utils";
 import {
   parseCodexJsonl,
   isCodexTransientUpstreamError,

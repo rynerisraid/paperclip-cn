@@ -102,7 +102,7 @@ function registerModuleMocks() {
   vi.doMock("../adapters/index.js", async () => vi.importActual("../adapters/index.js"));
   vi.doMock("../middleware/index.js", async () => vi.importActual("../middleware/index.js"));
 
-  vi.doMock("@paperclipai/shared/telemetry", () => ({
+  vi.doMock("@penclipai/shared/telemetry", () => ({
     trackAgentCreated: mockTrackAgentCreated,
     trackErrorHandlerCrash: vi.fn(),
   }));

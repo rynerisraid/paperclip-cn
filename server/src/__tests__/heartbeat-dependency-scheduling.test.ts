@@ -232,13 +232,22 @@ describeEmbeddedPostgres("heartbeat dependency-aware queued run selection", () =
       .then((rows) => rows[0]?.count ?? 0);
     expect(blockedRunsBeforeResolution).toBe(0);
 
+    const interactionCommentId = randomUUID();
+    await db.insert(issueComments).values({
+      id: interactionCommentId,
+      companyId,
+      issueId: blockedIssueId,
+      body: "Please answer this blocker triage question.",
+      authorUserId: "local-board",
+    });
     const interactionWake = await heartbeat.wakeup(agentId, {
       source: "automation",
       triggerDetail: "system",
       reason: "issue_commented",
-      payload: { issueId: blockedIssueId, commentId: randomUUID() },
+      payload: { issueId: blockedIssueId, commentId: interactionCommentId },
       contextSnapshot: {
         issueId: blockedIssueId,
+        commentId: interactionCommentId,
         wakeReason: "issue_commented",
       },
     });
@@ -266,6 +275,18 @@ describeEmbeddedPostgres("heartbeat dependency-aware queued run selection", () =
     expect(interactionRun?.contextSnapshot).toMatchObject({
       dependencyBlockedInteraction: true,
       unresolvedBlockerIssueIds: [blockerId],
+      issueId: blockedIssueId,
+      wakeReason: "issue_commented",
+      paperclipWake: {
+        reason: "issue_commented",
+        latestCommentId: interactionCommentId,
+        comments: [
+          expect.objectContaining({
+            id: interactionCommentId,
+            body: "Please answer this blocker triage question.",
+          }),
+        ],
+      },
     });
 
     const readyWake = await heartbeat.wakeup(agentId, {

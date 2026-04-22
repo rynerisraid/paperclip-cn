@@ -20,8 +20,8 @@ import type {
   IssueComment,
   PluginIssueAssigneeSummary,
   PluginIssueOrchestrationSummary,
-} from "@paperclipai/plugin-sdk";
-import type { CreateIssueThreadInteraction, IssueDocumentSummary } from "@paperclipai/shared";
+} from "@penclipai/plugin-sdk";
+import type { CreateIssueThreadInteraction, IssueDocumentSummary } from "@penclipai/shared";
 import { companyService } from "./companies.js";
 import { agentService } from "./agents.js";
 import { projectService } from "./projects.js";

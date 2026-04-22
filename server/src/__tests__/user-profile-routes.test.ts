@@ -12,7 +12,7 @@ import {
   createDb,
   issueComments,
   issues,
-} from "@paperclipai/db";
+} from "@penclipai/db";
 import {
   getEmbeddedPostgresTestSupport,
   startEmbeddedPostgresTestDatabase,

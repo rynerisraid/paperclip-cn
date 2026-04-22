@@ -31,7 +31,7 @@ import type {
   FeedbackVote,
   FeedbackVoteValue,
   IssueRelationIssueSummary,
-} from "@paperclipai/shared";
+} from "@penclipai/shared";
 import type { ActiveRunForIssue, LiveRunForIssue } from "../api/heartbeats";
 import { useLiveRunTranscripts } from "./transcript/useLiveRunTranscripts";
 import { usePaperclipIssueRuntime, type PaperclipIssueRuntimeReassignment } from "../hooks/usePaperclipIssueRuntime";
@@ -97,6 +97,7 @@ import {
   summarizeToolResult,
 } from "../lib/transcriptPresentation";
 import { cn, formatDateTime, formatShortDate } from "../lib/utils";
+import { translateInstant } from "../i18n";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
@@ -348,7 +349,9 @@ function IssueBlockedNotice({
 }) {
   if (blockers.length === 0 && issueStatus !== "blocked") return null;
 
-  const blockerLabel = blockers.length === 1 ? "the linked issue" : "the linked issues";
+  const blockerLabel = blockers.length === 1
+    ? translateInstant("issueChatThread.theLinkedIssue", { defaultValue: "the linked issue" })
+    : translateInstant("issueChatThread.theLinkedIssues", { defaultValue: "the linked issues" });
 
   return (
     <div className="mb-3 rounded-md border border-amber-300/70 bg-amber-50/90 px-3 py-2.5 text-sm text-amber-950 shadow-sm dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-100">
@@ -357,8 +360,16 @@ function IssueBlockedNotice({
         <div className="min-w-0 space-y-1.5">
           <p className="leading-5">
             {blockers.length > 0
-              ? <>Work on this issue is blocked by {blockerLabel} until {blockers.length === 1 ? "it is" : "they are"} complete. Comments still wake the assignee for questions or triage.</>
-              : <>Work on this issue is blocked until it is moved back to todo. Comments still wake the assignee for questions or triage.</>}
+              ? translateInstant("issueChatThread.blockedByLinkedIssue", {
+                  blocker: blockerLabel,
+                  pronoun: blockers.length === 1
+                    ? translateInstant("issueChatThread.itIs", { defaultValue: "it is" })
+                    : translateInstant("issueChatThread.theyAre", { defaultValue: "they are" }),
+                  defaultValue: "Work on this issue is blocked by {{blocker}} until {{pronoun}} complete. Comments still wake the assignee for questions or triage.",
+                })
+              : translateInstant("issueChatThread.blockedUntilTodo", {
+                  defaultValue: "Work on this issue is blocked until it is moved back to todo. Comments still wake the assignee for questions or triage.",
+                })}
           </p>
           {blockers.length > 0 ? (
             <div className="flex flex-wrap gap-1.5">
@@ -391,17 +402,21 @@ function IssueAssigneePausedNotice({ agent }: { agent: Agent | null }) {
 
   const pauseDetail =
     agent.pauseReason === "budget"
-      ? "It was paused by a budget hard stop."
+      ? translateInstant("issueChatThread.pausedByBudget", { defaultValue: "It was paused by a budget hard stop." })
       : agent.pauseReason === "system"
-        ? "It was paused by the system."
-        : "It was paused manually.";
+        ? translateInstant("issueChatThread.pausedBySystem", { defaultValue: "It was paused by the system." })
+        : translateInstant("issueChatThread.pausedManually", { defaultValue: "It was paused manually." });
 
   return (
     <div className="mb-3 rounded-md border border-orange-300/70 bg-orange-50/90 px-3 py-2.5 text-sm text-orange-950 shadow-sm dark:border-orange-500/40 dark:bg-orange-500/10 dark:text-orange-100">
       <div className="flex items-start gap-2">
         <PauseCircle className="mt-0.5 h-4 w-4 shrink-0 text-orange-600 dark:text-orange-300" />
         <p className="min-w-0 leading-5">
-          <span className="font-medium">{agent.name}</span> is paused. New runs will not start until the agent is resumed. {pauseDetail}
+          {translateInstant("issueChatThread.agentPaused", {
+            name: agent.name,
+            detail: pauseDetail,
+            defaultValue: "{{name}} is paused. New runs will not start until the agent is resumed. {{detail}}",
+          })}
         </p>
       </div>
     </div>
@@ -412,9 +427,9 @@ function fallbackAuthorLabel(message: ThreadMessage) {
   const custom = message.metadata?.custom as Record<string, unknown> | undefined;
   if (typeof custom?.["authorName"] === "string") return custom["authorName"];
   if (typeof custom?.["runAgentName"] === "string") return custom["runAgentName"];
-  if (message.role === "assistant") return "Agent";
-  if (message.role === "user") return "You";
-  return "System";
+  if (message.role === "assistant") return translateInstant("Agent", { defaultValue: "Agent" });
+  if (message.role === "user") return translateInstant("You", { defaultValue: "You" });
+  return translateInstant("System", { defaultValue: "System" });
 }
 
 function fallbackTextParts(message: ThreadMessage) {
@@ -1189,7 +1204,7 @@ function IssueChatUserMessage({ message }: { message: ThreadMessage }) {
         {queued ? (
           <div className="mb-1.5 flex items-center gap-2">
             <span className="inline-flex items-center rounded-full border border-amber-400/60 bg-amber-100/70 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-amber-800 dark:border-amber-400/40 dark:bg-amber-500/20 dark:text-amber-200">
-              Queued
+              {translateInstant("Queued", { defaultValue: "Queued" })}
             </span>
             {queueTargetRunId && onInterruptQueued ? (
               <Button
@@ -1199,7 +1214,9 @@ function IssueChatUserMessage({ message }: { message: ThreadMessage }) {
                 disabled={interruptingQueuedRunId === queueTargetRunId}
                 onClick={() => void onInterruptQueued(queueTargetRunId)}
               >
-                {interruptingQueuedRunId === queueTargetRunId ? "Interrupting..." : "Interrupt"}
+                {interruptingQueuedRunId === queueTargetRunId
+                  ? translateInstant("Interrupting...", { defaultValue: "Interrupting..." })
+                  : translateInstant("Interrupt", { defaultValue: "Interrupt" })}
               </Button>
             ) : null}
             {onCancelQueued ? (

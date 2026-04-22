@@ -7,6 +7,11 @@ vi.mock("@/lib/router", () => ({
   Link: ({ children, to, ...props }: ComponentProps<"a"> & { to: string }) => <a href={to} {...props}>{children}</a>,
 }));
 
+vi.mock("../i18n", () => ({
+  translateInstant: (key: string, options?: Record<string, unknown>) =>
+    typeof options?.defaultValue === "string" ? options.defaultValue : key,
+}));
+
 describe("IssueRelatedWorkPanel", () => {
   it("renders outbound and inbound related work with source labels", () => {
     const html = renderToStaticMarkup(

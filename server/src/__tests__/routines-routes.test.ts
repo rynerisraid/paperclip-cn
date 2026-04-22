@@ -86,7 +86,7 @@ const mockGetTelemetryClient = vi.hoisted(() => vi.fn());
 function registerModuleMocks() {
   vi.doMock("../routes/authz.js", async () => vi.importActual("../routes/authz.js"));
 
-  vi.doMock("@paperclipai/shared/telemetry", () => ({
+  vi.doMock("@penclipai/shared/telemetry", () => ({
     trackRoutineCreated: mockTrackRoutineCreated,
     trackErrorHandlerCrash: vi.fn(),
   }));

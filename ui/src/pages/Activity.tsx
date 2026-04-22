@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
-import type { ActivityEvent, Agent } from "@paperclipai/shared";
+import type { ActivityEvent, Agent } from "@penclipai/shared";
 import { activityApi } from "../api/activity";
 import { accessApi } from "../api/access";
 import { agentsApi } from "../api/agents";
