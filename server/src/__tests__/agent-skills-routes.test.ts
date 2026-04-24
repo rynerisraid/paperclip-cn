@@ -22,6 +22,9 @@ const mockApprovalService = vi.hoisted(() => ({
   create: vi.fn(),
 }));
 const mockBudgetService = vi.hoisted(() => ({}));
+const mockEnvironmentService = vi.hoisted(() => ({
+  getById: vi.fn(),
+}));
 const mockHeartbeatService = vi.hoisted(() => ({}));
 const mockIssueApprovalService = vi.hoisted(() => ({
   linkManyForApproval: vi.fn(),
@@ -75,6 +78,7 @@ vi.mock("../services/index.js", () => ({
   approvalService: () => mockApprovalService,
   companySkillService: () => mockCompanySkillService,
   budgetService: () => mockBudgetService,
+  environmentService: () => mockEnvironmentService,
   heartbeatService: () => mockHeartbeatService,
   issueApprovalService: () => mockIssueApprovalService,
   issueService: () => ({}),
@@ -178,6 +182,7 @@ function makeAgent(adapterType: string) {
     adapterType,
     adapterConfig: {},
     runtimeConfig: {},
+    defaultEnvironmentId: null,
     permissions: null,
     updatedAt: new Date(),
   };

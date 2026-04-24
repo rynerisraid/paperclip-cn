@@ -31,6 +31,7 @@ export interface IssueChatComment extends IssueComment {
   clientStatus?: "pending" | "queued";
   queueState?: "queued";
   queueTargetRunId?: string | null;
+  queueReason?: "hold" | "active_run" | "other";
 }
 
 export interface IssueChatLinkedRun {
@@ -334,6 +335,7 @@ function createCommentMessage(args: {
     clientStatus: comment.clientStatus ?? null,
     queueState: comment.queueState ?? null,
     queueTargetRunId: comment.queueTargetRunId ?? null,
+    queueReason: comment.queueReason ?? null,
     interruptedRunId: comment.interruptedRunId ?? null,
   };
 

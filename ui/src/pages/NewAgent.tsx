@@ -25,7 +25,7 @@ import { useDisabledAdaptersSync } from "../adapters/use-disabled-adapters";
 import { isValidAdapterType } from "../adapters/metadata";
 import { ReportsToPicker } from "../components/ReportsToPicker";
 import { DEFAULT_CODEBUDDY_LOCAL_MODEL } from "@penclipai/adapter-codebuddy-local";
-import { buildNewAgentRuntimeConfig } from "../lib/new-agent-runtime-config";
+import { buildNewAgentHirePayload } from "../lib/new-agent-hire-payload";
 import {
   DEFAULT_CODEX_LOCAL_BYPASS_APPROVALS_AND_SANDBOX,
   DEFAULT_CODEX_LOCAL_MODEL,
@@ -194,20 +194,17 @@ export function NewAgent() {
         return;
       }
     }
-    createAgent.mutate({
-      name: name.trim(),
-      role: effectiveRole,
-      ...(title.trim() ? { title: title.trim() } : {}),
-      ...(reportsTo ? { reportsTo } : {}),
-      ...(selectedSkillKeys.length > 0 ? { desiredSkills: selectedSkillKeys } : {}),
-      adapterType: configValues.adapterType,
-      adapterConfig: buildAdapterConfig(),
-      runtimeConfig: buildNewAgentRuntimeConfig({
-        heartbeatEnabled: configValues.heartbeatEnabled,
-        intervalSec: configValues.intervalSec,
+    createAgent.mutate(
+      buildNewAgentHirePayload({
+        name,
+        effectiveRole,
+        title,
+        reportsTo,
+        selectedSkillKeys,
+        configValues,
+        adapterConfig: buildAdapterConfig(),
       }),
-      budgetMonthlyCents: 0,
-    });
+    );
   }
 
   const availableSkills = (companySkills ?? []).filter((skill) => !isBundledPaperclipSkill(skill));

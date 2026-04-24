@@ -53,11 +53,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
-import { CircleDot, Plus, ArrowUpDown, Layers, Check, ChevronRight, List, ListTree, Columns3, User, Search } from "lucide-react";
+import { CircleDot, Plus, ArrowUpDown, Layers, Check, ChevronRight, List, ListTree, Columns3, User, Search, CircleSlash2 } from "lucide-react";
 import { KanbanBoard } from "./KanbanBoard";
 import { buildIssueTree, countDescendants } from "../lib/issue-tree";
 import type { Issue, Project } from "@penclipai/shared";
 import { buildSubIssueDefaultsForViewer } from "../lib/subIssueDefaults";
+import { statusBadge } from "../lib/status-colors";
 const ISSUE_SEARCH_DEBOUNCE_MS = 250;
 const ISSUE_SEARCH_RESULT_LIMIT = 200;
 const INITIAL_ISSUE_ROW_RENDER_LIMIT = 150;
@@ -209,6 +210,8 @@ interface IssuesListProps {
   baseCreateIssueDefaults?: Record<string, unknown>;
   createIssueLabel?: string;
   enableRoutineVisibilityFilter?: boolean;
+  mutedIssueIds?: Set<string>;
+  issueBadgeById?: Map<string, string>;
   onSearchChange?: (search: string) => void;
   onUpdateIssue: (id: string, data: Record<string, unknown>) => void;
 }
@@ -293,6 +296,8 @@ export function IssuesList({
   baseCreateIssueDefaults,
   createIssueLabel,
   enableRoutineVisibilityFilter = false,
+  mutedIssueIds,
+  issueBadgeById,
   onSearchChange,
   onUpdateIssue,
 }: IssuesListProps) {
@@ -975,6 +980,8 @@ export function IssuesList({
                   const useDeferredRowRendering = !(hasChildren && isExpanded);
                   const issueProject = issue.projectId ? projectById.get(issue.projectId) ?? null : null;
                   const parentIssue = issue.parentId ? issueById.get(issue.parentId) ?? null : null;
+                  const issueBadge = issueBadgeById?.get(issue.id);
+                  const isMutedIssue = mutedIssueIds?.has(issue.id) === true;
                   const assigneeUserProfile = issue.assigneeUserId
                     ? companyUserProfileMap.get(issue.assigneeUserId) ?? null
                     : null;
@@ -1009,13 +1016,34 @@ export function IssuesList({
                       <IssueRow
                         issue={issue}
                         issueLinkState={issueLinkState}
-                        titleSuffix={hasChildren && !isExpanded ? (
-                          <span className="ml-1.5 text-xs text-muted-foreground">
-                            ({totalDescendants} {t(totalDescendants === 1 ? "sub-task" : "sub-tasks", {
-                              defaultValue: totalDescendants === 1 ? "sub-task" : "sub-tasks",
-                            })})
-                          </span>
-                        ) : undefined}
+                        titleSuffix={(
+                          <>
+                            {hasChildren && !isExpanded ? (
+                              <span className="ml-1.5 text-xs text-muted-foreground">
+                                ({totalDescendants} {t(totalDescendants === 1 ? "sub-task" : "sub-tasks", {
+                                  defaultValue: totalDescendants === 1 ? "sub-task" : "sub-tasks",
+                                })})
+                              </span>
+                            ) : null}
+                            {issueBadge ? (
+                              issueBadge === "Paused" ? (
+                                <span
+                                  className={cn("ml-1.5 inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium", statusBadge.paused)}
+                                  aria-label={t("Paused", { defaultValue: "Paused" })}
+                                  title={t("Paused", { defaultValue: "Paused" })}
+                                >
+                                  <CircleSlash2 className="h-3 w-3" />
+                                  {t("Paused", { defaultValue: "Paused" })}
+                                </span>
+                              ) : (
+                                <span className="ml-1.5 inline-flex items-center rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-300">
+                                  {issueBadge}
+                                </span>
+                              )
+                            ) : null}
+                          </>
+                        )}
+                        className={isMutedIssue ? "opacity-70" : undefined}
                         mobileLeading={
                           hasChildren ? (
                             <button type="button" onClick={toggleCollapse}>

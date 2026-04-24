@@ -488,7 +488,7 @@
   "Hide": "隐藏",
   "Hide full log": "隐藏完整日志",
   "Hide remote": "隐藏远端版本",
-  "Hide the username segment in home-directory paths and similar operator-visible log output. Standalone username mentions outside of paths are not yet masked in the live transcript view. This is off by default.": "隐藏主目录路径等操作员可见日志输出中的用户名片段。路径之外单独出现的用户名目前在实时转录视图中仍不会被遮蔽。此选项默认关闭。",
+  "Hide the username segment in home-directory paths and similar operator-visible log output. Standalone username mentions outside of paths are not yet masked in the live transcript view. This is off by default.": "隐藏主目录路径等操作者可见日志输出中的用户名片段。路径之外单独出现的用户名目前在实时转录视图中仍不会被遮蔽。此选项默认关闭。",
   "Hide this issue": "隐藏此任务",
   "High": "高",
   "Hire Agent": "雇佣智能体",
@@ -535,7 +535,7 @@
   "Instructions": "说明",
   "Internal server error": "服务器内部错误",
   "Interrupt": "中断",
-  "Interrupting...": "中断中...",
+  "Interrupting...": "正在中断...",
   "Invocation": "调用信息",
   "Invoice": "账单",
   "Invoke OpenClaw via gateway protocol": "通过网关协议调用 OpenClaw",
@@ -898,7 +898,7 @@
   "Refreshing skills list...": "正在刷新技能列表...",
   "Refunds, offsets, and credit returns": "退款、抵扣和额度返还",
   "Region": "区域",
-  "Reject": "驳回",
+  "Reject": "拒绝",
   "Reject failed": "驳回失败",
   "Reload remote": "重新加载远端版本",
   "Remaining": "剩余预算",
@@ -936,7 +936,7 @@
   "Retrying...": "重试中...",
   "Retrying…": "重试中…",
   "Reused existing workspace": "复用了现有工作区",
-  "Review": "查看",
+  "Review": "审阅",
   "Review linked issue": "查看关联任务",
   "Review linked issues": "查看关联任务",
   "Review remote": "查看远端版本",
@@ -1144,7 +1144,7 @@
   "Toggle Sidebar": "切换侧边栏",
   "Toggle guarded dev-server auto-restart": "切换受保护的开发服务器自动重启",
   "Toggle isolated workspaces experimental setting": "切换隔离工作区实验功能",
-  "Toggle username log censoring": "切换日志用户名隐藏",
+  "Toggle username log censoring": "切换日志中的用户名隐藏",
   "Tokens": "词元",
   "Tool failed": "工具执行失败",
   "Tooltips": "工具提示",
@@ -1911,7 +1911,7 @@
   "invoked heartbeat for": "触发了心跳",
   "is set. You can clear it in this CEO adapter config and retry the probe.": "已设置时失败。你可以在这个 CEO 适配器配置中清空它，然后重新探测。",
   "issue approval linked": "关联了任务审批",
-  "issue read marked": "已标记为已读",
+  "issue read marked": "标记为已读",
   "issueWorkspace.adapterManaged": "适配器托管",
   "issueWorkspace.chooseExistingWorkspace": "选择一个现有工作区",
   "issueWorkspace.cloudSandbox": "云沙箱",
@@ -2503,622 +2503,681 @@
   "ran {{count}} command": "执行了 {{count}} 条命令",
   "ran {{count}} commands": "执行了 {{count}} 条命令",
   "run": "运行",
-  "You can change this later in Instance Settings > General.": "你之后可以在“实例设置 > 常规”里更改这个选项。"
-  ,"Configure instance-wide defaults that affect operator-visible logs and agent runtime guidance.": "配置会影响操作者可见日志与智能体运行时提示的实例级默认项。"
-  ,"Failed to sign out.": "退出登录失败。"
-  ,"Sign out": "退出登录"
-  ,"Sign out of this Paperclip instance. You will be redirected to the login page.": "退出当前 Paperclip 实例的登录状态。随后会跳转到登录页面。"
-  ,"Reviewer": "审阅人"
-  ,"Approver": "审批人"
-  ,"Reviewers": "审阅人"
-  ,"Approvers": "审批人"
-  ,"Search reviewers...": "搜索审阅人..."
-  ,"Search approvers...": "搜索审批人..."
-  ,"No reviewers found.": "未找到审阅人。"
-  ,"No approvers found.": "未找到审批人。"
-  ,"Blocking": "阻塞中"
-  ,"No blockers": "无阻塞项"
-  ,"Execution": "执行"
-  ,"Hide this Issue": "隐藏此任务"
-  ,"Delete?": "删除？"
-  ,"Delete attachment": "删除附件"
-  ,"Yes": "是"
-  ,"No": "否"
-  ,"Review": "审阅"
-  ,"Approval": "审批"
-  ,"{{stage}} requested changes{{suffix}}": "{{stage}} 请求修改{{suffix}}"
-  ,"{{stage}} pending{{suffix}}": "{{stage}}{{suffix}}待处理"
-  ,"by": "由"
-  ,"with": "由"
-  ,"Requester": "请求者"
-  ,"No companies": "没有公司"
-  ,"Company Settings": "公司设置"
-  ,"Manage Companies": "管理公司"
-  ,"Mobile navigation": "移动端导航"
-  ,"Home": "首页"
-  ,"issuesList.newIssue": "新建任务"
-  ,"issuesList.filter": "筛选"
-  ,"issuesList.filters": "筛选"
-  ,"issuesList.quickFilters": "快捷筛选"
-  ,"issuesList.sort": "排序"
-  ,"issuesList.group": "分组"
-  ,"issuesList.live": "实时"
-  ,"issuesList.columns": "列"
-  ,"issuesList.chooseVisibleColumns": "选择要显示的任务列"
-  ,"issuesList.defaultColumnsSummary": "状态、编号、更新时间"
-  ,"issuesList.updatedAtTime": "更新于 {{time}}"
-  ,"Creator": "创建者"
-  ,"Hide routine runs": "隐藏例行运行"
-  ,"No creators match.": "没有匹配的创建者。"
-  ,"Remove creator {{name}}": "移除创建者 {{name}}"
-  ,"Search creators...": "搜索创建者..."
-  ,"Showing up to {{count}} matches. Refine the search to narrow further.": "最多显示 {{count}} 条匹配结果。请进一步收窄搜索范围。"
-  ,"issueDetail.loadingEarlierComments": "正在加载更早的评论…"
-  ,"issueDetail.loadEarlierComments": "加载更早的评论"
-  ,"issueDetail.costSummary": "成本汇总"
-  ,"issueDetail.noCostData": "暂时还没有成本数据。"
-  ,"issueDetail.noActivity": "暂时还没有活动记录。"
-  ,"issueDetail.newSubIssue": "新建子任务"
-  ,"Disable parent-child nesting": "关闭父子任务嵌套"
-  ,"Enable parent-child nesting": "开启父子任务嵌套"
-  ,"Type": "类型"
-  ,"Load earlier comments": "加载更早的评论"
-  ,"Loading earlier comments...": "正在加载更早的评论..."
-  ,"issueDocuments.documentKey": "文档 key"
-  ,"issueChat.fallbackErrorTitle": "聊天渲染器进入了异常状态。"
-  ,"issueChat.fallbackErrorBody": "已显示安全降级的对话回退视图，避免任务页面直接崩溃。"
-  ,"issueChat.emptyConversation": "这个任务对话还是空的。请从下面发送第一条消息。"
-  ,"issueDocuments.historicalPreviewNotice": "这是历史版本预览。恢复后会创建一个新的最新修订，并保持历史只追加不覆盖。"
-  ,"issueDocuments.remoteChangedNotice": "你编辑期间这份文档已在远端发生变化。你的本地草稿仍会保留，自动保存也会暂停。"
-  ,"issueDocuments.confirmDelete": "确认删除这份文档吗？此操作无法撤销。"
-  ,"No message content.": "没有消息内容。"
-  ,"False": "否"
-  ,"True": "是"
-  ,"Variables": "变量"
-  ,"routineVariables.defaultOption": "默认选项"
-  ,"routineVariables.defaultValue": "默认值"
-  ,"routineVariables.detectedFromPlaceholders": "从例行任务标题和说明中的 `{{placeholder}}` 占位符检测到。"
-  ,"routineVariables.noDefault": "无默认值"
-  ,"routineVariables.options": "选项"
-  ,"routineVariables.promptBeforeRun": "每次手动运行前都会向用户询问这个值。"
-  ,"routineVariables.usePlaceholderHint": "在说明中使用 `{{placeholder}}` 占位符，可在例行任务运行时提示输入。"
-  ,"Adapters": "适配器"
-  ,"Built-in": "内建"
-  ,"Installed from local path": "从本地路径安装"
-  ,"Installed from npm": "从 npm 安装"
-  ,"Overrides built-in": "覆盖内建适配器"
-  ,"Overridden by {{name}}": "已被 {{name}} 覆盖"
-  ,"Hidden from menus": "已从菜单中隐藏"
-  ,"models": "个模型"
-  ,"Reinstall adapter (pull latest from npm)": "重新安装适配器（从 npm 拉取最新版本）"
-  ,"Reload adapter (hot-swap)": "重新加载适配器（热替换）"
-  ,"Show in agent menus": "在智能体菜单中显示"
-  ,"Hide from agent menus": "从智能体菜单中隐藏"
-  ,"Remove adapter": "移除适配器"
-  ,"Reinstall Adapter": "重新安装适配器"
-  ,"This will pull the latest version of": "这会从 npm 拉取"
-  ,"from npm and hot-swap": "并热替换"
-  ,"the running adapter module. Existing agents will use the new version on their next run.": "当前运行中的适配器模块。已有智能体会在下一次运行时使用新版本。"
-  ,"Package": "包"
-  ,"unknown": "未知"
-  ,"Latest on npm": "npm 最新版本"
-  ,"checking...": "检查中..."
-  ,"unavailable": "不可用"
-  ,"Already on the latest version.": "已经是最新版本。"
-  ,"Reinstalling...": "重新安装中..."
-  ,"Reinstall": "重新安装"
-  ,"Company": "公司"
-  ,"Settings": "设置"
-  ,"Adapter installed": "适配器已安装"
-  ,"Type \"{{type}}\" registered successfully.": "类型“{{type}}”注册成功。"
-  ,"Type \"{{type}}\" registered successfully. (v{{version}})": "类型“{{type}}”注册成功。（v{{version}}）"
-  ,"Install failed": "安装失败"
-  ,"Adapter removed": "适配器已移除"
-  ,"Removal failed": "移除失败"
-  ,"Toggle failed": "切换失败"
-  ,"Override toggle failed": "覆盖切换失败"
-  ,"Adapter reloaded": "适配器已重新加载"
-  ,"Type \"{{type}}\" reloaded.": "类型“{{type}}”已重新加载。"
-  ,"Type \"{{type}}\" reloaded. (v{{version}})": "类型“{{type}}”已重新加载。（v{{version}}）"
-  ,"Reload failed": "重新加载失败"
-  ,"Adapter reinstalled": "适配器已重新安装"
-  ,"Type \"{{type}}\" updated from npm.": "类型“{{type}}”已从 npm 更新。"
-  ,"Type \"{{type}}\" updated from npm. (v{{version}})": "类型“{{type}}”已从 npm 更新。（v{{version}}）"
-  ,"Reinstall failed": "重新安装失败"
-  ,"Loading adapters...": "正在加载适配器..."
-  ,"Alpha": "Alpha"
-  ,"Install Adapter": "安装适配器"
-  ,"Install External Adapter": "安装外部适配器"
-  ,"Add an adapter from npm or a local path. The adapter package must export": "从 npm 或本地路径添加适配器。适配器包必须导出"
-  ,"npm package": "npm 包"
-  ,"Local path": "本地路径"
-  ,"Path to adapter package": "适配器包路径"
-  ,"/mnt/e/Projects/my-adapter  or  E:\\Projects\\my-adapter": "/mnt/e/Projects/my-adapter 或 E:\\Projects\\my-adapter"
-  ,"Accepts Linux, WSL, and Windows paths. Windows paths are auto-converted.": "支持 Linux、WSL 和 Windows 路径。Windows 路径会自动转换。"
-  ,"Package Name": "包名"
-  ,"my-paperclip-adapter": "my-paperclip-adapter"
-  ,"Version (optional)": "版本（可选）"
-  ,"latest": "latest"
-  ,"Installing...": "安装中..."
-  ,"Install": "安装"
-  ,"External adapters are alpha.": "外部适配器目前仍处于 Alpha 阶段。"
-  ,"The adapter plugin system is under active development. APIs and storage format may change.": "适配器插件系统仍在积极开发中，API 和存储格式后续可能变化。"
-  ,"Use the power icon to hide adapters from agent menus without removing them.": "可以使用电源图标把适配器从智能体菜单中隐藏，而无需直接移除。"
-  ,"External Adapters": "外部适配器"
-  ,"No external adapters installed": "还没有安装外部适配器"
-  ,"Install an adapter package to extend model support.": "安装适配器包以扩展模型支持。"
-  ,"Pause external override": "暂停外部覆盖"
-  ,"Resume external override": "恢复外部覆盖"
-  ,"Override paused": "覆盖已暂停"
-  ,"Built-in Adapters": "内建适配器"
-  ,"No built-in adapters found.": "未找到内建适配器。"
-  ,"Remove Adapter": "移除适配器"
-  ,"Are you sure you want to remove the": "确认移除"
-  ,"adapter?": "适配器吗？"
-  ,"It will be unregistered and removed from the adapter store.": "它会被取消注册，并从适配器存储中移除。"
-  ,"npm packages will be cleaned up from disk.": "磁盘上的 npm 包也会一并清理。"
-  ,"This action cannot be undone.": "此操作无法撤销。"
-  ,"Removing...": "移除中..."
-  ,"Remove": "移除"
-  ,"Keyboard shortcuts": "快捷键"
-  ,"New issue": "新建任务"
-  ,"Inbox": "收件箱"
-  ,"Move down": "向下移动"
-  ,"Move up": "向上移动"
-  ,"Open selected item": "打开选中项"
-  ,"Archive item": "归档项目"
-  ,"Mark as unread": "标记为未读"
-  ,"Issue detail": "任务详情"
-  ,"Quick-archive back to inbox": "快速归档并返回收件箱"
-  ,"Go to inbox": "前往收件箱"
-  ,"Focus comment composer": "聚焦评论输入框"
-  ,"Global": "全局"
-  ,"Toggle sidebar": "切换侧边栏"
-  ,"Toggle panel": "切换面板"
-  ,"Show keyboard shortcuts": "显示快捷键"
-  ,"then": "然后"
-  ,"Press": "按"
-  ,"to close": "关闭"
-  ,"Shortcuts are disabled in text fields": "在文本输入框中会禁用快捷键"
-  ,"Local CodeBuddy agent": "本地 CodeBuddy 智能体"
-  ,"Local Qwen agent": "本地 Qwen 智能体"
-  ,"Local Hermes CLI agent": "本地 Hermes CLI 智能体"
-  ,"Session strategy": "会话策略"
-  ,"Fixed": "固定"
-  ,"Per issue": "按任务"
-  ,"Per run": "按运行"
-  ,"Session key": "会话键"
-  ,"Gateway auth token (x-openclaw-token)": "网关认证令牌（x-openclaw-token）"
-  ,"Wait timeout (ms)": "等待超时（毫秒）"
-  ,"Device auth": "设备认证"
-  ,"OpenClaw gateway token": "OpenClaw 网关令牌"
-  ,"External adapter": "外部适配器"
-  ,"External local adapter": "外部本地适配器"
-  ,"External gateway adapter": "外部门户适配器"
-  ,"Always enabled for gateway agents. Paperclip persists a device key during onboarding so pairing approvals remain stable across runs.": "网关智能体始终启用设备认证。Paperclip 会在 onboarding 期间持久化设备密钥，以便配对授权在多次运行之间保持稳定。"
-  ,"Open company menu": "打开公司菜单"
-  ,"Open {{name}} menu": "打开 {{name}} 菜单"
-  ,"Invite people to {{name}}": "邀请成员加入 {{name}}"
-  ,"Company settings": "公司设置"
-  ,"Signing out...": "正在退出登录..."
-  ,"Signed in": "已登录"
-  ,"Local workspace board": "本地工作区董事会"
-  ,"Account": "账号"
-  ,"Local": "本地"
-  ,"Open account menu": "打开账号菜单"
-  ,"Paperclip v{{version}}": "Paperclip v{{version}}"
-  ,"Edit profile": "编辑资料"
-  ,"Update your display name and avatar.": "更新你的显示名称和头像。"
-  ,"Instance settings": "实例设置"
-  ,"Jump back to the last settings page you opened.": "跳回你上次打开的设置页面。"
-  ,"Documentation": "文档"
-  ,"Open Paperclip docs in a new tab.": "在新标签页中打开 Paperclip 文档。"
-  ,"Switch to light mode": "切换到浅色模式"
-  ,"Switch to dark mode": "切换到深色模式"
-  ,"Toggle the app appearance.": "切换应用外观。"
-  ,"End this browser session.": "结束当前浏览器会话。"
-  ,"Instance setup required": "需要完成实例初始化"
-  ,"No instance admin exists yet. A bootstrap invite is already active. Check your Paperclip startup logs for the first admin invite URL, or run this command to rotate it:": "当前还没有实例管理员。系统里已经有一个 bootstrap 邀请处于激活状态。请查看 Paperclip 启动日志中的首个管理员邀请链接，或运行下面的命令重新生成："
-  ,"No instance admin exists yet. Run this command in your Paperclip environment to generate the first admin invite URL:": "当前还没有实例管理员。请在你的 Paperclip 环境中运行下面的命令来生成首个管理员邀请链接："
-  ,"No company access": "没有公司访问权限"
-  ,"This account is signed in, but it does not have an active company membership or instance-admin access on this Paperclip instance.": "当前账号已登录，但在这个 Paperclip 实例中没有活跃的公司成员身份，也没有实例管理员权限。"
-  ,"Use a company invite or sign in with an account that already belongs to this org.": "请使用公司邀请链接，或使用已经属于该组织的账号登录。"
-  ,"Failed to load app state": "加载应用状态失败"
-  ,"Control how your account appears in the sidebar and other board surfaces.": "控制你的账号在侧边栏和其他看板界面中的显示方式。"
-  ,"Failed to update profile.": "更新个人资料失败。"
-  ,"Select a company before uploading a profile avatar.": "上传个人头像前请先选择一个公司。"
-  ,"Failed to upload avatar.": "上传头像失败。"
-  ,"Failed to remove avatar.": "移除头像失败。"
-  ,"Loading profile...": "正在加载个人资料..."
-  ,"Failed to load profile.": "加载个人资料失败。"
-  ,"Stored in Paperclip file storage for {{name}}.": "将存储到 {{name}} 的 Paperclip 文件存储中。"
-  ,"Select a company to upload an avatar into Paperclip storage.": "请选择一个公司，以便把头像上传到 Paperclip 存储。"
-  ,"Click the avatar to upload a new image.": "点击头像即可上传新图片。"
-  ,"Change photo": "更换照片"
-  ,"Upload photo": "上传照片"
-  ,"No email": "无邮箱"
-  ,"Display name": "显示名称"
-  ,"Shown in the sidebar account footer and comment author surfaces.": "显示在侧边栏账号区域和评论作者等位置。"
-  ,"Email is managed by your auth session and is read-only here.": "邮箱由你的登录会话管理，这里仅供只读查看。"
-  ,"Save profile": "保存个人资料"
-  ,"Company access updated": "公司访问权限已更新"
-  ,"No user selected": "尚未选择用户"
-  ,"Instance role updated": "实例角色已更新"
-  ,"Loading instance users…": "正在加载实例用户…"
-  ,"Instance admin access is required to manage users.": "管理用户需要实例管理员权限。"
-  ,"Failed to load users.": "加载用户失败。"
-  ,"Instance Access": "实例访问"
-  ,"Search users, manage instance-admin status, and control which companies they can access.": "搜索用户、管理实例管理员状态，并控制他们可访问的公司。"
-  ,"Search by name or email": "按姓名或邮箱搜索"
-  ,"{{count}} active company memberships": "{{count}} 个活跃公司成员资格"
-  ,"Select a user to inspect instance access.": "请选择一个用户来查看实例访问权限。"
-  ,"Loading user access…": "正在加载用户访问权限…"
-  ,"Failed to load user access.": "加载用户访问权限失败。"
-  ,"Remove instance admin": "移除实例管理员"
-  ,"Promote to instance admin": "提升为实例管理员"
-  ,"Company access": "公司访问"
-  ,"Toggle company membership for this user. New access defaults to an active operator membership.": "为该用户切换公司成员资格。新授予的访问默认会创建一个活跃的 operator 成员身份。"
-  ,"Save company access": "保存公司访问权限"
-  ,"Current memberships": "当前成员资格"
-  ,"unset": "未设置"
-  ,"Join Requests": "加入请求"
-  ,"Join request approved": "加入请求已批准"
-  ,"Join request rejected": "加入请求已拒绝"
-  ,"Select a company to review join requests.": "请选择一个公司来审核加入请求。"
-  ,"Loading join requests…": "正在加载加入请求…"
-  ,"You do not have permission to review join requests for this company.": "你没有审核该公司加入请求的权限。"
-  ,"Failed to load join requests.": "加载加入请求失败。"
-  ,"Join Request Queue": "加入请求队列"
-  ,"Review human and agent join requests outside the mixed inbox feed. This queue uses the same approval mutations as the inline inbox cards.": "在人机混合收件箱之外单独审核加入请求。这个队列使用与收件箱内卡片相同的审批操作。"
-  ,"Request type": "请求类型"
-  ,"Pending approval": "待审批"
-  ,"No join requests match the current filters.": "当前筛选条件下没有匹配的加入请求。"
-  ,"Unknown human requester": "未知的人类请求者"
-  ,"Unknown agent requester": "未知的智能体请求者"
-  ,"Invite context": "邀请上下文"
-  ,"{{type}} join invite{{suffix}}": "{{type}} 加入邀请{{suffix}}"
-  ,"default role {{role}}": "默认角色 {{role}}"
-  ,"Invite metadata unavailable": "邀请元数据不可用"
-  ,"Request details": "请求详情"
-  ,"Submitted {{date}}": "提交于 {{date}}"
-  ,"Source IP {{ip}}": "来源 IP {{ip}}"
-  ,"Clipboard unavailable": "剪贴板不可用"
-  ,"Copy the invite URL manually from the field below.": "请从下面的字段中手动复制邀请链接。"
-  ,"Invite created": "邀请已创建"
-  ,"Invite ready below and copied to clipboard.": "邀请链接已生成，并已复制到剪贴板。"
-  ,"Invite ready below.": "邀请链接已生成，见下方。"
-  ,"Failed to create invite": "创建邀请失败"
-  ,"Invite revoked": "邀请已撤销"
-  ,"Failed to revoke invite": "撤销邀请失败"
-  ,"Select a company to manage invites.": "请选择一个公司来管理邀请。"
-  ,"Loading invites…": "正在加载邀请…"
-  ,"You do not have permission to manage company invites.": "你没有管理公司邀请的权限。"
-  ,"Failed to load invites.": "加载邀请失败。"
-  ,"Company Invites": "公司邀请"
-  ,"Create human invite links for company access. New invite links are copied to your clipboard when they are generated.": "为公司访问创建人类邀请链接。新的邀请链接生成后会自动复制到你的剪贴板。"
-  ,"Create invite": "创建邀请"
-  ,"Generate a human invite link and choose the default access it should request.": "生成人类邀请链接，并选择它默认请求的访问权限。"
-  ,"Choose a role": "选择角色"
-  ,"Viewer": "查看者"
-  ,"Can view company work and follow along without operational permissions.": "可查看公司工作内容并跟进进展，但不具备操作权限。"
-  ,"No built-in grants.": "没有内置权限。"
-  ,"Operator": "操作员"
-  ,"Recommended for people who need to help run work without managing access.": "适合需要协助推进工作、但不需要管理访问权限的人。"
-  ,"Can assign tasks.": "可分配任务。"
-  ,"Admin": "管理员"
-  ,"Recommended for operators who need to invite people, create agents, and approve joins.": "适合需要邀请成员、创建智能体并审批加入请求的操作员。"
-  ,"Can create agents, invite users, assign tasks, and approve join requests.": "可创建智能体、邀请用户、分配任务并批准加入请求。"
-  ,"Full company access, including membership and permission management.": "拥有完整的公司访问权限，包括成员与权限管理。"
-  ,"Everything in Admin, plus managing members and permission grants.": "包含管理员的全部能力，外加成员与权限授权管理。"
-  ,"Each invite link is single-use. The first successful use consumes the link and creates or reuses the matching join request before approval.": "每个邀请链接只能使用一次。首次成功使用会消耗该链接，并在审批前创建或复用对应的加入请求。"
-  ,"Invite history below keeps the audit trail.": "下方的邀请历史会保留完整审计轨迹。"
-  ,"Latest invite link": "最新邀请链接"
-  ,"Copied": "已复制"
-  ,"This URL includes the current Paperclip domain returned by the server.": "这个 URL 包含了服务端返回的当前 Paperclip 域名。"
-  ,"Open invite": "打开邀请"
-  ,"Invite history": "邀请历史"
-  ,"Review invite status, role, inviter, and any linked join request.": "查看邀请状态、角色、邀请人以及关联的加入请求。"
-  ,"Open join request queue": "打开加入请求队列"
-  ,"No invites have been created for this company yet.": "这个公司还没有创建过邀请。"
-  ,"Invited by": "邀请人"
-  ,"Join request": "加入请求"
-  ,"State": "状态"
-  ,"Unknown inviter": "未知邀请人"
-  ,"Review request": "查看请求"
-  ,"Inactive": "未激活"
-  ,"Loading more…": "正在加载更多…"
-  ,"View more": "查看更多"
-  ,"Company Access": "公司访问"
-  ,"Manage company user memberships, membership status, and explicit permission grants for {{name}}.": "管理 {{name}} 的公司用户成员资格、成员状态和显式权限授权。"
-  ,"This account can manage access here through instance-admin privileges, but it does not currently hold an active company membership.": "当前账号可凭借实例管理员权限在这里管理访问，但它目前并不拥有活跃的公司成员身份。"
-  ,"Humans": "人类成员"
-  ,"Manage human company memberships, status, and grants here.": "在这里管理人类成员的公司成员资格、状态和权限。"
-  ,"Pending human joins": "待处理的人类加入请求"
-  ,"Review human join requests before they become active company members.": "在人类加入请求成为活跃公司成员前先完成审核。"
-  ,"{{count}} pending": "{{count}} 个待处理"
-  ,"No email available": "无可用邮箱"
-  ,"Approve human": "批准人类成员"
-  ,"Reject human": "拒绝人类成员"
-  ,"User account": "用户账号"
-  ,"No user memberships found for this company yet.": "这个公司目前还没有任何用户成员资格。"
-  ,"Edit member": "编辑成员"
-  ,"Update company role, membership status, and explicit grants for {{name}}.": "更新 {{name}} 的公司角色、成员状态和显式授权。"
-  ,"Company role": "公司角色"
-  ,"Membership status": "成员状态"
-  ,"Suspended": "已暂停"
-  ,"Roles provide implicit grants automatically. Explicit grants below are only for overrides and extra access that should persist even if the role changes.": "角色会自动提供隐式权限。下面的显式权限只用于覆盖或附加那些即使角色变更也要保留的访问能力。"
-  ,"Implicit grants from role": "角色隐式权限"
-  ,"{{role}} currently includes these permissions automatically.": "{{role}} 当前会自动包含这些权限。"
-  ,"No role is selected, so this member has no implicit grants right now.": "当前未选择角色，因此这个成员目前没有任何隐式权限。"
-  ,"Included implicitly by the {{role}} role. Add an explicit grant only if it should stay after the role changes.": "该权限已由 {{role}} 角色隐式包含。只有在角色变更后仍需保留时，才需要添加显式授权。"
-  ,"selected": "当前选择"
-  ,"Stored explicitly for this member.": "已为该成员显式存储。"
-  ,"Save access": "保存访问权限"
-  ,"Create agents": "创建智能体"
-  ,"Invite humans and agents": "邀请人类和智能体"
-  ,"Manage members and grants": "管理成员和授权"
-  ,"Assign tasks": "分配任务"
-  ,"Assign scoped tasks": "分配限定范围的任务"
-  ,"Approve join requests": "批准加入请求"
-  ,"No explicit grants": "没有显式授权"
-  ,"No Parent": "无父任务"
-  ,"No Workspace": "无工作区"
-  ,"Blocked": "已阻塞"
-  ,"Email": "邮箱"
-  ,"Password": "密码"
-  ,"Create {{label}}": "创建{{label}}"
-  ,"New {{label}}": "新建{{label}}"
-  ,"Rendering {{shown}} of {{total}} issues": "当前显示 {{shown}} / {{total}} 个任务"
-  ,"inviteLanding.acceptBootstrapInvite": "接受引导邀请"
-  ,"inviteLanding.acceptCompanyInvite": "接受公司邀请"
-  ,"inviteLanding.acceptInvite": "接受邀请"
-  ,"inviteLanding.accountAlreadyBelongs": "这个账号已经属于该公司。"
-  ,"inviteLanding.accountExistsForEmail": "{{email}} 已经有对应账号。请在下方登录后继续处理这个邀请。"
-  ,"inviteLanding.accountMayExist": "{{email}} 可能已经存在账号。请尝试改为登录。"
-  ,"inviteLanding.accountReadyIntro": "你的账号已经就绪。请查看邀请详情，然后接受邀请继续。"
-  ,"inviteLanding.agentApprovalRequest": "这个邀请会为 {{company}} 中的新智能体创建一条待审批请求。"
-  ,"inviteLanding.agentJoinRequest": "智能体加入请求"
-  ,"inviteLanding.agentReviewIntro": "请先查看邀请详情，然后在下方提交智能体信息以发起加入请求。"
-  ,"inviteLanding.alreadyBelongsToCompany": "这个账号已经属于 {{company}}。"
-  ,"inviteLanding.alreadySignedUpHint": "如果你之前已经注册过，请改用“我已经有账号”，这样邀请会落到正确的 Paperclip 用户上。"
-  ,"inviteLanding.approvalPage": "审批页面"
-  ,"inviteLanding.askApproverVisitPrefix": "请让审批人访问 "
-  ,"inviteLanding.askApproverVisitSuffix": " 来批准你的请求。"
-  ,"inviteLanding.authFailed": "认证失败"
-  ,"inviteLanding.awaitingApproval": "你的请求仍在等待审批。{{approver}} 必须先批准，你才能加入。"
-  ,"inviteLanding.bootstrapComplete": "初始化完成"
-  ,"inviteLanding.checkingAccess": "正在检查你的公司访问权限，请稍候。"
-  ,"inviteLanding.checkingYourAccess": "正在检查你的访问权限..."
-  ,"inviteLanding.claimSecret": "认领密钥"
-  ,"inviteLanding.companyAccessLabel": "公司访问权限"
-  ,"inviteLanding.companyAdmin": "某位公司管理员"
-  ,"inviteLanding.companySettingsAccess": "公司设置 → 访问"
-  ,"inviteLanding.continue": "继续"
-  ,"inviteLanding.createAccount": "创建账号"
-  ,"inviteLanding.createAccountAndContinue": "创建账号并继续"
-  ,"inviteLanding.createAccountIntro": "请先创建你的 Paperclip 账号。如果你已经有账号，请切换到登录并使用同一个邮箱继续处理邀请。"
-  ,"inviteLanding.createYourAccount": "创建你的账号"
-  ,"inviteLanding.failedAcceptInvite": "接受邀请失败"
-  ,"inviteLanding.fillRequired": "请填写所有必填字段。"
-  ,"inviteLanding.finishingSignIn": "正在完成登录..."
-  ,"inviteLanding.haveAccount": "我已经有账号"
-  ,"inviteLanding.invalidCredentials": "这个邮箱和密码与现有的 Paperclip 账号不匹配。请检查后重试；如果你是新用户，请先创建账号。"
-  ,"inviteLanding.invalidToken": "无效的邀请令牌。"
-  ,"inviteLanding.inviteAlreadyUsed": "这个邀请已经被使用。"
-  ,"inviteLanding.inviteExpires": "邀请过期时间"
-  ,"inviteLanding.inviteNotFound": "未找到邀请"
-  ,"inviteLanding.inviteUnavailable": "邀请不可用"
-  ,"inviteLanding.inviteUnavailableBody": "这个邀请可能已经过期、被撤销，或者已被使用。"
-  ,"inviteLanding.invitedToJoin": "你已被邀请加入 Paperclip"
-  ,"inviteLanding.joinCompany": "加入 {{company}}"
-  ,"inviteLanding.joinRequestRejected": "这个加入请求没有获得批准。"
-  ,"inviteLanding.joinedCompany": "你已加入公司"
-  ,"inviteLanding.loadingInvite": "正在加载邀请..."
-  ,"inviteLanding.messageFromInviter": "邀请人留言"
-  ,"inviteLanding.noAccountYetHint": "如果你还没有账号，请切回“创建账号”，这样你可以用一个新的登录来接受邀请。"
-  ,"inviteLanding.onboarding": "入门说明"
-  ,"inviteLanding.openBoard": "打开看板"
-  ,"inviteLanding.openingCompany": "正在打开公司..."
-  ,"inviteLanding.paperclipBoard": "Paperclip 董事会"
-  ,"inviteLanding.refreshAfterApproval": "当你获得批准后，请刷新这个页面，系统会自动为你跳转。"
-  ,"inviteLanding.requestToJoin": "申请加入 {{company}}"
-  ,"inviteLanding.requestedAccess": "申请的访问权限"
-  ,"inviteLanding.setUpPaperclip": "设置 Paperclip"
-  ,"inviteLanding.signInAndContinue": "登录并继续"
-  ,"inviteLanding.signInIntro": "请使用与这个邀请对应的现有 Paperclip 账号登录。如果你还没有账号，请切回创建账号。"
-  ,"inviteLanding.signInToContinue": "登录以继续"
-  ,"inviteLanding.signUpIntro": "请先创建一个 Paperclip 账号。之后你会回到这里，继续接受 {{company}} 的邀请。"
-  ,"inviteLanding.signedInAs": "当前登录账号：{{account}}。"
-  ,"inviteLanding.submitAgentDetails": "提交智能体信息"
-  ,"inviteLanding.submitRequest": "提交请求"
-  ,"inviteLanding.submittingForCompany": "正在为 {{company}} 提交你的加入请求。"
-  ,"inviteLanding.submittingJoinRequest": "正在提交加入请求"
-  ,"inviteLanding.submittingRequest": "正在提交请求..."
-  ,"inviteLanding.thatEmail": "该邮箱"
-  ,"inviteLanding.thisAccount": "当前账号"
-  ,"inviteLanding.thisCompany": "这个 Paperclip 公司"
-  ,"inviteLanding.thisWillSetUpPaperclip": "这会完成 Paperclip 的初始化设置。"
-  ,"inviteLanding.thisWillSubmitJoinRequest": "这会为 {{company}} 提交或完成你的加入请求。"
-  ,"inviteLanding.working": "处理中..."
-  ,"Profile": "资料"
-  ,"Access": "访问"
-  ,"Env": "环境变量"
-  ,"Deployment and auth": "部署与认证"
-  ,"Auth readiness": "认证就绪状态"
-  ,"Bootstrap status": "初始化状态"
-  ,"Bootstrap invite": "初始化邀请"
-  ,"Not ready": "未就绪"
-  ,"Setup required": "需要设置"
-  ,"modeBadge.localTrusted": "本地可信"
-  ,"modeBadge.authenticatedPrivate": "认证私有"
-  ,"modeBadge.authenticatedPublic": "认证公开"
-  ,"sidebarAccountMenu.languageDescription": "为当前浏览器选择界面语言。"
-  ,"instanceGeneralSettings.localTrustedDescription": "本地可信模式针对本机操作者优化。浏览器请求会以本地董事会上下文运行，不需要登录。"
-  ,"instanceGeneralSettings.authenticatedPublicDescription": "认证公开模式要求登录后才能访问董事会，适合公开 URL 场景。"
-  ,"instanceGeneralSettings.authenticatedPrivateDescription": "认证私有模式要求登录，适合局域网、VPN 或其他私有网络部署场景。"
-  ,"projectProperties.env": "环境变量"
-  ,"Danger Zone": "危险区域"
-  ,"Enabled": "已启用"
-  ,"General": "常规"
-  ,"Heartbeats": "心跳"
-  ,"Loading general settings...": "正在加载常规设置..."
-  ,"Failed to load general settings.": "加载常规设置失败。"
-  ,"Failed to update general settings.": "更新常规设置失败。"
-  ,"Hide the username segment in home-directory paths and similar operator-visible log output. Standalone username mentions outside of paths are not yet masked in the live transcript view. This is off by default.": "隐藏主目录路径等操作者可见日志输出中的用户名片段。路径之外单独出现的用户名目前在实时转录视图中仍不会被遮蔽。此选项默认关闭。"
-  ,"Toggle username log censoring": "切换日志中的用户名隐藏"
-  ,"Select a company to create secrets": "请先选择公司再创建密钥"
-  ,"Invites": "邀请"
-  ,"View profile": "查看资料"
-  ,"Open your activity, task, and usage ledger.": "查看你的活动、任务和使用情况台账。"
-  ,"Workspaces": "工作区"
-  ,"Start services": "启动服务"
-  ,"Stop services": "停止服务"
-  ,"Copy branch": "复制分支"
-  ,"Branch copied": "已复制分支"
-  ,"Copy path": "复制路径"
-  ,"Path copied": "已复制路径"
-  ,"Service": "服务"
-  ,"Cleanup failed": "清理失败"
-  ,"Linked issues": "关联任务"
-  ,"+{{count}} more": "还有 {{count}} 个"
-  ,"{{count}} workspace": "{{count}} 个工作区"
-  ,"{{count}} workspaces": "{{count}} 个工作区"
-  ,"{{running}}/{{total}} services": "{{running}}/{{total}} 个服务"
-  ,"No workspace activity yet.": "还没有工作区活动。"
-  ,"No non-default workspace activity yet.": "还没有非默认工作区活动。"
-  ,"Cleanup attention needed": "需要处理的清理问题"
-  ,"Users": "用户"
-  ,"Touched": "涉及任务"
-  ,"Spend": "支出"
-  ,"All-time tokens": "累计词元"
-  ,"Open assigned": "未完成指派"
-  ,"7-day actions": "7 天内操作"
-  ,"All time": "全部时间"
-  ,"tokens total": "词元总数"
-  ,"completions": "完成数"
-  ,"Recent tasks": "最近任务"
-  ,"No touched tasks yet.": "还没有涉及的任务。"
-  ,"Recent activity": "最近活动"
-  ,"No direct user actions recorded yet.": "还没有记录到直接用户操作。"
-  ,"Agent attribution": "智能体归因"
-  ,"Provider mix": "提供方分布"
-  ,"Issue-linked usage": "任务关联使用量"
-  ,"Billed through {{name}}": "通过 {{name}} 计费"
-  ,"No issue-linked token usage yet.": "还没有任务关联词元用量。"
-  ,"No provider usage attributed yet.": "还没有归因到提供方的使用量。"
-  ,"Select a company to view user profiles.": "请先选择公司再查看用户资料。"
-  ,"User profile not found for this company.": "在这个公司中找不到该用户资料。"
-  ,"Member": "成员"
-  ,"joined {{date}}": "加入于 {{date}}"
-  ,"{{amount}} spent": "已花费 {{amount}}"
-  ,"{{rate}} rate": "{{rate}} 比例"
-  ,"{{count}} created": "创建了 {{count}} 个"
-  ,"{{count}} comments": "{{count}} 条评论"
-  ,"issue read marked": "标记为已读"
-  ,"userProfile.tokensPerDay": "每日词元"
-  ,"userProfile.completions": "完成数"
-  ,"issueRelatedWork.references": "引用"
-  ,"issueRelatedWork.referencesDescription": "此任务当前在标题、描述、评论或文档中指向的其他任务。"
-  ,"issueRelatedWork.noReferences": "此任务尚未引用其他任务。"
-  ,"issueRelatedWork.referencedBy": "被引用"
-  ,"issueRelatedWork.referencedByDescription": "当前指向此任务的其他任务。"
-  ,"issueRelatedWork.noReferencedBy": "尚无其他任务引用此任务。"
-  ,"issueReferences.added": "新增引用"
-  ,"issueReferences.removed": "移除引用"
-  ,"issueThreadInteraction.status.accepted": "已接受"
-  ,"issueThreadInteraction.status.rejected": "已拒绝"
-  ,"issueThreadInteraction.status.answered": "已回答"
-  ,"issueThreadInteraction.status.expired": "已过期"
-  ,"issueThreadInteraction.kind.suggestTasks": "建议任务"
-  ,"issueThreadInteraction.kind.askUserQuestions": "向用户提问"
-  ,"issueThreadInteraction.kind.confirmation": "确认"
-  ,"issueThreadInteraction.includeTask": "包含 {{title}}"
-  ,"issueThreadInteraction.childTask": "子任务"
-  ,"Billing": "计费"
-  ,"issueThreadInteraction.oneHiddenFollowOnTask": "预览中隐藏了 1 个后续任务"
-  ,"issueThreadInteraction.hiddenFollowOnTasks": "预览中隐藏了 {{count}} 个后续任务"
-  ,"issueThreadInteraction.oneDraftIssue": "1 个任务草稿"
-  ,"issueThreadInteraction.draftIssues": "{{count}} 个任务草稿"
-  ,"issueThreadInteraction.defaultParent": "默认父任务"
-  ,"issueThreadInteraction.resolutionSummary": "处理摘要"
-  ,"issueThreadInteraction.createdAndSkippedDrafts": "已创建 {{created}} 个草稿{{issueWord}}，并在审核中跳过 {{skipped}} 个。"
-  ,"issueThreadInteraction.createdAllDrafts": "已创建全部 {{count}} 个草稿{{issueWord}}。"
-  ,"issueThreadInteraction.rejectionReason": "拒绝原因"
-  ,"No reason provided.": "未提供原因。"
-  ,"issueThreadInteraction.allDraftsSelected": "已选择全部 {{count}} 个草稿{{issueWord}}"
-  ,"issueThreadInteraction.someDraftsSelected": "已选择 {{selected}} / {{total}} 个草稿{{issueWord}}"
-  ,"issueThreadInteraction.skippedIfAccepted": "如果接受此交互，将跳过 {{count}} 个。"
-  ,"issueThreadInteraction.accepting": "正在接受..."
-  ,"issueThreadInteraction.acceptDrafts": "接受草稿"
-  ,"issueThreadInteraction.acceptSelectedDrafts": "接受已选草稿"
-  ,"Reject": "拒绝"
-  ,"issueThreadInteraction.resetSelection": "重置选择"
-  ,"issueThreadInteraction.rejectSuggestionPlaceholder": "简要说明拒绝此建议的原因"
-  ,"issueThreadInteraction.saveRejection": "保存拒绝"
-  ,"issueThreadInteraction.questionNumber": "问题 {{count}}"
-  ,"issueThreadInteraction.pick": "选择"
-  ,"issueThreadInteraction.pickMany": "多选"
-  ,"Required": "必填"
-  ,"Optional": "可选"
-  ,"issueThreadInteraction.submitAfterForm": "完成整个表单后再提交。"
-  ,"issueThreadInteraction.submitting": "正在提交..."
-  ,"issueThreadInteraction.submitAnswers": "提交答案"
-  ,"Answer": "答案"
-  ,"issueThreadInteraction.noAnswerRecorded": "没有记录答案。"
-  ,"issueThreadInteraction.submittedSummary": "已提交摘要"
-  ,"Confirmed": "已确认"
-  ,"Declined": "已拒绝"
-  ,"issueThreadInteraction.expiredByComment": "因评论而过期"
-  ,"issueThreadInteraction.expiredByTargetChange": "因目标变更而过期"
-  ,"issueThreadInteraction.supersededByComment": "在处理前，董事会评论已取代这次确认。"
-  ,"issueThreadInteraction.staleTarget": "在处理前，请求目标已发生变化。"
-  ,"issueThreadInteraction.jumpToComment": "跳转到评论"
-  ,"issueThreadInteraction.requestFailed": "无法处理此请求。请重试或创建新请求。"
-  ,"issueThreadInteraction.revisionPlaceholder": "可选：你希望修改什么？"
-  ,"issueThreadInteraction.declinePlaceholder": "可选：告诉智能体你希望如何调整。"
-  ,"Try again": "重试"
-  ,"issueThreadInteraction.confirming": "正在确认..."
-  ,"Confirm": "确认"
-  ,"Decline": "拒绝"
-  ,"issueThreadInteraction.declineReasonRequired": "必须填写拒绝原因。"
-  ,"issueThreadInteraction.cancelDecline": "取消拒绝"
-  ,"issueThreadInteraction.wakesOnConfirm": "确认后唤醒"
-  ,"issueThreadInteraction.wakesAssignee": "唤醒负责人"
-  ,"issueThreadInteraction.suggestedTaskTree": "建议任务树"
-  ,"issueThreadInteraction.questionsForOperator": "给操作者的问题"
-  ,"issueThreadInteraction.confirmationRequested": "请求确认"
-  ,"issueThreadInteraction.proposedBy": "由 {{name}} 提出"
-  ,"Created {{time}}": "创建于 {{time}}"
-  ,"issueThreadInteraction.resolvedBy": "由 {{name}} 处理"
-  ,"issueThreadInteraction.resolvedOn": "，日期 {{date}}"
-  ,"issueChatThread.theLinkedIssue": "关联任务"
-  ,"issueChatThread.theLinkedIssues": "关联任务"
-  ,"issueChatThread.itIs": "它"
-  ,"issueChatThread.theyAre": "它们"
-  ,"issueChatThread.blockedByLinkedIssue": "此任务被{{blocker}}阻塞，直到{{pronoun}}完成。评论仍会唤醒负责人以处理问题或分诊。"
-  ,"issueChatThread.blockedUntilTodo": "此任务已阻塞，直到移回待办状态。评论仍会唤醒负责人以处理问题或分诊。"
-  ,"issueChatThread.pausedByBudget": "它因预算硬停止而暂停。"
-  ,"issueChatThread.pausedBySystem": "它由系统暂停。"
-  ,"issueChatThread.pausedManually": "它被手动暂停。"
-  ,"issueChatThread.agentPaused": "{{name}} 已暂停。在恢复该智能体前不会启动新的运行。{{detail}}"
-  ,"Interrupting...": "正在中断..."
-  ,"Interrupt": "中断"
-  ,"issueThreadInteraction.requestConfirmed": "请求已确认"
-  ,"issueThreadInteraction.acceptedDraftsAndSkipped": "已接受 {{count}} 个草稿并跳过 {{skipped}} 个"
-  ,"issueThreadInteraction.suggestedTasksAccepted": "已接受建议任务"
-  ,"issueThreadInteraction.acceptFailed": "接受失败"
-  ,"issueThreadInteraction.unableToAcceptSuggestedTasks": "无法接受建议任务"
-  ,"issueThreadInteraction.requestDeclined": "请求已拒绝"
-  ,"issueThreadInteraction.suggestionRejected": "建议已拒绝"
-  ,"issueThreadInteraction.rejectFailed": "拒绝失败"
-  ,"issueThreadInteraction.unableToRejectSuggestedTasks": "无法拒绝建议任务"
-  ,"issueThreadInteraction.answersSubmitted": "答案已提交"
-  ,"issueThreadInteraction.submitFailed": "提交失败"
-  ,"issueThreadInteraction.unableToSubmitAnswers": "无法提交答案"
-  ,"issueThreadInteraction.queuedCommentCanceled": "已取消排队评论"
-  ,"issueThreadInteraction.queuedMessageRestored": "排队消息已恢复到编辑器。"
-  ,"Cancel failed": "取消失败"
-  ,"issueThreadInteraction.unableToCancelQueuedComment": "无法取消排队评论"
-  ,"issues": "任务"
-  ,"Attachments": "附件"
+  "You can change this later in Instance Settings > General.": "你之后可以在“实例设置 > 常规”里更改这个选项。",
+  "Configure instance-wide defaults that affect operator-visible logs and agent runtime guidance.": "配置会影响操作者可见日志与智能体运行时提示的实例级默认项。",
+  "Failed to sign out.": "退出登录失败。",
+  "Sign out": "退出登录",
+  "Sign out of this Paperclip instance. You will be redirected to the login page.": "退出当前 Paperclip 实例的登录状态。随后会跳转到登录页面。",
+  "Reviewer": "审阅人",
+  "Approver": "审批人",
+  "No reviewers found.": "未找到审阅人。",
+  "No approvers found.": "未找到审批人。",
+  "Yes": "是",
+  "No": "否",
+  "{{stage}} requested changes{{suffix}}": "{{stage}} 请求修改{{suffix}}",
+  "{{stage}} pending{{suffix}}": "{{stage}}{{suffix}}待处理",
+  "by": "由",
+  "with": "由",
+  "No companies": "没有公司",
+  "Company Settings": "公司设置",
+  "Manage Companies": "管理公司",
+  "Mobile navigation": "移动端导航",
+  "Home": "首页",
+  "issuesList.newIssue": "新建任务",
+  "issuesList.filter": "筛选",
+  "issuesList.filters": "筛选",
+  "issuesList.quickFilters": "快捷筛选",
+  "issuesList.sort": "排序",
+  "issuesList.group": "分组",
+  "issuesList.live": "实时",
+  "issuesList.columns": "列",
+  "issuesList.chooseVisibleColumns": "选择要显示的任务列",
+  "issuesList.defaultColumnsSummary": "状态、编号、更新时间",
+  "issuesList.updatedAtTime": "更新于 {{time}}",
+  "Creator": "创建者",
+  "Hide routine runs": "隐藏例行运行",
+  "No creators match.": "没有匹配的创建者。",
+  "Remove creator {{name}}": "移除创建者 {{name}}",
+  "Search creators...": "搜索创建者...",
+  "Showing up to {{count}} matches. Refine the search to narrow further.": "最多显示 {{count}} 条匹配结果。请进一步收窄搜索范围。",
+  "issueDetail.loadingEarlierComments": "正在加载更早的评论…",
+  "issueDetail.loadEarlierComments": "加载更早的评论",
+  "issueDetail.costSummary": "成本汇总",
+  "issueDetail.noCostData": "暂时还没有成本数据。",
+  "issueDetail.noActivity": "暂时还没有活动记录。",
+  "issueDetail.newSubIssue": "新建子任务",
+  "Disable parent-child nesting": "关闭父子任务嵌套",
+  "Enable parent-child nesting": "开启父子任务嵌套",
+  "Type": "类型",
+  "Load earlier comments": "加载更早的评论",
+  "Loading earlier comments...": "正在加载更早的评论...",
+  "issueDocuments.documentKey": "文档 key",
+  "issueChat.fallbackErrorTitle": "聊天渲染器进入了异常状态。",
+  "issueChat.fallbackErrorBody": "已显示安全降级的对话回退视图，避免任务页面直接崩溃。",
+  "issueChat.emptyConversation": "这个任务对话还是空的。请从下面发送第一条消息。",
+  "issueDocuments.historicalPreviewNotice": "这是历史版本预览。恢复后会创建一个新的最新修订，并保持历史只追加不覆盖。",
+  "issueDocuments.remoteChangedNotice": "你编辑期间这份文档已在远端发生变化。你的本地草稿仍会保留，自动保存也会暂停。",
+  "issueDocuments.confirmDelete": "确认删除这份文档吗？此操作无法撤销。",
+  "No message content.": "没有消息内容。",
+  "False": "否",
+  "True": "是",
+  "Variables": "变量",
+  "routineVariables.defaultOption": "默认选项",
+  "routineVariables.defaultValue": "默认值",
+  "routineVariables.detectedFromPlaceholders": "从例行任务标题和说明中的 `{{placeholder}}` 占位符检测到。",
+  "routineVariables.noDefault": "无默认值",
+  "routineVariables.options": "选项",
+  "routineVariables.promptBeforeRun": "每次手动运行前都会向用户询问这个值。",
+  "routineVariables.usePlaceholderHint": "在说明中使用 `{{placeholder}}` 占位符，可在例行任务运行时提示输入。",
+  "Built-in": "内建",
+  "Installed from local path": "从本地路径安装",
+  "Installed from npm": "从 npm 安装",
+  "Overrides built-in": "覆盖内建适配器",
+  "Overridden by {{name}}": "已被 {{name}} 覆盖",
+  "Hidden from menus": "已从菜单中隐藏",
+  "models": "个模型",
+  "Reinstall adapter (pull latest from npm)": "重新安装适配器（从 npm 拉取最新版本）",
+  "Reload adapter (hot-swap)": "重新加载适配器（热替换）",
+  "Show in agent menus": "在智能体菜单中显示",
+  "Hide from agent menus": "从智能体菜单中隐藏",
+  "Remove adapter": "移除适配器",
+  "Reinstall Adapter": "重新安装适配器",
+  "This will pull the latest version of": "这会从 npm 拉取",
+  "from npm and hot-swap": "并热替换",
+  "the running adapter module. Existing agents will use the new version on their next run.": "当前运行中的适配器模块。已有智能体会在下一次运行时使用新版本。",
+  "Package": "包",
+  "Latest on npm": "npm 最新版本",
+  "checking...": "检查中...",
+  "unavailable": "不可用",
+  "Already on the latest version.": "已经是最新版本。",
+  "Reinstalling...": "重新安装中...",
+  "Reinstall": "重新安装",
+  "Adapter installed": "适配器已安装",
+  "Type \"{{type}}\" registered successfully.": "类型“{{type}}”注册成功。",
+  "Type \"{{type}}\" registered successfully. (v{{version}})": "类型“{{type}}”注册成功。（v{{version}}）",
+  "Install failed": "安装失败",
+  "Adapter removed": "适配器已移除",
+  "Removal failed": "移除失败",
+  "Toggle failed": "切换失败",
+  "Override toggle failed": "覆盖切换失败",
+  "Adapter reloaded": "适配器已重新加载",
+  "Type \"{{type}}\" reloaded.": "类型“{{type}}”已重新加载。",
+  "Type \"{{type}}\" reloaded. (v{{version}})": "类型“{{type}}”已重新加载。（v{{version}}）",
+  "Reload failed": "重新加载失败",
+  "Adapter reinstalled": "适配器已重新安装",
+  "Type \"{{type}}\" updated from npm.": "类型“{{type}}”已从 npm 更新。",
+  "Type \"{{type}}\" updated from npm. (v{{version}})": "类型“{{type}}”已从 npm 更新。（v{{version}}）",
+  "Reinstall failed": "重新安装失败",
+  "Loading adapters...": "正在加载适配器...",
+  "Alpha": "Alpha",
+  "Install Adapter": "安装适配器",
+  "Install External Adapter": "安装外部适配器",
+  "Add an adapter from npm or a local path. The adapter package must export": "从 npm 或本地路径添加适配器。适配器包必须导出",
+  "npm package": "npm 包",
+  "Local path": "本地路径",
+  "Path to adapter package": "适配器包路径",
+  "/mnt/e/Projects/my-adapter  or  E:\\Projects\\my-adapter": "/mnt/e/Projects/my-adapter 或 E:\\Projects\\my-adapter",
+  "Accepts Linux, WSL, and Windows paths. Windows paths are auto-converted.": "支持 Linux、WSL 和 Windows 路径。Windows 路径会自动转换。",
+  "Package Name": "包名",
+  "my-paperclip-adapter": "my-paperclip-adapter",
+  "Version (optional)": "版本（可选）",
+  "latest": "latest",
+  "External adapters are alpha.": "外部适配器目前仍处于 Alpha 阶段。",
+  "The adapter plugin system is under active development. APIs and storage format may change.": "适配器插件系统仍在积极开发中，API 和存储格式后续可能变化。",
+  "Use the power icon to hide adapters from agent menus without removing them.": "可以使用电源图标把适配器从智能体菜单中隐藏，而无需直接移除。",
+  "External Adapters": "外部适配器",
+  "No external adapters installed": "还没有安装外部适配器",
+  "Install an adapter package to extend model support.": "安装适配器包以扩展模型支持。",
+  "Pause external override": "暂停外部覆盖",
+  "Resume external override": "恢复外部覆盖",
+  "Override paused": "覆盖已暂停",
+  "Built-in Adapters": "内建适配器",
+  "No built-in adapters found.": "未找到内建适配器。",
+  "Remove Adapter": "移除适配器",
+  "Are you sure you want to remove the": "确认移除",
+  "adapter?": "适配器吗？",
+  "It will be unregistered and removed from the adapter store.": "它会被取消注册，并从适配器存储中移除。",
+  "npm packages will be cleaned up from disk.": "磁盘上的 npm 包也会一并清理。",
+  "Removing...": "移除中...",
+  "Remove": "移除",
+  "Keyboard shortcuts": "快捷键",
+  "New issue": "新建任务",
+  "Move down": "向下移动",
+  "Move up": "向上移动",
+  "Open selected item": "打开选中项",
+  "Archive item": "归档项目",
+  "Mark as unread": "标记为未读",
+  "Issue detail": "任务详情",
+  "Quick-archive back to inbox": "快速归档并返回收件箱",
+  "Go to inbox": "前往收件箱",
+  "Focus comment composer": "聚焦评论输入框",
+  "Global": "全局",
+  "Toggle sidebar": "切换侧边栏",
+  "Toggle panel": "切换面板",
+  "Show keyboard shortcuts": "显示快捷键",
+  "then": "然后",
+  "Press": "按",
+  "to close": "关闭",
+  "Shortcuts are disabled in text fields": "在文本输入框中会禁用快捷键",
+  "Local CodeBuddy agent": "本地 CodeBuddy 智能体",
+  "Local Qwen agent": "本地 Qwen 智能体",
+  "Local Hermes CLI agent": "本地 Hermes CLI 智能体",
+  "Session strategy": "会话策略",
+  "Fixed": "固定",
+  "Per issue": "按任务",
+  "Per run": "按运行",
+  "Session key": "会话键",
+  "Gateway auth token (x-openclaw-token)": "网关认证令牌（x-openclaw-token）",
+  "Wait timeout (ms)": "等待超时（毫秒）",
+  "Device auth": "设备认证",
+  "OpenClaw gateway token": "OpenClaw 网关令牌",
+  "External adapter": "外部适配器",
+  "External local adapter": "外部本地适配器",
+  "External gateway adapter": "外部门户适配器",
+  "Always enabled for gateway agents. Paperclip persists a device key during onboarding so pairing approvals remain stable across runs.": "网关智能体始终启用设备认证。Paperclip 会在 onboarding 期间持久化设备密钥，以便配对授权在多次运行之间保持稳定。",
+  "Open company menu": "打开公司菜单",
+  "Open {{name}} menu": "打开 {{name}} 菜单",
+  "Invite people to {{name}}": "邀请成员加入 {{name}}",
+  "Company settings": "公司设置",
+  "Signing out...": "正在退出登录...",
+  "Signed in": "已登录",
+  "Local workspace board": "本地工作区董事会",
+  "Account": "账号",
+  "Local": "本地",
+  "Open account menu": "打开账号菜单",
+  "Paperclip v{{version}}": "Paperclip v{{version}}",
+  "Edit profile": "编辑资料",
+  "Update your display name and avatar.": "更新你的显示名称和头像。",
+  "Instance settings": "实例设置",
+  "Jump back to the last settings page you opened.": "跳回你上次打开的设置页面。",
+  "Documentation": "文档",
+  "Open Paperclip docs in a new tab.": "在新标签页中打开 Paperclip 文档。",
+  "Switch to light mode": "切换到浅色模式",
+  "Switch to dark mode": "切换到深色模式",
+  "Toggle the app appearance.": "切换应用外观。",
+  "End this browser session.": "结束当前浏览器会话。",
+  "Instance setup required": "需要完成实例初始化",
+  "No instance admin exists yet. A bootstrap invite is already active. Check your Paperclip startup logs for the first admin invite URL, or run this command to rotate it:": "当前还没有实例管理员。系统里已经有一个 bootstrap 邀请处于激活状态。请查看 Paperclip 启动日志中的首个管理员邀请链接，或运行下面的命令重新生成：",
+  "No instance admin exists yet. Run this command in your Paperclip environment to generate the first admin invite URL:": "当前还没有实例管理员。请在你的 Paperclip 环境中运行下面的命令来生成首个管理员邀请链接：",
+  "No company access": "没有公司访问权限",
+  "This account is signed in, but it does not have an active company membership or instance-admin access on this Paperclip instance.": "当前账号已登录，但在这个 Paperclip 实例中没有活跃的公司成员身份，也没有实例管理员权限。",
+  "Use a company invite or sign in with an account that already belongs to this org.": "请使用公司邀请链接，或使用已经属于该组织的账号登录。",
+  "Failed to load app state": "加载应用状态失败",
+  "Control how your account appears in the sidebar and other board surfaces.": "控制你的账号在侧边栏和其他看板界面中的显示方式。",
+  "Failed to update profile.": "更新个人资料失败。",
+  "Select a company before uploading a profile avatar.": "上传个人头像前请先选择一个公司。",
+  "Failed to upload avatar.": "上传头像失败。",
+  "Failed to remove avatar.": "移除头像失败。",
+  "Loading profile...": "正在加载个人资料...",
+  "Failed to load profile.": "加载个人资料失败。",
+  "Stored in Paperclip file storage for {{name}}.": "将存储到 {{name}} 的 Paperclip 文件存储中。",
+  "Select a company to upload an avatar into Paperclip storage.": "请选择一个公司，以便把头像上传到 Paperclip 存储。",
+  "Click the avatar to upload a new image.": "点击头像即可上传新图片。",
+  "Change photo": "更换照片",
+  "Upload photo": "上传照片",
+  "No email": "无邮箱",
+  "Display name": "显示名称",
+  "Shown in the sidebar account footer and comment author surfaces.": "显示在侧边栏账号区域和评论作者等位置。",
+  "Email is managed by your auth session and is read-only here.": "邮箱由你的登录会话管理，这里仅供只读查看。",
+  "Save profile": "保存个人资料",
+  "Company access updated": "公司访问权限已更新",
+  "No user selected": "尚未选择用户",
+  "Instance role updated": "实例角色已更新",
+  "Loading instance users…": "正在加载实例用户…",
+  "Instance admin access is required to manage users.": "管理用户需要实例管理员权限。",
+  "Failed to load users.": "加载用户失败。",
+  "Instance Access": "实例访问",
+  "Search users, manage instance-admin status, and control which companies they can access.": "搜索用户、管理实例管理员状态，并控制他们可访问的公司。",
+  "Search by name or email": "按姓名或邮箱搜索",
+  "{{count}} active company memberships": "{{count}} 个活跃公司成员资格",
+  "Select a user to inspect instance access.": "请选择一个用户来查看实例访问权限。",
+  "Loading user access…": "正在加载用户访问权限…",
+  "Failed to load user access.": "加载用户访问权限失败。",
+  "Remove instance admin": "移除实例管理员",
+  "Promote to instance admin": "提升为实例管理员",
+  "Company access": "公司访问",
+  "Toggle company membership for this user. New access defaults to an active operator membership.": "为该用户切换公司成员资格。新授予的访问默认会创建一个活跃的 operator 成员身份。",
+  "Save company access": "保存公司访问权限",
+  "Current memberships": "当前成员资格",
+  "unset": "未设置",
+  "Join Requests": "加入请求",
+  "Join request approved": "加入请求已批准",
+  "Join request rejected": "加入请求已拒绝",
+  "Select a company to review join requests.": "请选择一个公司来审核加入请求。",
+  "Loading join requests…": "正在加载加入请求…",
+  "You do not have permission to review join requests for this company.": "你没有审核该公司加入请求的权限。",
+  "Failed to load join requests.": "加载加入请求失败。",
+  "Join Request Queue": "加入请求队列",
+  "Review human and agent join requests outside the mixed inbox feed. This queue uses the same approval mutations as the inline inbox cards.": "在人机混合收件箱之外单独审核加入请求。这个队列使用与收件箱内卡片相同的审批操作。",
+  "Request type": "请求类型",
+  "Pending approval": "待审批",
+  "No join requests match the current filters.": "当前筛选条件下没有匹配的加入请求。",
+  "Unknown human requester": "未知的人类请求者",
+  "Unknown agent requester": "未知的智能体请求者",
+  "Invite context": "邀请上下文",
+  "{{type}} join invite{{suffix}}": "{{type}} 加入邀请{{suffix}}",
+  "default role {{role}}": "默认角色 {{role}}",
+  "Invite metadata unavailable": "邀请元数据不可用",
+  "Request details": "请求详情",
+  "Submitted {{date}}": "提交于 {{date}}",
+  "Source IP {{ip}}": "来源 IP {{ip}}",
+  "Clipboard unavailable": "剪贴板不可用",
+  "Copy the invite URL manually from the field below.": "请从下面的字段中手动复制邀请链接。",
+  "Invite created": "邀请已创建",
+  "Invite ready below and copied to clipboard.": "邀请链接已生成，并已复制到剪贴板。",
+  "Invite ready below.": "邀请链接已生成，见下方。",
+  "Failed to create invite": "创建邀请失败",
+  "Invite revoked": "邀请已撤销",
+  "Failed to revoke invite": "撤销邀请失败",
+  "Select a company to manage invites.": "请选择一个公司来管理邀请。",
+  "Loading invites…": "正在加载邀请…",
+  "You do not have permission to manage company invites.": "你没有管理公司邀请的权限。",
+  "Failed to load invites.": "加载邀请失败。",
+  "Company Invites": "公司邀请",
+  "Create human invite links for company access. New invite links are copied to your clipboard when they are generated.": "为公司访问创建人类邀请链接。新的邀请链接生成后会自动复制到你的剪贴板。",
+  "Create invite": "创建邀请",
+  "Generate a human invite link and choose the default access it should request.": "生成人类邀请链接，并选择它默认请求的访问权限。",
+  "Choose a role": "选择角色",
+  "Viewer": "查看者",
+  "Can view company work and follow along without operational permissions.": "可查看公司工作内容并跟进进展，但不具备操作权限。",
+  "No built-in grants.": "没有内置权限。",
+  "Operator": "操作员",
+  "Recommended for people who need to help run work without managing access.": "适合需要协助推进工作、但不需要管理访问权限的人。",
+  "Can assign tasks.": "可分配任务。",
+  "Admin": "管理员",
+  "Recommended for operators who need to invite people, create agents, and approve joins.": "适合需要邀请成员、创建智能体并审批加入请求的操作员。",
+  "Can create agents, invite users, assign tasks, and approve join requests.": "可创建智能体、邀请用户、分配任务并批准加入请求。",
+  "Full company access, including membership and permission management.": "拥有完整的公司访问权限，包括成员与权限管理。",
+  "Everything in Admin, plus managing members and permission grants.": "包含管理员的全部能力，外加成员与权限授权管理。",
+  "Each invite link is single-use. The first successful use consumes the link and creates or reuses the matching join request before approval.": "每个邀请链接只能使用一次。首次成功使用会消耗该链接，并在审批前创建或复用对应的加入请求。",
+  "Invite history below keeps the audit trail.": "下方的邀请历史会保留完整审计轨迹。",
+  "Latest invite link": "最新邀请链接",
+  "Copied": "已复制",
+  "This URL includes the current Paperclip domain returned by the server.": "这个 URL 包含了服务端返回的当前 Paperclip 域名。",
+  "Open invite": "打开邀请",
+  "Invite history": "邀请历史",
+  "Review invite status, role, inviter, and any linked join request.": "查看邀请状态、角色、邀请人以及关联的加入请求。",
+  "Open join request queue": "打开加入请求队列",
+  "No invites have been created for this company yet.": "这个公司还没有创建过邀请。",
+  "Invited by": "邀请人",
+  "Join request": "加入请求",
+  "State": "状态",
+  "Unknown inviter": "未知邀请人",
+  "Review request": "查看请求",
+  "Inactive": "未激活",
+  "Loading more…": "正在加载更多…",
+  "View more": "查看更多",
+  "Company Access": "公司访问",
+  "Manage company user memberships, membership status, and explicit permission grants for {{name}}.": "管理 {{name}} 的公司用户成员资格、成员状态和显式权限授权。",
+  "This account can manage access here through instance-admin privileges, but it does not currently hold an active company membership.": "当前账号可凭借实例管理员权限在这里管理访问，但它目前并不拥有活跃的公司成员身份。",
+  "Humans": "人类成员",
+  "Manage human company memberships, status, and grants here.": "在这里管理人类成员的公司成员资格、状态和权限。",
+  "Pending human joins": "待处理的人类加入请求",
+  "Review human join requests before they become active company members.": "在人类加入请求成为活跃公司成员前先完成审核。",
+  "{{count}} pending": "{{count}} 个待处理",
+  "No email available": "无可用邮箱",
+  "Approve human": "批准人类成员",
+  "Reject human": "拒绝人类成员",
+  "User account": "用户账号",
+  "No user memberships found for this company yet.": "这个公司目前还没有任何用户成员资格。",
+  "Edit member": "编辑成员",
+  "Update company role, membership status, and explicit grants for {{name}}.": "更新 {{name}} 的公司角色、成员状态和显式授权。",
+  "Company role": "公司角色",
+  "Membership status": "成员状态",
+  "Suspended": "已暂停",
+  "Roles provide implicit grants automatically. Explicit grants below are only for overrides and extra access that should persist even if the role changes.": "角色会自动提供隐式权限。下面的显式权限只用于覆盖或附加那些即使角色变更也要保留的访问能力。",
+  "Implicit grants from role": "角色隐式权限",
+  "{{role}} currently includes these permissions automatically.": "{{role}} 当前会自动包含这些权限。",
+  "No role is selected, so this member has no implicit grants right now.": "当前未选择角色，因此这个成员目前没有任何隐式权限。",
+  "Included implicitly by the {{role}} role. Add an explicit grant only if it should stay after the role changes.": "该权限已由 {{role}} 角色隐式包含。只有在角色变更后仍需保留时，才需要添加显式授权。",
+  "selected": "当前选择",
+  "Stored explicitly for this member.": "已为该成员显式存储。",
+  "Save access": "保存访问权限",
+  "Create agents": "创建智能体",
+  "Invite humans and agents": "邀请人类和智能体",
+  "Manage members and grants": "管理成员和授权",
+  "Assign tasks": "分配任务",
+  "Assign scoped tasks": "分配限定范围的任务",
+  "Approve join requests": "批准加入请求",
+  "No explicit grants": "没有显式授权",
+  "No Parent": "无父任务",
+  "No Workspace": "无工作区",
+  "Blocked": "已阻塞",
+  "Email": "邮箱",
+  "Password": "密码",
+  "Create {{label}}": "创建{{label}}",
+  "New {{label}}": "新建{{label}}",
+  "Rendering {{shown}} of {{total}} issues": "当前显示 {{shown}} / {{total}} 个任务",
+  "inviteLanding.acceptBootstrapInvite": "接受引导邀请",
+  "inviteLanding.acceptCompanyInvite": "接受公司邀请",
+  "inviteLanding.acceptInvite": "接受邀请",
+  "inviteLanding.accountAlreadyBelongs": "这个账号已经属于该公司。",
+  "inviteLanding.accountExistsForEmail": "{{email}} 已经有对应账号。请在下方登录后继续处理这个邀请。",
+  "inviteLanding.accountMayExist": "{{email}} 可能已经存在账号。请尝试改为登录。",
+  "inviteLanding.accountReadyIntro": "你的账号已经就绪。请查看邀请详情，然后接受邀请继续。",
+  "inviteLanding.agentApprovalRequest": "这个邀请会为 {{company}} 中的新智能体创建一条待审批请求。",
+  "inviteLanding.agentJoinRequest": "智能体加入请求",
+  "inviteLanding.agentReviewIntro": "请先查看邀请详情，然后在下方提交智能体信息以发起加入请求。",
+  "inviteLanding.alreadyBelongsToCompany": "这个账号已经属于 {{company}}。",
+  "inviteLanding.alreadySignedUpHint": "如果你之前已经注册过，请改用“我已经有账号”，这样邀请会落到正确的 Paperclip 用户上。",
+  "inviteLanding.approvalPage": "审批页面",
+  "inviteLanding.askApproverVisitPrefix": "请让审批人访问 ",
+  "inviteLanding.askApproverVisitSuffix": " 来批准你的请求。",
+  "inviteLanding.authFailed": "认证失败",
+  "inviteLanding.awaitingApproval": "你的请求仍在等待审批。{{approver}} 必须先批准，你才能加入。",
+  "inviteLanding.bootstrapComplete": "初始化完成",
+  "inviteLanding.checkingAccess": "正在检查你的公司访问权限，请稍候。",
+  "inviteLanding.checkingYourAccess": "正在检查你的访问权限...",
+  "inviteLanding.claimSecret": "认领密钥",
+  "inviteLanding.companyAccessLabel": "公司访问权限",
+  "inviteLanding.companyAdmin": "某位公司管理员",
+  "inviteLanding.companySettingsAccess": "公司设置 → 访问",
+  "inviteLanding.continue": "继续",
+  "inviteLanding.createAccount": "创建账号",
+  "inviteLanding.createAccountAndContinue": "创建账号并继续",
+  "inviteLanding.createAccountIntro": "请先创建你的 Paperclip 账号。如果你已经有账号，请切换到登录并使用同一个邮箱继续处理邀请。",
+  "inviteLanding.createYourAccount": "创建你的账号",
+  "inviteLanding.failedAcceptInvite": "接受邀请失败",
+  "inviteLanding.fillRequired": "请填写所有必填字段。",
+  "inviteLanding.finishingSignIn": "正在完成登录...",
+  "inviteLanding.haveAccount": "我已经有账号",
+  "inviteLanding.invalidCredentials": "这个邮箱和密码与现有的 Paperclip 账号不匹配。请检查后重试；如果你是新用户，请先创建账号。",
+  "inviteLanding.invalidToken": "无效的邀请令牌。",
+  "inviteLanding.inviteAlreadyUsed": "这个邀请已经被使用。",
+  "inviteLanding.inviteExpires": "邀请过期时间",
+  "inviteLanding.inviteNotFound": "未找到邀请",
+  "inviteLanding.inviteUnavailable": "邀请不可用",
+  "inviteLanding.inviteUnavailableBody": "这个邀请可能已经过期、被撤销，或者已被使用。",
+  "inviteLanding.invitedToJoin": "你已被邀请加入 Paperclip",
+  "inviteLanding.joinCompany": "加入 {{company}}",
+  "inviteLanding.joinRequestRejected": "这个加入请求没有获得批准。",
+  "inviteLanding.joinedCompany": "你已加入公司",
+  "inviteLanding.loadingInvite": "正在加载邀请...",
+  "inviteLanding.messageFromInviter": "邀请人留言",
+  "inviteLanding.noAccountYetHint": "如果你还没有账号，请切回“创建账号”，这样你可以用一个新的登录来接受邀请。",
+  "inviteLanding.onboarding": "入门说明",
+  "inviteLanding.openBoard": "打开看板",
+  "inviteLanding.openingCompany": "正在打开公司...",
+  "inviteLanding.paperclipBoard": "Paperclip 董事会",
+  "inviteLanding.refreshAfterApproval": "当你获得批准后，请刷新这个页面，系统会自动为你跳转。",
+  "inviteLanding.requestToJoin": "申请加入 {{company}}",
+  "inviteLanding.requestedAccess": "申请的访问权限",
+  "inviteLanding.setUpPaperclip": "设置 Paperclip",
+  "inviteLanding.signInAndContinue": "登录并继续",
+  "inviteLanding.signInIntro": "请使用与这个邀请对应的现有 Paperclip 账号登录。如果你还没有账号，请切回创建账号。",
+  "inviteLanding.signInToContinue": "登录以继续",
+  "inviteLanding.signUpIntro": "请先创建一个 Paperclip 账号。之后你会回到这里，继续接受 {{company}} 的邀请。",
+  "inviteLanding.signedInAs": "当前登录账号：{{account}}。",
+  "inviteLanding.submitAgentDetails": "提交智能体信息",
+  "inviteLanding.submitRequest": "提交请求",
+  "inviteLanding.submittingForCompany": "正在为 {{company}} 提交你的加入请求。",
+  "inviteLanding.submittingJoinRequest": "正在提交加入请求",
+  "inviteLanding.submittingRequest": "正在提交请求...",
+  "inviteLanding.thatEmail": "该邮箱",
+  "inviteLanding.thisAccount": "当前账号",
+  "inviteLanding.thisCompany": "这个 Paperclip 公司",
+  "inviteLanding.thisWillSetUpPaperclip": "这会完成 Paperclip 的初始化设置。",
+  "inviteLanding.thisWillSubmitJoinRequest": "这会为 {{company}} 提交或完成你的加入请求。",
+  "inviteLanding.working": "处理中...",
+  "Profile": "资料",
+  "Access": "访问",
+  "Env": "环境变量",
+  "Deployment and auth": "部署与认证",
+  "Auth readiness": "认证就绪状态",
+  "Bootstrap status": "初始化状态",
+  "Bootstrap invite": "初始化邀请",
+  "Not ready": "未就绪",
+  "Setup required": "需要设置",
+  "modeBadge.localTrusted": "本地可信",
+  "modeBadge.authenticatedPrivate": "认证私有",
+  "modeBadge.authenticatedPublic": "认证公开",
+  "sidebarAccountMenu.languageDescription": "为当前浏览器选择界面语言。",
+  "instanceGeneralSettings.localTrustedDescription": "本地可信模式针对本机操作者优化。浏览器请求会以本地董事会上下文运行，不需要登录。",
+  "instanceGeneralSettings.authenticatedPublicDescription": "认证公开模式要求登录后才能访问董事会，适合公开 URL 场景。",
+  "instanceGeneralSettings.authenticatedPrivateDescription": "认证私有模式要求登录，适合局域网、VPN 或其他私有网络部署场景。",
+  "projectProperties.env": "环境变量",
+  "Danger Zone": "危险区域",
+  "Select a company to create secrets": "请先选择公司再创建密钥",
+  "Invites": "邀请",
+  "View profile": "查看资料",
+  "Open your activity, task, and usage ledger.": "查看你的活动、任务和使用情况台账。",
+  "Workspaces": "工作区",
+  "Start services": "启动服务",
+  "Stop services": "停止服务",
+  "Copy branch": "复制分支",
+  "Branch copied": "已复制分支",
+  "Copy path": "复制路径",
+  "Path copied": "已复制路径",
+  "Service": "服务",
+  "Cleanup failed": "清理失败",
+  "Linked issues": "关联任务",
+  "+{{count}} more": "还有 {{count}} 个",
+  "{{count}} workspace": "{{count}} 个工作区",
+  "{{count}} workspaces": "{{count}} 个工作区",
+  "{{running}}/{{total}} services": "{{running}}/{{total}} 个服务",
+  "No workspace activity yet.": "还没有工作区活动。",
+  "No non-default workspace activity yet.": "还没有非默认工作区活动。",
+  "Cleanup attention needed": "需要处理的清理问题",
+  "Users": "用户",
+  "Touched": "涉及任务",
+  "Spend": "支出",
+  "All-time tokens": "累计词元",
+  "Open assigned": "未完成指派",
+  "7-day actions": "7 天内操作",
+  "All time": "全部时间",
+  "tokens total": "词元总数",
+  "completions": "完成数",
+  "Recent tasks": "最近任务",
+  "No touched tasks yet.": "还没有涉及的任务。",
+  "Recent activity": "最近活动",
+  "No direct user actions recorded yet.": "还没有记录到直接用户操作。",
+  "Agent attribution": "智能体归因",
+  "Provider mix": "提供方分布",
+  "Issue-linked usage": "任务关联使用量",
+  "Billed through {{name}}": "通过 {{name}} 计费",
+  "No issue-linked token usage yet.": "还没有任务关联词元用量。",
+  "No provider usage attributed yet.": "还没有归因到提供方的使用量。",
+  "Select a company to view user profiles.": "请先选择公司再查看用户资料。",
+  "User profile not found for this company.": "在这个公司中找不到该用户资料。",
+  "Member": "成员",
+  "joined {{date}}": "加入于 {{date}}",
+  "{{amount}} spent": "已花费 {{amount}}",
+  "{{rate}} rate": "{{rate}} 比例",
+  "{{count}} created": "创建了 {{count}} 个",
+  "{{count}} comments": "{{count}} 条评论",
+  "userProfile.tokensPerDay": "每日词元",
+  "userProfile.completions": "完成数",
+  "issueRelatedWork.references": "引用",
+  "issueRelatedWork.referencesDescription": "此任务当前在标题、描述、评论或文档中指向的其他任务。",
+  "issueRelatedWork.noReferences": "此任务尚未引用其他任务。",
+  "issueRelatedWork.referencedBy": "被引用",
+  "issueRelatedWork.referencedByDescription": "当前指向此任务的其他任务。",
+  "issueRelatedWork.noReferencedBy": "尚无其他任务引用此任务。",
+  "issueReferences.added": "新增引用",
+  "issueReferences.removed": "移除引用",
+  "issueThreadInteraction.status.accepted": "已接受",
+  "issueThreadInteraction.status.rejected": "已拒绝",
+  "issueThreadInteraction.status.answered": "已回答",
+  "issueThreadInteraction.status.expired": "已过期",
+  "issueThreadInteraction.kind.suggestTasks": "建议任务",
+  "issueThreadInteraction.kind.askUserQuestions": "向用户提问",
+  "issueThreadInteraction.kind.confirmation": "确认",
+  "issueThreadInteraction.includeTask": "包含 {{title}}",
+  "issueThreadInteraction.childTask": "子任务",
+  "Billing": "计费",
+  "issueThreadInteraction.oneHiddenFollowOnTask": "预览中隐藏了 1 个后续任务",
+  "issueThreadInteraction.hiddenFollowOnTasks": "预览中隐藏了 {{count}} 个后续任务",
+  "issueThreadInteraction.oneDraftIssue": "1 个任务草稿",
+  "issueThreadInteraction.draftIssues": "{{count}} 个任务草稿",
+  "issueThreadInteraction.defaultParent": "默认父任务",
+  "issueThreadInteraction.resolutionSummary": "处理摘要",
+  "issueThreadInteraction.createdAndSkippedDrafts": "已创建 {{created}} 个草稿{{issueWord}}，并在审核中跳过 {{skipped}} 个。",
+  "issueThreadInteraction.createdAllDrafts": "已创建全部 {{count}} 个草稿{{issueWord}}。",
+  "issueThreadInteraction.rejectionReason": "拒绝原因",
+  "No reason provided.": "未提供原因。",
+  "issueThreadInteraction.allDraftsSelected": "已选择全部 {{count}} 个草稿{{issueWord}}",
+  "issueThreadInteraction.someDraftsSelected": "已选择 {{selected}} / {{total}} 个草稿{{issueWord}}",
+  "issueThreadInteraction.skippedIfAccepted": "如果接受此交互，将跳过 {{count}} 个。",
+  "issueThreadInteraction.accepting": "正在接受...",
+  "issueThreadInteraction.acceptDrafts": "接受草稿",
+  "issueThreadInteraction.acceptSelectedDrafts": "接受已选草稿",
+  "issueThreadInteraction.resetSelection": "重置选择",
+  "issueThreadInteraction.rejectSuggestionPlaceholder": "简要说明拒绝此建议的原因",
+  "issueThreadInteraction.saveRejection": "保存拒绝",
+  "issueThreadInteraction.questionNumber": "问题 {{count}}",
+  "issueThreadInteraction.pick": "选择",
+  "issueThreadInteraction.pickMany": "多选",
+  "Required": "必填",
+  "Optional": "可选",
+  "issueThreadInteraction.submitAfterForm": "完成整个表单后再提交。",
+  "issueThreadInteraction.submitting": "正在提交...",
+  "issueThreadInteraction.submitAnswers": "提交答案",
+  "Answer": "答案",
+  "issueThreadInteraction.noAnswerRecorded": "没有记录答案。",
+  "issueThreadInteraction.submittedSummary": "已提交摘要",
+  "Confirmed": "已确认",
+  "Declined": "已拒绝",
+  "issueThreadInteraction.expiredByComment": "因评论而过期",
+  "issueThreadInteraction.expiredByTargetChange": "因目标变更而过期",
+  "issueThreadInteraction.supersededByComment": "在处理前，董事会评论已取代这次确认。",
+  "issueThreadInteraction.staleTarget": "在处理前，请求目标已发生变化。",
+  "issueThreadInteraction.jumpToComment": "跳转到评论",
+  "issueThreadInteraction.requestFailed": "无法处理此请求。请重试或创建新请求。",
+  "issueThreadInteraction.revisionPlaceholder": "可选：你希望修改什么？",
+  "issueThreadInteraction.declinePlaceholder": "可选：告诉智能体你希望如何调整。",
+  "Try again": "重试",
+  "issueThreadInteraction.confirming": "正在确认...",
+  "Confirm": "确认",
+  "Decline": "拒绝",
+  "issueThreadInteraction.declineReasonRequired": "必须填写拒绝原因。",
+  "issueThreadInteraction.cancelDecline": "取消拒绝",
+  "issueThreadInteraction.wakesOnConfirm": "确认后唤醒",
+  "issueThreadInteraction.wakesAssignee": "唤醒负责人",
+  "issueThreadInteraction.suggestedTaskTree": "建议任务树",
+  "issueThreadInteraction.questionsForOperator": "给操作者的问题",
+  "issueThreadInteraction.confirmationRequested": "请求确认",
+  "issueThreadInteraction.proposedBy": "由 {{name}} 提出",
+  "Created {{time}}": "创建于 {{time}}",
+  "issueThreadInteraction.resolvedBy": "由 {{name}} 处理",
+  "issueThreadInteraction.resolvedOn": "，日期 {{date}}",
+  "issueChatThread.theLinkedIssue": "关联任务",
+  "issueChatThread.theLinkedIssues": "关联任务",
+  "issueChatThread.itIs": "它",
+  "issueChatThread.theyAre": "它们",
+  "issueChatThread.blockedByLinkedIssue": "此任务被{{blocker}}阻塞，直到{{pronoun}}完成。评论仍会唤醒负责人以处理问题或分诊。",
+  "issueChatThread.blockedUntilTodo": "此任务已阻塞，直到移回待办状态。评论仍会唤醒负责人以处理问题或分诊。",
+  "issueChatThread.pausedByBudget": "它因预算硬停止而暂停。",
+  "issueChatThread.pausedBySystem": "它由系统暂停。",
+  "issueChatThread.pausedManually": "它被手动暂停。",
+  "issueChatThread.agentPaused": "{{name}} 已暂停。在恢复该智能体前不会启动新的运行。{{detail}}",
+  "issueThreadInteraction.requestConfirmed": "请求已确认",
+  "issueThreadInteraction.acceptedDraftsAndSkipped": "已接受 {{count}} 个草稿并跳过 {{skipped}} 个",
+  "issueThreadInteraction.suggestedTasksAccepted": "已接受建议任务",
+  "issueThreadInteraction.acceptFailed": "接受失败",
+  "issueThreadInteraction.unableToAcceptSuggestedTasks": "无法接受建议任务",
+  "issueThreadInteraction.requestDeclined": "请求已拒绝",
+  "issueThreadInteraction.suggestionRejected": "建议已拒绝",
+  "issueThreadInteraction.rejectFailed": "拒绝失败",
+  "issueThreadInteraction.unableToRejectSuggestedTasks": "无法拒绝建议任务",
+  "issueThreadInteraction.answersSubmitted": "答案已提交",
+  "issueThreadInteraction.submitFailed": "提交失败",
+  "issueThreadInteraction.unableToSubmitAnswers": "无法提交答案",
+  "issueThreadInteraction.queuedCommentCanceled": "已取消排队评论",
+  "issueThreadInteraction.queuedMessageRestored": "排队消息已恢复到编辑器。",
+  "Cancel failed": "取消失败",
+  "issueThreadInteraction.unableToCancelQueuedComment": "无法取消排队评论",
+  "issues": "任务",
+  "Attachments": "附件",
+  " · started {{time}}": " · 开始于 {{time}}",
+  ". Resume from the root issue to deliver deferred work.": "。请从根任务恢复，以交付延后工作。",
+  "Active subtree pause released.": "子树暂停已解除。",
+  "Archive from inbox": "从收件箱归档",
+  "Assign an agent to wake them for triage while the subtree remains paused.": "分配智能体后，可在子树保持暂停时唤醒其进行分流。",
+  "Back to inbox": "返回收件箱",
+  "Cancel subtree...": "取消子树...",
+  "Cancel {{count}} issues": "取消 {{count}} 个任务",
+  "Cancelling a subtree is destructive. Non-terminal issues will be marked cancelled, and running or queued work will be interrupted where possible.": "取消子树是破坏性操作。非终态任务会被标记为已取消，正在运行或排队的工作会尽可能被中断。",
+  "Complete": "已完成",
+  "Copy as markdown": "复制为 Markdown",
+  "Deferred wake": "延后唤醒",
+  "Enable Environments": "启用环境",
+  "Environment choices use the same adapter support matrix as agent defaults. SSH environments are available for remote-managed adapters.": "环境选项使用与智能体默认值相同的适配器支持矩阵。SSH 环境可用于远程托管适配器。",
+  "Explain why this subtree control is being applied...": "说明为什么要应用此子树控制...",
+  "I understand this will cancel {{count}} issues.": "我理解这会取消 {{count}} 个任务。",
+  "More issue actions": "更多任务操作",
+  "No active subtree pause hold is available to resume.": "没有可恢复的活跃子树暂停。",
+  "No assigned agents are eligible to wake from this preview.": "此预览中没有符合唤醒条件的已分配智能体。",
+  "Pause and stop work": "暂停并停止工作",
+  "Pause subtree...": "暂停子树...",
+  "Preview unavailable.": "预览不可用。",
+  "Reason (optional)": "原因（可选）",
+  "Reason (required)": "原因（必填）",
+  "Restore subtree...": "恢复子树...",
+  "Restore {{count}} issues": "恢复 {{count}} 个任务",
+  "Resume subtree": "恢复子树",
+  "Retry preview": "重试预览",
+  "Root and descendant execution is held until resume. Human comments can still wake assignees for triage.": "根任务及其后代的执行会保持暂停，直到恢复。人工评论仍可唤醒处理人进行分流。",
+  "Sending this comment will wake {{name}} for triage while the subtree remains paused.": "发送此评论会唤醒 {{name}} 进行分流，但子树仍保持暂停。",
+  "Show environment management in company settings and allow project and agent environment assignment controls.": "在公司设置中显示环境管理，并允许为项目和智能体分配环境。",
+  "Subtree control applied.": "子树控制已应用。",
+  "Subtree pause is active.": "子树暂停已生效。",
+  "Subtree paused": "子树已暂停",
+  "Subtree paused. {{count}} run cancelled.": "子树已暂停，已取消 {{count}} 个运行。",
+  "Subtree resumed": "子树已恢复",
+  "This issue is paused by ancestor": "此任务被上级任务暂停",
+  "Toggle environments experimental setting": "切换环境实验设置",
+  "View affected ({{count}})": "查看受影响项（{{count}}）",
+  "Wake affected agents ({{count}})": "唤醒受影响智能体（{{count}}）",
+  "Wake assigned agents after this operation completes.": "操作完成后唤醒已分配智能体。",
+  "agentConfig.companyDefaultLocal": "公司默认（本地）",
+  "agentConfig.defaultEnvironment": "默认环境",
+  "agentConfig.defaultEnvironmentHint": "智能体级默认执行目标。项目和任务设置仍可覆盖。",
+  "agentConfig.execution": "执行",
+  "companySettings.addEnvironment": "添加环境",
+  "companySettings.createEnvironment": "创建环境",
+  "companySettings.creating": "正在创建...",
+  "companySettings.draftProbeFailed": "草稿探测失败",
+  "companySettings.draftProbePassed": "草稿探测通过",
+  "companySettings.driver": "驱动",
+  "companySettings.editEnvironment": "编辑环境",
+  "companySettings.editing": "正在编辑",
+  "companySettings.environmentCreated": "环境已创建",
+  "companySettings.environmentDescriptionHint": "可选说明这台机器的用途。",
+  "companySettings.environmentDriverHint": "本地会在此主机运行。SSH 会保存远程机器目标。",
+  "companySettings.environmentNameHint": "面向操作员显示的执行目标名称。",
+  "companySettings.environmentProbeFailed": "环境探测失败",
+  "companySettings.environmentProbeFailedSentence": "环境探测失败。",
+  "companySettings.environmentProbePassed": "环境探测通过",
+  "companySettings.environmentReady": "{{name}} 已就绪。",
+  "companySettings.environmentSaveFailed": "环境保存失败。",
+  "companySettings.environmentSupportByAdapter": "按适配器查看环境支持",
+  "companySettings.environmentUpdated": "环境已更新",
+  "companySettings.environments": "环境",
+  "companySettings.environmentsHint": "环境选项使用与智能体默认值相同的适配器支持矩阵。SSH 环境可用于远程托管适配器。",
+  "companySettings.failedToSaveEnvironment": "保存环境失败",
+  "companySettings.host": "主机",
+  "companySettings.hostHint": "远程机器的 DNS 名称或 IP 地址。",
+  "companySettings.knownHosts": "Known hosts",
+  "companySettings.knownHostsHint": "启用严格主机密钥检查时使用的可选 known_hosts 内容。",
+  "companySettings.noEnvironments": "此公司尚未保存环境。",
+  "companySettings.noSavedSecret": "未选择已保存密钥",
+  "companySettings.port": "端口",
+  "companySettings.portHint": "默认 22。",
+  "companySettings.privateKey": "私钥",
+  "companySettings.privateKeyHint": "可选 PEM 私钥。留空则依赖服务端 SSH agent 或默认密钥链。",
+  "companySettings.remoteWorkspacePath": "远程工作区路径",
+  "companySettings.remoteWorkspacePathHint": "Paperclip CN 会在 SSH 连接测试期间验证的绝对路径。",
+  "companySettings.runsOnThisPaperclipHost": "在当前 Paperclip CN 主机上运行。",
+  "companySettings.saveEnvironment": "保存环境",
+  "companySettings.sshHostFallback": "SSH 主机",
+  "companySettings.sshUserFallback": "用户",
+  "companySettings.strictHostKeyChecking": "严格主机密钥检查",
+  "companySettings.strictHostKeyCheckingHint": "除非你明确想在探测时禁用主机密钥校验，否则请保持开启。",
+  "companySettings.testConnection": "测试连接",
+  "companySettings.testDraft": "测试草稿",
+  "companySettings.username": "用户名",
+  "companySettings.usernameHint": "SSH 登录用户。",
+  "the assignee": "处理人",
+  "{{count}} descendant held": "{{count}} 个后代已暂停",
+  "{{mode}} applied": "{{mode}} 已应用"
 }

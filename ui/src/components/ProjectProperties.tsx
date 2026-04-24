@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import type { Project } from "@penclipai/shared";
 import { StatusBadge } from "./StatusBadge";
 import { cn, formatDate } from "../lib/utils";
+import { environmentsApi } from "../api/environments";
 import { goalsApi } from "../api/goals";
 import { instanceSettingsApi } from "../api/instanceSettings";
 import { projectsApi } from "../api/projects";
@@ -50,6 +51,7 @@ export type ProjectConfigFieldKey =
   | "env"
   | "execution_workspace_enabled"
   | "execution_workspace_default_mode"
+  | "execution_workspace_environment"
   | "execution_workspace_base_ref"
   | "execution_workspace_branch_template"
   | "execution_workspace_worktree_parent_dir"
@@ -267,6 +269,7 @@ export function ProjectProperties({ project, onUpdate, onFieldUpdate, getFieldSa
     queryFn: () => instanceSettingsApi.getExperimental(),
     retry: false,
   });
+  const environmentsEnabled = experimentalSettings?.enableEnvironments === true;
   const { data: availableSecrets = [] } = useQuery({
     queryKey: selectedCompanyId ? queryKeys.secrets.list(selectedCompanyId) : ["secrets", "none"],
     queryFn: () => secretsApi.list(selectedCompanyId!),
@@ -283,6 +286,11 @@ export function ProjectProperties({ project, onUpdate, onFieldUpdate, getFieldSa
       if (!selectedCompanyId) return;
       queryClient.invalidateQueries({ queryKey: queryKeys.secrets.list(selectedCompanyId) });
     },
+  });
+  const { data: environments } = useQuery({
+    queryKey: queryKeys.environments.list(selectedCompanyId!),
+    queryFn: () => environmentsApi.list(selectedCompanyId!),
+    enabled: !!selectedCompanyId && environmentsEnabled,
   });
 
   const linkedGoalIds = project.goalIds.length > 0
@@ -308,12 +316,16 @@ export function ProjectProperties({ project, onUpdate, onFieldUpdate, getFieldSa
   const isolatedWorkspacesEnabled = experimentalSettings?.enableIsolatedWorkspaces === true;
   const executionWorkspaceDefaultMode =
     executionWorkspacePolicy?.defaultMode === "isolated_workspace" ? "isolated_workspace" : "shared_workspace";
+  const executionWorkspaceEnvironmentId = executionWorkspacePolicy?.environmentId ?? "";
   const executionWorkspaceStrategy = executionWorkspacePolicy?.workspaceStrategy ?? {
     type: "git_worktree",
     baseRef: "",
     branchTemplate: "",
     worktreeParentDir: "",
   };
+  const runSelectableEnvironments = (environments ?? []).filter((environment) =>
+    environment.driver === "local" || environment.driver === "ssh"
+  );
 
   const invalidateProject = () => {
     queryClient.invalidateQueries({ queryKey: queryKeys.projects.detail(project.id) });
@@ -1046,6 +1058,34 @@ export function ProjectProperties({ project, onUpdate, onFieldUpdate, getFieldSa
                             {t("projectProperties.gitWorktree", { defaultValue: "Git worktree" })}
                           </span>
                         </div>
+                        {environmentsEnabled ? (
+                          <div>
+                            <div className="mb-1 flex items-center gap-1.5">
+                              <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                                <span>Environment</span>
+                                <SaveIndicator state={fieldState("execution_workspace_environment")} />
+                              </label>
+                            </div>
+                            <select
+                              className="w-full rounded border border-border bg-transparent px-2 py-1 text-xs outline-none"
+                              value={executionWorkspaceEnvironmentId}
+                              onChange={(e) =>
+                                commitField(
+                                  "execution_workspace_environment",
+                                  updateExecutionWorkspacePolicy({
+                                    environmentId: e.target.value || null,
+                                  })!,
+                                )}
+                            >
+                              <option value="">No environment</option>
+                              {runSelectableEnvironments.map((environment) => (
+                                <option key={environment.id} value={environment.id}>
+                                  {environment.name} · {environment.driver}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        ) : null}
                         <div>
                           <div className="mb-1 flex items-center gap-1.5">
                             <label className="flex items-center gap-2 text-xs text-muted-foreground">
