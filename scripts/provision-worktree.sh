@@ -458,7 +458,9 @@ main().catch((error) => {
 EOF
 }
 
-if ! run_isolated_worktree_init; then
+if [[ -e "$(to_shell_path "$worktree_config_path_raw")" && -e "$(to_shell_path "$worktree_env_path_raw")" ]]; then
+  echo "Reusing existing isolated Paperclip worktree config at $worktree_config_path_raw" >&2
+elif ! run_isolated_worktree_init; then
   resolve_penclip_invoker
   if [[ "$resolved_penclip_invoker" == "none" ]]; then
     echo "penclip CLI not available in this workspace; writing isolated fallback config without DB seeding." >&2

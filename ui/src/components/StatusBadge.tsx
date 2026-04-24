@@ -13,7 +13,7 @@ export function StatusBadge({ status }: { status: string }) {
         statusBadge[status] ?? statusBadgeDefault
       )}
     >
-      {translateStatusLabel(t, status)}
+      {status.replace(/_/g, " ")}
     </span>
   );
 }

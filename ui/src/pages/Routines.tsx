@@ -16,6 +16,7 @@ import { queryKeys } from "../lib/queryKeys";
 import { groupBy } from "../lib/groupBy";
 import { createIssueDetailLocationState } from "../lib/issueDetailBreadcrumb";
 import { getRecentAssigneeIds, sortAgentsByRecency, trackRecentAssignee } from "../lib/recent-assignees";
+import { getRecentProjectIds, trackRecentProject } from "../lib/recent-projects";
 import { ToggleSwitch } from "@/components/ui/toggle-switch";
 import { EmptyState } from "../components/EmptyState";
 import { IssuesList } from "../components/IssuesList";
@@ -523,6 +524,7 @@ export function Routines() {
   });
 
   const recentAssigneeIds = useMemo(() => getRecentAssigneeIds(), [composerOpen]);
+  const recentProjectIds = useMemo(() => getRecentProjectIds(), [composerOpen]);
   const assigneeOptions = useMemo<InlineEntityOption[]>(
     () =>
       sortAgentsByRecency(
@@ -795,10 +797,11 @@ export function Routines() {
                     ref={assigneeSelectorRef}
                     value={draft.assigneeAgentId}
                     options={assigneeOptions}
-                    placeholder={t("Assignee", { defaultValue: "Assignee" })}
-                    noneLabel={t("No assignee", { defaultValue: "No assignee" })}
-                    searchPlaceholder={t("Search assignees...", { defaultValue: "Search assignees..." })}
-                    emptyMessage={t("No assignees found.", { defaultValue: "No assignees found." })}
+                    recentOptionIds={recentAssigneeIds}
+                    placeholder="Assignee"
+                    noneLabel="No assignee"
+                    searchPlaceholder="Search assignees..."
+                    emptyMessage="No assignees found."
                     onChange={(assigneeAgentId) => {
                       if (assigneeAgentId) trackRecentAssignee(assigneeAgentId);
                       setDraft((current) => ({ ...current, assigneeAgentId }));
@@ -840,11 +843,15 @@ export function Routines() {
                     ref={projectSelectorRef}
                     value={draft.projectId}
                     options={projectOptions}
-                    placeholder={t("Project", { defaultValue: "Project" })}
-                    noneLabel={t("No project", { defaultValue: "No project" })}
-                    searchPlaceholder={t("Search projects...", { defaultValue: "Search projects..." })}
-                    emptyMessage={t("No projects found.", { defaultValue: "No projects found." })}
-                    onChange={(projectId) => setDraft((current) => ({ ...current, projectId }))}
+                    recentOptionIds={recentProjectIds}
+                    placeholder="Project"
+                    noneLabel="No project"
+                    searchPlaceholder="Search projects..."
+                    emptyMessage="No projects found."
+                    onChange={(projectId) => {
+                      if (projectId) trackRecentProject(projectId);
+                      setDraft((current) => ({ ...current, projectId }));
+                    }}
                     onConfirm={() => descriptionEditorRef.current?.focus()}
                     renderTriggerValue={(option) =>
                       option && currentProject ? (

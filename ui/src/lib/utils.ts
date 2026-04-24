@@ -16,25 +16,23 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function formatUsdAmount(
-  amountUsd: number,
-  options?: { minimumFractionDigits?: number; maximumFractionDigits?: number },
-): string {
-  const locale = getCurrentLocale();
-  return new Intl.NumberFormat(locale, {
-    style: "currency",
-    currency: DISPLAY_CURRENCY,
-    currencyDisplay: "narrowSymbol",
-    minimumFractionDigits: options?.minimumFractionDigits ?? 2,
-    maximumFractionDigits: options?.maximumFractionDigits ?? 2,
-  }).format(amountUsd);
+export function formatCents(cents: number): string {
+  return `$${(cents / 100).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-export function formatCents(cents: number): string {
-  return formatUsdAmount(cents / 100, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
+export function formatUsdAmount(
+  amount: number,
+  options?: Intl.NumberFormatOptions,
+): string {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: DISPLAY_CURRENCY,
+    ...options,
+  }).format(amount);
+}
+
+export function formatNumber(n: number): string {
+  return new Intl.NumberFormat(getCurrentLocale()).format(n);
 }
 
 export function formatBudgetInputValue(cents: number): string {
@@ -75,10 +73,10 @@ export function formatTime(
 }
 
 export function formatShortDate(date: Date | string): string {
-  return new Date(date).toLocaleString("en-US", {
+  return new Intl.DateTimeFormat(getCurrentLocale(), {
     month: "short",
     day: "numeric",
-  });
+  }).format(new Date(date));
 }
 
 export function relativeTime(date: Date | string): string {
@@ -102,6 +100,7 @@ export function relativeTime(date: Date | string): string {
 }
 
 export function formatTokens(n: number): string {
+  if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(1)}B`;
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
   if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
   return String(n);

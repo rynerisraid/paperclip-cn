@@ -53,7 +53,11 @@ export function InstanceAccess() {
   useEffect(() => {
     if (!userAccessQuery.data) return;
     setSelectedCompanyIds(
-      new Set(userAccessQuery.data.companyAccess.map((membership) => membership.companyId)),
+      new Set(
+        userAccessQuery.data.companyAccess
+          .filter((membership) => membership.status === "active")
+          .map((membership) => membership.companyId),
+      ),
     );
   }, [userAccessQuery.data]);
 

@@ -22,6 +22,9 @@ const mockApprovalService = vi.hoisted(() => ({
   create: vi.fn(),
 }));
 const mockBudgetService = vi.hoisted(() => ({}));
+const mockEnvironmentService = vi.hoisted(() => ({
+  getById: vi.fn(),
+}));
 const mockHeartbeatService = vi.hoisted(() => ({}));
 const mockIssueApprovalService = vi.hoisted(() => ({
   linkManyForApproval: vi.fn(),
@@ -75,6 +78,7 @@ vi.mock("../services/index.js", () => ({
   approvalService: () => mockApprovalService,
   companySkillService: () => mockCompanySkillService,
   budgetService: () => mockBudgetService,
+  environmentService: () => mockEnvironmentService,
   heartbeatService: () => mockHeartbeatService,
   issueApprovalService: () => mockIssueApprovalService,
   issueService: () => ({}),
@@ -178,6 +182,7 @@ function makeAgent(adapterType: string) {
     adapterType,
     adapterConfig: {},
     runtimeConfig: {},
+    defaultEnvironmentId: null,
     permissions: null,
     updatedAt: new Date(),
   };
@@ -467,9 +472,23 @@ describe("agent skill routes", () => {
           adapterType: "claude_local",
         }),
         expect.objectContaining({
-          "AGENTS.md": expect.stringContaining("Keep the work moving until it's done."),
+          "AGENTS.md": expect.stringMatching(/Start actionable work in the same heartbeat\.[\s\S]*Keep the work moving until it is done\./),
         }),
         { entryFile: "AGENTS.md", replaceExisting: false },
+      );
+      expect(mockAgentInstructionsService.materializeManagedBundle).toHaveBeenCalledWith(
+        expect.any(Object),
+        expect.objectContaining({
+          "AGENTS.md": expect.stringContaining('kind: "request_confirmation"'),
+        }),
+        expect.any(Object),
+      );
+      expect(mockAgentInstructionsService.materializeManagedBundle).toHaveBeenCalledWith(
+        expect.any(Object),
+        expect.objectContaining({
+          "AGENTS.md": expect.stringContaining("confirmation:{issueId}:plan:{revisionId}"),
+        }),
+        expect.any(Object),
       );
     });
   });

@@ -2331,469 +2331,695 @@
   "ran {{count}} command": "ran {{count}} command",
   "ran {{count}} commands": "ran {{count}} commands",
   "run": "run",
-  "You can change this later in Instance Settings > General.": "You can change this later in Instance Settings > General."
-  ,"Censor username in logs": "Censor username in logs"
-  ,"Configure instance-wide defaults that affect operator-visible logs and agent runtime guidance.": "Configure instance-wide defaults that affect operator-visible logs and agent runtime guidance."
-  ,"Failed to sign out.": "Failed to sign out."
-  ,"Sign out": "Sign out"
-  ,"Sign out of this Paperclip instance. You will be redirected to the login page.": "Sign out of this Paperclip instance. You will be redirected to the login page."
-  ,"Reviewer": "Reviewer"
-  ,"Approver": "Approver"
-  ,"Reviewers": "Reviewers"
-  ,"Approvers": "Approvers"
-  ,"Search reviewers...": "Search reviewers..."
-  ,"Search approvers...": "Search approvers..."
-  ,"No reviewers found.": "No reviewers found."
-  ,"No approvers found.": "No approvers found."
-  ,"Blocking": "Blocking"
-  ,"No blockers": "No blockers"
-  ,"Execution": "Execution"
-  ,"Hide this Issue": "Hide this Issue"
-  ,"Delete?": "Delete?"
-  ,"Delete attachment": "Delete attachment"
-  ,"Yes": "Yes"
-  ,"No": "No"
-  ,"Review": "Review"
-  ,"Approval": "Approval"
-  ,"{{stage}} requested changes{{suffix}}": "{{stage}} requested changes{{suffix}}"
-  ,"{{stage}} pending{{suffix}}": "{{stage}} pending{{suffix}}"
-  ,"by": "by"
-  ,"with": "with"
-  ,"Requester": "Requester"
-  ,"No companies": "No companies"
-  ,"Company Settings": "Company Settings"
-  ,"Manage Companies": "Manage Companies"
-  ,"Mobile navigation": "Mobile navigation"
-  ,"Home": "Home"
-  ,"issuesList.newIssue": "New Issue"
-  ,"issuesList.filter": "Filter"
-  ,"issuesList.filters": "Filters"
-  ,"issuesList.quickFilters": "Quick filters"
-  ,"issuesList.sort": "Sort"
-  ,"issuesList.group": "Group"
-  ,"issuesList.live": "Live"
-  ,"issuesList.columns": "Columns"
-  ,"issuesList.chooseVisibleColumns": "Choose which issue columns stay visible"
-  ,"issuesList.defaultColumnsSummary": "status, id, updated"
-  ,"issuesList.updatedAtTime": "Updated {{time}}"
-  ,"Creator": "Creator"
-  ,"Hide routine runs": "Hide routine runs"
-  ,"No creators match.": "No creators match."
-  ,"Remove creator {{name}}": "Remove creator {{name}}"
-  ,"Search creators...": "Search creators..."
-  ,"Showing up to {{count}} matches. Refine the search to narrow further.": "Showing up to {{count}} matches. Refine the search to narrow further."
-  ,"issueDetail.loadingEarlierComments": "Loading earlier comments..."
-  ,"issueDetail.loadEarlierComments": "Load earlier comments"
-  ,"issueDetail.costSummary": "Cost Summary"
-  ,"issueDetail.noCostData": "No cost data yet."
-  ,"issueDetail.noActivity": "No activity yet."
-  ,"issueDetail.newSubIssue": "New Sub-issue"
-  ,"Disable parent-child nesting": "Disable parent-child nesting"
-  ,"Enable parent-child nesting": "Enable parent-child nesting"
-  ,"Type": "Type"
-  ,"Load earlier comments": "Load earlier comments"
-  ,"Loading earlier comments...": "Loading earlier comments..."
-  ,"issueDocuments.documentKey": "Document key"
-  ,"issueChat.fallbackErrorTitle": "Chat renderer hit an internal state error."
-  ,"issueChat.fallbackErrorBody": "Showing a safe fallback transcript instead of crashing the issues page."
-  ,"issueChat.emptyConversation": "This issue conversation is empty. Start with a message below."
-  ,"issueDocuments.historicalPreviewNotice": "This is a historical preview. Restoring it creates a new latest revision and keeps history append-only."
-  ,"issueDocuments.remoteChangedNotice": "This document changed while you were editing. Your local draft is preserved and autosave is paused."
-  ,"issueDocuments.confirmDelete": "Delete this document? This cannot be undone."
-  ,"No message content.": "No message content."
-  ,"False": "False"
-  ,"True": "True"
-  ,"Variables": "Variables"
-  ,"routineVariables.defaultOption": "Default option"
-  ,"routineVariables.defaultValue": "Default value"
-  ,"routineVariables.detectedFromPlaceholders": "Detected from `{{placeholder}}` placeholders in the routine title and instructions."
-  ,"routineVariables.noDefault": "No default"
-  ,"routineVariables.options": "Options"
-  ,"routineVariables.promptBeforeRun": "Prompt the user for this value before each manual run."
-  ,"routineVariables.usePlaceholderHint": "Use `{{placeholder}}` placeholders in the instructions to prompt for inputs when the routine runs."
-  ,"Adapters": "Adapters"
-  ,"Built-in": "Built-in"
-  ,"Installed from local path": "Installed from local path"
-  ,"Installed from npm": "Installed from npm"
-  ,"Overrides built-in": "Overrides built-in"
-  ,"Overridden by {{name}}": "Overridden by {{name}}"
-  ,"Hidden from menus": "Hidden from menus"
-  ,"models": "models"
-  ,"Reinstall adapter (pull latest from npm)": "Reinstall adapter (pull latest from npm)"
-  ,"Reload adapter (hot-swap)": "Reload adapter (hot-swap)"
-  ,"Show in agent menus": "Show in agent menus"
-  ,"Hide from agent menus": "Hide from agent menus"
-  ,"Remove adapter": "Remove adapter"
-  ,"Reinstall Adapter": "Reinstall Adapter"
-  ,"This will pull the latest version of": "This will pull the latest version of"
-  ,"from npm and hot-swap": "from npm and hot-swap"
-  ,"the running adapter module. Existing agents will use the new version on their next run.": "the running adapter module. Existing agents will use the new version on their next run."
-  ,"Package": "Package"
-  ,"unknown": "unknown"
-  ,"Latest on npm": "Latest on npm"
-  ,"checking...": "checking..."
-  ,"unavailable": "unavailable"
-  ,"Already on the latest version.": "Already on the latest version."
-  ,"Reinstalling...": "Reinstalling..."
-  ,"Reinstall": "Reinstall"
-  ,"Company": "Company"
-  ,"Settings": "Settings"
-  ,"Adapter installed": "Adapter installed"
-  ,"Type \"{{type}}\" registered successfully.": "Type \"{{type}}\" registered successfully."
-  ,"Type \"{{type}}\" registered successfully. (v{{version}})": "Type \"{{type}}\" registered successfully. (v{{version}})"
-  ,"Install failed": "Install failed"
-  ,"Adapter removed": "Adapter removed"
-  ,"Removal failed": "Removal failed"
-  ,"Toggle failed": "Toggle failed"
-  ,"Override toggle failed": "Override toggle failed"
-  ,"Adapter reloaded": "Adapter reloaded"
-  ,"Type \"{{type}}\" reloaded.": "Type \"{{type}}\" reloaded."
-  ,"Type \"{{type}}\" reloaded. (v{{version}})": "Type \"{{type}}\" reloaded. (v{{version}})"
-  ,"Reload failed": "Reload failed"
-  ,"Adapter reinstalled": "Adapter reinstalled"
-  ,"Type \"{{type}}\" updated from npm.": "Type \"{{type}}\" updated from npm."
-  ,"Type \"{{type}}\" updated from npm. (v{{version}})": "Type \"{{type}}\" updated from npm. (v{{version}})"
-  ,"Reinstall failed": "Reinstall failed"
-  ,"Loading adapters...": "Loading adapters..."
-  ,"Alpha": "Alpha"
-  ,"Install Adapter": "Install Adapter"
-  ,"Install External Adapter": "Install External Adapter"
-  ,"Add an adapter from npm or a local path. The adapter package must export": "Add an adapter from npm or a local path. The adapter package must export"
-  ,"npm package": "npm package"
-  ,"Local path": "Local path"
-  ,"Path to adapter package": "Path to adapter package"
-  ,"/mnt/e/Projects/my-adapter  or  E:\\Projects\\my-adapter": "/mnt/e/Projects/my-adapter  or  E:\\Projects\\my-adapter"
-  ,"Accepts Linux, WSL, and Windows paths. Windows paths are auto-converted.": "Accepts Linux, WSL, and Windows paths. Windows paths are auto-converted."
-  ,"Package Name": "Package Name"
-  ,"my-paperclip-adapter": "my-paperclip-adapter"
-  ,"Version (optional)": "Version (optional)"
-  ,"latest": "latest"
-  ,"Installing...": "Installing..."
-  ,"Install": "Install"
-  ,"External adapters are alpha.": "External adapters are alpha."
-  ,"The adapter plugin system is under active development. APIs and storage format may change.": "The adapter plugin system is under active development. APIs and storage format may change."
-  ,"Use the power icon to hide adapters from agent menus without removing them.": "Use the power icon to hide adapters from agent menus without removing them."
-  ,"External Adapters": "External Adapters"
-  ,"No external adapters installed": "No external adapters installed"
-  ,"Install an adapter package to extend model support.": "Install an adapter package to extend model support."
-  ,"Pause external override": "Pause external override"
-  ,"Resume external override": "Resume external override"
-  ,"Override paused": "Override paused"
-  ,"Built-in Adapters": "Built-in Adapters"
-  ,"No built-in adapters found.": "No built-in adapters found."
-  ,"Remove Adapter": "Remove Adapter"
-  ,"Are you sure you want to remove the": "Are you sure you want to remove the"
-  ,"adapter?": "adapter?"
-  ,"It will be unregistered and removed from the adapter store.": "It will be unregistered and removed from the adapter store."
-  ,"npm packages will be cleaned up from disk.": "npm packages will be cleaned up from disk."
-  ,"This action cannot be undone.": "This action cannot be undone."
-  ,"Removing...": "Removing..."
-  ,"Remove": "Remove"
-  ,"Keyboard shortcuts": "Keyboard shortcuts"
-  ,"New issue": "New issue"
-  ,"Inbox": "Inbox"
-  ,"Move down": "Move down"
-  ,"Move up": "Move up"
-  ,"Open selected item": "Open selected item"
-  ,"Archive item": "Archive item"
-  ,"Mark as unread": "Mark as unread"
-  ,"Issue detail": "Issue detail"
-  ,"Quick-archive back to inbox": "Quick-archive back to inbox"
-  ,"Go to inbox": "Go to inbox"
-  ,"Focus comment composer": "Focus comment composer"
-  ,"Global": "Global"
-  ,"Toggle sidebar": "Toggle sidebar"
-  ,"Toggle panel": "Toggle panel"
-  ,"Show keyboard shortcuts": "Show keyboard shortcuts"
-  ,"then": "then"
-  ,"Press": "Press"
-  ,"to close": "to close"
-  ,"Shortcuts are disabled in text fields": "Shortcuts are disabled in text fields"
-  ,"Local CodeBuddy agent": "Local CodeBuddy agent"
-  ,"Local Qwen agent": "Local Qwen agent"
-  ,"Local Hermes CLI agent": "Local Hermes CLI agent"
-  ,"Session strategy": "Session strategy"
-  ,"Fixed": "Fixed"
-  ,"Per issue": "Per issue"
-  ,"Per run": "Per run"
-  ,"Session key": "Session key"
-  ,"Gateway auth token (x-openclaw-token)": "Gateway auth token (x-openclaw-token)"
-  ,"Wait timeout (ms)": "Wait timeout (ms)"
-  ,"Device auth": "Device auth"
-  ,"OpenClaw gateway token": "OpenClaw gateway token"
-  ,"External adapter": "External adapter"
-  ,"External local adapter": "External local adapter"
-  ,"External gateway adapter": "External gateway adapter"
-  ,"Always enabled for gateway agents. Paperclip persists a device key during onboarding so pairing approvals remain stable across runs.": "Always enabled for gateway agents. Paperclip persists a device key during onboarding so pairing approvals remain stable across runs."
-  ,"Open company menu": "Open company menu"
-  ,"Open {{name}} menu": "Open {{name}} menu"
-  ,"Invite people to {{name}}": "Invite people to {{name}}"
-  ,"Company settings": "Company settings"
-  ,"Signing out...": "Signing out..."
-  ,"Signed in": "Signed in"
-  ,"Local workspace board": "Local workspace board"
-  ,"Account": "Account"
-  ,"Local": "Local"
-  ,"Open account menu": "Open account menu"
-  ,"Paperclip v{{version}}": "Paperclip v{{version}}"
-  ,"Edit profile": "Edit profile"
-  ,"Update your display name and avatar.": "Update your display name and avatar."
-  ,"Instance settings": "Instance settings"
-  ,"Jump back to the last settings page you opened.": "Jump back to the last settings page you opened."
-  ,"Documentation": "Documentation"
-  ,"Open Paperclip docs in a new tab.": "Open Paperclip docs in a new tab."
-  ,"Switch to light mode": "Switch to light mode"
-  ,"Switch to dark mode": "Switch to dark mode"
-  ,"Toggle the app appearance.": "Toggle the app appearance."
-  ,"End this browser session.": "End this browser session."
-  ,"Instance setup required": "Instance setup required"
-  ,"No instance admin exists yet. A bootstrap invite is already active. Check your Paperclip startup logs for the first admin invite URL, or run this command to rotate it:": "No instance admin exists yet. A bootstrap invite is already active. Check your Paperclip startup logs for the first admin invite URL, or run this command to rotate it:"
-  ,"No instance admin exists yet. Run this command in your Paperclip environment to generate the first admin invite URL:": "No instance admin exists yet. Run this command in your Paperclip environment to generate the first admin invite URL:"
-  ,"No company access": "No company access"
-  ,"This account is signed in, but it does not have an active company membership or instance-admin access on this Paperclip instance.": "This account is signed in, but it does not have an active company membership or instance-admin access on this Paperclip instance."
-  ,"Use a company invite or sign in with an account that already belongs to this org.": "Use a company invite or sign in with an account that already belongs to this org."
-  ,"Failed to load app state": "Failed to load app state"
-  ,"Control how your account appears in the sidebar and other board surfaces.": "Control how your account appears in the sidebar and other board surfaces."
-  ,"Failed to update profile.": "Failed to update profile."
-  ,"Select a company before uploading a profile avatar.": "Select a company before uploading a profile avatar."
-  ,"Failed to upload avatar.": "Failed to upload avatar."
-  ,"Failed to remove avatar.": "Failed to remove avatar."
-  ,"Loading profile...": "Loading profile..."
-  ,"Failed to load profile.": "Failed to load profile."
-  ,"Stored in Paperclip file storage for {{name}}.": "Stored in Paperclip file storage for {{name}}."
-  ,"Select a company to upload an avatar into Paperclip storage.": "Select a company to upload an avatar into Paperclip storage."
-  ,"Click the avatar to upload a new image.": "Click the avatar to upload a new image."
-  ,"Change photo": "Change photo"
-  ,"Upload photo": "Upload photo"
-  ,"No email": "No email"
-  ,"Display name": "Display name"
-  ,"Shown in the sidebar account footer and comment author surfaces.": "Shown in the sidebar account footer and comment author surfaces."
-  ,"Email is managed by your auth session and is read-only here.": "Email is managed by your auth session and is read-only here."
-  ,"Save profile": "Save profile"
-  ,"Company access updated": "Company access updated"
-  ,"No user selected": "No user selected"
-  ,"Instance role updated": "Instance role updated"
-  ,"Loading instance users…": "Loading instance users…"
-  ,"Instance admin access is required to manage users.": "Instance admin access is required to manage users."
-  ,"Failed to load users.": "Failed to load users."
-  ,"Instance Access": "Instance Access"
-  ,"Search users, manage instance-admin status, and control which companies they can access.": "Search users, manage instance-admin status, and control which companies they can access."
-  ,"Search by name or email": "Search by name or email"
-  ,"{{count}} active company memberships": "{{count}} active company memberships"
-  ,"Select a user to inspect instance access.": "Select a user to inspect instance access."
-  ,"Loading user access…": "Loading user access…"
-  ,"Failed to load user access.": "Failed to load user access."
-  ,"Remove instance admin": "Remove instance admin"
-  ,"Promote to instance admin": "Promote to instance admin"
-  ,"Company access": "Company access"
-  ,"Toggle company membership for this user. New access defaults to an active operator membership.": "Toggle company membership for this user. New access defaults to an active operator membership."
-  ,"Save company access": "Save company access"
-  ,"Current memberships": "Current memberships"
-  ,"unset": "unset"
-  ,"Join Requests": "Join Requests"
-  ,"Join request approved": "Join request approved"
-  ,"Join request rejected": "Join request rejected"
-  ,"Select a company to review join requests.": "Select a company to review join requests."
-  ,"Loading join requests…": "Loading join requests…"
-  ,"You do not have permission to review join requests for this company.": "You do not have permission to review join requests for this company."
-  ,"Failed to load join requests.": "Failed to load join requests."
-  ,"Join Request Queue": "Join Request Queue"
-  ,"Review human and agent join requests outside the mixed inbox feed. This queue uses the same approval mutations as the inline inbox cards.": "Review human and agent join requests outside the mixed inbox feed. This queue uses the same approval mutations as the inline inbox cards."
-  ,"Request type": "Request type"
-  ,"Pending approval": "Pending approval"
-  ,"No join requests match the current filters.": "No join requests match the current filters."
-  ,"Unknown human requester": "Unknown human requester"
-  ,"Unknown agent requester": "Unknown agent requester"
-  ,"Invite context": "Invite context"
-  ,"{{type}} join invite{{suffix}}": "{{type}} join invite{{suffix}}"
-  ,"default role {{role}}": "default role {{role}}"
-  ,"Invite metadata unavailable": "Invite metadata unavailable"
-  ,"Request details": "Request details"
-  ,"Submitted {{date}}": "Submitted {{date}}"
-  ,"Source IP {{ip}}": "Source IP {{ip}}"
-  ,"Clipboard unavailable": "Clipboard unavailable"
-  ,"Copy the invite URL manually from the field below.": "Copy the invite URL manually from the field below."
-  ,"Invite created": "Invite created"
-  ,"Invite ready below and copied to clipboard.": "Invite ready below and copied to clipboard."
-  ,"Invite ready below.": "Invite ready below."
-  ,"Failed to create invite": "Failed to create invite"
-  ,"Invite revoked": "Invite revoked"
-  ,"Failed to revoke invite": "Failed to revoke invite"
-  ,"Select a company to manage invites.": "Select a company to manage invites."
-  ,"Loading invites…": "Loading invites…"
-  ,"You do not have permission to manage company invites.": "You do not have permission to manage company invites."
-  ,"Failed to load invites.": "Failed to load invites."
-  ,"Company Invites": "Company Invites"
-  ,"Create human invite links for company access. New invite links are copied to your clipboard when they are generated.": "Create human invite links for company access. New invite links are copied to your clipboard when they are generated."
-  ,"Create invite": "Create invite"
-  ,"Generate a human invite link and choose the default access it should request.": "Generate a human invite link and choose the default access it should request."
-  ,"Choose a role": "Choose a role"
-  ,"Viewer": "Viewer"
-  ,"Can view company work and follow along without operational permissions.": "Can view company work and follow along without operational permissions."
-  ,"No built-in grants.": "No built-in grants."
-  ,"Operator": "Operator"
-  ,"Recommended for people who need to help run work without managing access.": "Recommended for people who need to help run work without managing access."
-  ,"Can assign tasks.": "Can assign tasks."
-  ,"Admin": "Admin"
-  ,"Recommended for operators who need to invite people, create agents, and approve joins.": "Recommended for operators who need to invite people, create agents, and approve joins."
-  ,"Can create agents, invite users, assign tasks, and approve join requests.": "Can create agents, invite users, assign tasks, and approve join requests."
-  ,"Full company access, including membership and permission management.": "Full company access, including membership and permission management."
-  ,"Everything in Admin, plus managing members and permission grants.": "Everything in Admin, plus managing members and permission grants."
-  ,"Each invite link is single-use. The first successful use consumes the link and creates or reuses the matching join request before approval.": "Each invite link is single-use. The first successful use consumes the link and creates or reuses the matching join request before approval."
-  ,"Invite history below keeps the audit trail.": "Invite history below keeps the audit trail."
-  ,"Latest invite link": "Latest invite link"
-  ,"Copied": "Copied"
-  ,"This URL includes the current Paperclip domain returned by the server.": "This URL includes the current Paperclip domain returned by the server."
-  ,"Open invite": "Open invite"
-  ,"Invite history": "Invite history"
-  ,"Review invite status, role, inviter, and any linked join request.": "Review invite status, role, inviter, and any linked join request."
-  ,"Open join request queue": "Open join request queue"
-  ,"No invites have been created for this company yet.": "No invites have been created for this company yet."
-  ,"Invited by": "Invited by"
-  ,"Join request": "Join request"
-  ,"State": "State"
-  ,"Unknown inviter": "Unknown inviter"
-  ,"Review request": "Review request"
-  ,"Inactive": "Inactive"
-  ,"Loading more…": "Loading more…"
-  ,"View more": "View more"
-  ,"Company Access": "Company Access"
-  ,"Manage company user memberships, membership status, and explicit permission grants for {{name}}.": "Manage company user memberships, membership status, and explicit permission grants for {{name}}."
-  ,"This account can manage access here through instance-admin privileges, but it does not currently hold an active company membership.": "This account can manage access here through instance-admin privileges, but it does not currently hold an active company membership."
-  ,"Humans": "Humans"
-  ,"Manage human company memberships, status, and grants here.": "Manage human company memberships, status, and grants here."
-  ,"Pending human joins": "Pending human joins"
-  ,"Review human join requests before they become active company members.": "Review human join requests before they become active company members."
-  ,"{{count}} pending": "{{count}} pending"
-  ,"No email available": "No email available"
-  ,"Approve human": "Approve human"
-  ,"Reject human": "Reject human"
-  ,"User account": "User account"
-  ,"No user memberships found for this company yet.": "No user memberships found for this company yet."
-  ,"Edit member": "Edit member"
-  ,"Update company role, membership status, and explicit grants for {{name}}.": "Update company role, membership status, and explicit grants for {{name}}."
-  ,"Company role": "Company role"
-  ,"Membership status": "Membership status"
-  ,"Suspended": "Suspended"
-  ,"Roles provide implicit grants automatically. Explicit grants below are only for overrides and extra access that should persist even if the role changes.": "Roles provide implicit grants automatically. Explicit grants below are only for overrides and extra access that should persist even if the role changes."
-  ,"Implicit grants from role": "Implicit grants from role"
-  ,"{{role}} currently includes these permissions automatically.": "{{role}} currently includes these permissions automatically."
-  ,"No role is selected, so this member has no implicit grants right now.": "No role is selected, so this member has no implicit grants right now."
-  ,"Included implicitly by the {{role}} role. Add an explicit grant only if it should stay after the role changes.": "Included implicitly by the {{role}} role. Add an explicit grant only if it should stay after the role changes."
-  ,"selected": "selected"
-  ,"Stored explicitly for this member.": "Stored explicitly for this member."
-  ,"Save access": "Save access"
-  ,"Create agents": "Create agents"
-  ,"Invite humans and agents": "Invite humans and agents"
-  ,"Manage members and grants": "Manage members and grants"
-  ,"Assign tasks": "Assign tasks"
-  ,"Assign scoped tasks": "Assign scoped tasks"
-  ,"Approve join requests": "Approve join requests"
-  ,"No explicit grants": "No explicit grants"
-  ,"No Parent": "No Parent"
-  ,"No Workspace": "No Workspace"
-  ,"Blocked": "Blocked"
-  ,"Email": "Email"
-  ,"Password": "Password"
-  ,"Create {{label}}": "Create {{label}}"
-  ,"New {{label}}": "New {{label}}"
-  ,"Rendering {{shown}} of {{total}} issues": "Rendering {{shown}} of {{total}} issues"
-  ,"inviteLanding.acceptBootstrapInvite": "Accept bootstrap invite"
-  ,"inviteLanding.acceptCompanyInvite": "Accept company invite"
-  ,"inviteLanding.acceptInvite": "Accept invite"
-  ,"inviteLanding.accountAlreadyBelongs": "This account already belongs to the company."
-  ,"inviteLanding.accountExistsForEmail": "An account already exists for {{email}}. Sign in below to continue with this invite."
-  ,"inviteLanding.accountMayExist": "An account may already exist for {{email}}. Try signing in instead."
-  ,"inviteLanding.accountReadyIntro": "Your account is ready. Review the invite details, then accept it to continue."
-  ,"inviteLanding.agentApprovalRequest": "This invite will create an approval request for a new agent in {{company}}."
-  ,"inviteLanding.agentJoinRequest": "Agent join request"
-  ,"inviteLanding.agentReviewIntro": "Review the invite details, then submit the agent information below to start the join request."
-  ,"inviteLanding.alreadyBelongsToCompany": "This account already belongs to {{company}}."
-  ,"inviteLanding.alreadySignedUpHint": "Already signed up before? Use the existing-account option instead so the invite lands on the right Paperclip user."
-  ,"inviteLanding.approvalPage": "Approval page"
-  ,"inviteLanding.askApproverVisitPrefix": "Ask them to visit "
-  ,"inviteLanding.askApproverVisitSuffix": " to approve your request."
-  ,"inviteLanding.authFailed": "Authentication failed"
-  ,"inviteLanding.awaitingApproval": "Your request is still awaiting approval. {{approver}} must approve your request to join."
-  ,"inviteLanding.bootstrapComplete": "Bootstrap complete"
-  ,"inviteLanding.checkingAccess": "Checking your company access. Try again in a moment."
-  ,"inviteLanding.checkingYourAccess": "Checking your access..."
-  ,"inviteLanding.claimSecret": "Claim secret"
-  ,"inviteLanding.companyAccessLabel": "Company access"
-  ,"inviteLanding.companyAdmin": "A company admin"
-  ,"inviteLanding.companySettingsAccess": "Company Settings → Access"
-  ,"inviteLanding.continue": "Continue"
-  ,"inviteLanding.createAccount": "Create account"
-  ,"inviteLanding.createAccountAndContinue": "Create account and continue"
-  ,"inviteLanding.createAccountIntro": "Create your Paperclip account first. If you already have one, switch to sign in and continue the invite with the same email."
-  ,"inviteLanding.createYourAccount": "Create your account"
-  ,"inviteLanding.failedAcceptInvite": "Failed to accept invite"
-  ,"inviteLanding.fillRequired": "Please fill in all required fields."
-  ,"inviteLanding.finishingSignIn": "Finishing sign-in..."
-  ,"inviteLanding.haveAccount": "I already have an account"
-  ,"inviteLanding.invalidCredentials": "That email and password did not match an existing Paperclip account. Check both fields, or create an account first if you are new here."
-  ,"inviteLanding.invalidToken": "Invalid invite token."
-  ,"inviteLanding.inviteAlreadyUsed": "This invite has already been used."
-  ,"inviteLanding.inviteExpires": "Invite expires"
-  ,"inviteLanding.inviteNotFound": "Invite not found"
-  ,"inviteLanding.inviteUnavailable": "Invite not available"
-  ,"inviteLanding.inviteUnavailableBody": "This invite may be expired, revoked, or already used."
-  ,"inviteLanding.invitedToJoin": "You've been invited to join Paperclip"
-  ,"inviteLanding.joinCompany": "Join {{company}}"
-  ,"inviteLanding.joinRequestRejected": "This join request was not approved."
-  ,"inviteLanding.joinedCompany": "You joined the company"
-  ,"inviteLanding.loadingInvite": "Loading invite..."
-  ,"inviteLanding.messageFromInviter": "Message from inviter"
-  ,"inviteLanding.noAccountYetHint": "No account yet? Switch back to create account so you can accept the invite with a new login."
-  ,"inviteLanding.onboarding": "Onboarding"
-  ,"inviteLanding.openBoard": "Open board"
-  ,"inviteLanding.openingCompany": "Opening company..."
-  ,"inviteLanding.paperclipBoard": "Paperclip board"
-  ,"inviteLanding.refreshAfterApproval": "Refresh this page after you've been approved — you'll be redirected automatically."
-  ,"inviteLanding.requestToJoin": "Request to join {{company}}"
-  ,"inviteLanding.requestedAccess": "Requested access"
-  ,"inviteLanding.setUpPaperclip": "Set up Paperclip"
-  ,"inviteLanding.signInAndContinue": "Sign in and continue"
-  ,"inviteLanding.signInIntro": "Use the Paperclip account that already matches this invite. If you do not have one yet, switch back to create account."
-  ,"inviteLanding.signInToContinue": "Sign in to continue"
-  ,"inviteLanding.signUpIntro": "Start with a Paperclip account. After that, you'll come right back here to accept the invite for {{company}}."
-  ,"inviteLanding.signedInAs": "Signed in as {{account}}."
-  ,"inviteLanding.submitAgentDetails": "Submit agent details"
-  ,"inviteLanding.submitRequest": "Submit request"
-  ,"inviteLanding.submittingForCompany": "Submitting your join request for {{company}}."
-  ,"inviteLanding.submittingJoinRequest": "Submitting join request"
-  ,"inviteLanding.submittingRequest": "Submitting request..."
-  ,"inviteLanding.thatEmail": "that email"
-  ,"inviteLanding.thisAccount": "this account"
-  ,"inviteLanding.thisCompany": "this Paperclip company"
-  ,"inviteLanding.thisWillSetUpPaperclip": "This will finish setting up Paperclip."
-  ,"inviteLanding.thisWillSubmitJoinRequest": "This will submit or complete your join request for {{company}}."
-  ,"inviteLanding.working": "Working..."
-  ,"Profile": "Profile"
-  ,"Access": "Access"
-  ,"Env": "Env"
-  ,"Deployment and auth": "Deployment and auth"
-  ,"Auth readiness": "Auth readiness"
-  ,"Bootstrap status": "Bootstrap status"
-  ,"Bootstrap invite": "Bootstrap invite"
-  ,"Not ready": "Not ready"
-  ,"Setup required": "Setup required"
-  ,"modeBadge.localTrusted": "Local trusted"
-  ,"modeBadge.authenticatedPrivate": "Authenticated private"
-  ,"modeBadge.authenticatedPublic": "Authenticated public"
-  ,"sidebarAccountMenu.languageDescription": "Choose the interface language for this browser."
-  ,"instanceGeneralSettings.localTrustedDescription": "Local trusted mode is optimized for a local operator. Browser requests run as local board context and no sign-in is required."
-  ,"instanceGeneralSettings.authenticatedPublicDescription": "Authenticated public mode requires sign-in for board access and is intended for public URLs."
-  ,"instanceGeneralSettings.authenticatedPrivateDescription": "Authenticated private mode requires sign-in and is intended for LAN, VPN, or other private-network deployments."
-  ,"projectProperties.env": "Env"
-  ,"Danger Zone": "Danger Zone"
-  ,"Enabled": "Enabled"
-  ,"General": "General"
-  ,"Heartbeats": "Heartbeats"
-  ,"Loading general settings...": "Loading general settings..."
-  ,"Failed to load general settings.": "Failed to load general settings."
-  ,"Failed to update general settings.": "Failed to update general settings."
-  ,"Hide the username segment in home-directory paths and similar operator-visible log output. Standalone username mentions outside of paths are not yet masked in the live transcript view. This is off by default.": "Hide the username segment in home-directory paths and similar operator-visible log output. Standalone username mentions outside of paths are not yet masked in the live transcript view. This is off by default."
-  ,"Toggle username log censoring": "Toggle username log censoring"
-  ,"Select a company to create secrets": "Select a company to create secrets"
+  "You can change this later in Instance Settings > General.": "You can change this later in Instance Settings > General.",
+  "Censor username in logs": "Censor username in logs",
+  "Configure instance-wide defaults that affect operator-visible logs and agent runtime guidance.": "Configure instance-wide defaults that affect operator-visible logs and agent runtime guidance.",
+  "Failed to sign out.": "Failed to sign out.",
+  "Sign out": "Sign out",
+  "Sign out of this Paperclip instance. You will be redirected to the login page.": "Sign out of this Paperclip instance. You will be redirected to the login page.",
+  "Reviewer": "Reviewer",
+  "Approver": "Approver",
+  "No reviewers found.": "No reviewers found.",
+  "No approvers found.": "No approvers found.",
+  "Yes": "Yes",
+  "No": "No",
+  "{{stage}} requested changes{{suffix}}": "{{stage}} requested changes{{suffix}}",
+  "{{stage}} pending{{suffix}}": "{{stage}} pending{{suffix}}",
+  "by": "by",
+  "with": "with",
+  "No companies": "No companies",
+  "Company Settings": "Company Settings",
+  "Manage Companies": "Manage Companies",
+  "Mobile navigation": "Mobile navigation",
+  "Home": "Home",
+  "issuesList.newIssue": "New Issue",
+  "issuesList.filter": "Filter",
+  "issuesList.filters": "Filters",
+  "issuesList.quickFilters": "Quick filters",
+  "issuesList.sort": "Sort",
+  "issuesList.group": "Group",
+  "issuesList.live": "Live",
+  "issuesList.columns": "Columns",
+  "issuesList.chooseVisibleColumns": "Choose which issue columns stay visible",
+  "issuesList.defaultColumnsSummary": "status, id, updated",
+  "issuesList.updatedAtTime": "Updated {{time}}",
+  "Creator": "Creator",
+  "Hide routine runs": "Hide routine runs",
+  "No creators match.": "No creators match.",
+  "Remove creator {{name}}": "Remove creator {{name}}",
+  "Search creators...": "Search creators...",
+  "Showing up to {{count}} matches. Refine the search to narrow further.": "Showing up to {{count}} matches. Refine the search to narrow further.",
+  "issueDetail.loadingEarlierComments": "Loading earlier comments...",
+  "issueDetail.loadEarlierComments": "Load earlier comments",
+  "issueDetail.costSummary": "Cost Summary",
+  "issueDetail.noCostData": "No cost data yet.",
+  "issueDetail.noActivity": "No activity yet.",
+  "issueDetail.newSubIssue": "New Sub-issue",
+  "Disable parent-child nesting": "Disable parent-child nesting",
+  "Enable parent-child nesting": "Enable parent-child nesting",
+  "Type": "Type",
+  "Load earlier comments": "Load earlier comments",
+  "Loading earlier comments...": "Loading earlier comments...",
+  "issueDocuments.documentKey": "Document key",
+  "issueChat.fallbackErrorTitle": "Chat renderer hit an internal state error.",
+  "issueChat.fallbackErrorBody": "Showing a safe fallback transcript instead of crashing the issues page.",
+  "issueChat.emptyConversation": "This issue conversation is empty. Start with a message below.",
+  "issueDocuments.historicalPreviewNotice": "This is a historical preview. Restoring it creates a new latest revision and keeps history append-only.",
+  "issueDocuments.remoteChangedNotice": "This document changed while you were editing. Your local draft is preserved and autosave is paused.",
+  "issueDocuments.confirmDelete": "Delete this document? This cannot be undone.",
+  "No message content.": "No message content.",
+  "False": "False",
+  "True": "True",
+  "Variables": "Variables",
+  "routineVariables.defaultOption": "Default option",
+  "routineVariables.defaultValue": "Default value",
+  "routineVariables.detectedFromPlaceholders": "Detected from `{{placeholder}}` placeholders in the routine title and instructions.",
+  "routineVariables.noDefault": "No default",
+  "routineVariables.options": "Options",
+  "routineVariables.promptBeforeRun": "Prompt the user for this value before each manual run.",
+  "routineVariables.usePlaceholderHint": "Use `{{placeholder}}` placeholders in the instructions to prompt for inputs when the routine runs.",
+  "Adapters": "Adapters",
+  "Built-in": "Built-in",
+  "Installed from local path": "Installed from local path",
+  "Installed from npm": "Installed from npm",
+  "Overrides built-in": "Overrides built-in",
+  "Overridden by {{name}}": "Overridden by {{name}}",
+  "Hidden from menus": "Hidden from menus",
+  "models": "models",
+  "Reinstall adapter (pull latest from npm)": "Reinstall adapter (pull latest from npm)",
+  "Reload adapter (hot-swap)": "Reload adapter (hot-swap)",
+  "Show in agent menus": "Show in agent menus",
+  "Hide from agent menus": "Hide from agent menus",
+  "Remove adapter": "Remove adapter",
+  "Reinstall Adapter": "Reinstall Adapter",
+  "This will pull the latest version of": "This will pull the latest version of",
+  "from npm and hot-swap": "from npm and hot-swap",
+  "the running adapter module. Existing agents will use the new version on their next run.": "the running adapter module. Existing agents will use the new version on their next run.",
+  "Package": "Package",
+  "Latest on npm": "Latest on npm",
+  "checking...": "checking...",
+  "unavailable": "unavailable",
+  "Already on the latest version.": "Already on the latest version.",
+  "Reinstalling...": "Reinstalling...",
+  "Reinstall": "Reinstall",
+  "Adapter installed": "Adapter installed",
+  "Type \"{{type}}\" registered successfully.": "Type \"{{type}}\" registered successfully.",
+  "Type \"{{type}}\" registered successfully. (v{{version}})": "Type \"{{type}}\" registered successfully. (v{{version}})",
+  "Install failed": "Install failed",
+  "Adapter removed": "Adapter removed",
+  "Removal failed": "Removal failed",
+  "Toggle failed": "Toggle failed",
+  "Override toggle failed": "Override toggle failed",
+  "Adapter reloaded": "Adapter reloaded",
+  "Type \"{{type}}\" reloaded.": "Type \"{{type}}\" reloaded.",
+  "Type \"{{type}}\" reloaded. (v{{version}})": "Type \"{{type}}\" reloaded. (v{{version}})",
+  "Reload failed": "Reload failed",
+  "Adapter reinstalled": "Adapter reinstalled",
+  "Type \"{{type}}\" updated from npm.": "Type \"{{type}}\" updated from npm.",
+  "Type \"{{type}}\" updated from npm. (v{{version}})": "Type \"{{type}}\" updated from npm. (v{{version}})",
+  "Reinstall failed": "Reinstall failed",
+  "Loading adapters...": "Loading adapters...",
+  "Alpha": "Alpha",
+  "Install Adapter": "Install Adapter",
+  "Install External Adapter": "Install External Adapter",
+  "Add an adapter from npm or a local path. The adapter package must export": "Add an adapter from npm or a local path. The adapter package must export",
+  "npm package": "npm package",
+  "Local path": "Local path",
+  "Path to adapter package": "Path to adapter package",
+  "/mnt/e/Projects/my-adapter  or  E:\\Projects\\my-adapter": "/mnt/e/Projects/my-adapter  or  E:\\Projects\\my-adapter",
+  "Accepts Linux, WSL, and Windows paths. Windows paths are auto-converted.": "Accepts Linux, WSL, and Windows paths. Windows paths are auto-converted.",
+  "Package Name": "Package Name",
+  "my-paperclip-adapter": "my-paperclip-adapter",
+  "Version (optional)": "Version (optional)",
+  "latest": "latest",
+  "Installing...": "Installing...",
+  "External adapters are alpha.": "External adapters are alpha.",
+  "The adapter plugin system is under active development. APIs and storage format may change.": "The adapter plugin system is under active development. APIs and storage format may change.",
+  "Use the power icon to hide adapters from agent menus without removing them.": "Use the power icon to hide adapters from agent menus without removing them.",
+  "External Adapters": "External Adapters",
+  "No external adapters installed": "No external adapters installed",
+  "Install an adapter package to extend model support.": "Install an adapter package to extend model support.",
+  "Pause external override": "Pause external override",
+  "Resume external override": "Resume external override",
+  "Override paused": "Override paused",
+  "Built-in Adapters": "Built-in Adapters",
+  "No built-in adapters found.": "No built-in adapters found.",
+  "Remove Adapter": "Remove Adapter",
+  "Are you sure you want to remove the": "Are you sure you want to remove the",
+  "adapter?": "adapter?",
+  "It will be unregistered and removed from the adapter store.": "It will be unregistered and removed from the adapter store.",
+  "npm packages will be cleaned up from disk.": "npm packages will be cleaned up from disk.",
+  "Removing...": "Removing...",
+  "Remove": "Remove",
+  "Keyboard shortcuts": "Keyboard shortcuts",
+  "New issue": "New issue",
+  "Move down": "Move down",
+  "Move up": "Move up",
+  "Open selected item": "Open selected item",
+  "Archive item": "Archive item",
+  "Mark as unread": "Mark as unread",
+  "Issue detail": "Issue detail",
+  "Quick-archive back to inbox": "Quick-archive back to inbox",
+  "Go to inbox": "Go to inbox",
+  "Focus comment composer": "Focus comment composer",
+  "Global": "Global",
+  "Toggle sidebar": "Toggle sidebar",
+  "Toggle panel": "Toggle panel",
+  "Show keyboard shortcuts": "Show keyboard shortcuts",
+  "then": "then",
+  "Press": "Press",
+  "to close": "to close",
+  "Shortcuts are disabled in text fields": "Shortcuts are disabled in text fields",
+  "Local CodeBuddy agent": "Local CodeBuddy agent",
+  "Local Qwen agent": "Local Qwen agent",
+  "Local Hermes CLI agent": "Local Hermes CLI agent",
+  "Session strategy": "Session strategy",
+  "Fixed": "Fixed",
+  "Per issue": "Per issue",
+  "Per run": "Per run",
+  "Session key": "Session key",
+  "Gateway auth token (x-openclaw-token)": "Gateway auth token (x-openclaw-token)",
+  "Wait timeout (ms)": "Wait timeout (ms)",
+  "Device auth": "Device auth",
+  "OpenClaw gateway token": "OpenClaw gateway token",
+  "External adapter": "External adapter",
+  "External local adapter": "External local adapter",
+  "External gateway adapter": "External gateway adapter",
+  "Always enabled for gateway agents. Paperclip persists a device key during onboarding so pairing approvals remain stable across runs.": "Always enabled for gateway agents. Paperclip persists a device key during onboarding so pairing approvals remain stable across runs.",
+  "Open company menu": "Open company menu",
+  "Open {{name}} menu": "Open {{name}} menu",
+  "Invite people to {{name}}": "Invite people to {{name}}",
+  "Company settings": "Company settings",
+  "Signing out...": "Signing out...",
+  "Signed in": "Signed in",
+  "Local workspace board": "Local workspace board",
+  "Account": "Account",
+  "Local": "Local",
+  "Open account menu": "Open account menu",
+  "Paperclip v{{version}}": "Paperclip v{{version}}",
+  "Edit profile": "Edit profile",
+  "Update your display name and avatar.": "Update your display name and avatar.",
+  "Instance settings": "Instance settings",
+  "Jump back to the last settings page you opened.": "Jump back to the last settings page you opened.",
+  "Documentation": "Documentation",
+  "Open Paperclip docs in a new tab.": "Open Paperclip docs in a new tab.",
+  "Switch to light mode": "Switch to light mode",
+  "Switch to dark mode": "Switch to dark mode",
+  "Toggle the app appearance.": "Toggle the app appearance.",
+  "End this browser session.": "End this browser session.",
+  "Instance setup required": "Instance setup required",
+  "No instance admin exists yet. A bootstrap invite is already active. Check your Paperclip startup logs for the first admin invite URL, or run this command to rotate it:": "No instance admin exists yet. A bootstrap invite is already active. Check your Paperclip startup logs for the first admin invite URL, or run this command to rotate it:",
+  "No instance admin exists yet. Run this command in your Paperclip environment to generate the first admin invite URL:": "No instance admin exists yet. Run this command in your Paperclip environment to generate the first admin invite URL:",
+  "No company access": "No company access",
+  "This account is signed in, but it does not have an active company membership or instance-admin access on this Paperclip instance.": "This account is signed in, but it does not have an active company membership or instance-admin access on this Paperclip instance.",
+  "Use a company invite or sign in with an account that already belongs to this org.": "Use a company invite or sign in with an account that already belongs to this org.",
+  "Failed to load app state": "Failed to load app state",
+  "Control how your account appears in the sidebar and other board surfaces.": "Control how your account appears in the sidebar and other board surfaces.",
+  "Failed to update profile.": "Failed to update profile.",
+  "Select a company before uploading a profile avatar.": "Select a company before uploading a profile avatar.",
+  "Failed to upload avatar.": "Failed to upload avatar.",
+  "Failed to remove avatar.": "Failed to remove avatar.",
+  "Loading profile...": "Loading profile...",
+  "Failed to load profile.": "Failed to load profile.",
+  "Stored in Paperclip file storage for {{name}}.": "Stored in Paperclip file storage for {{name}}.",
+  "Select a company to upload an avatar into Paperclip storage.": "Select a company to upload an avatar into Paperclip storage.",
+  "Click the avatar to upload a new image.": "Click the avatar to upload a new image.",
+  "Change photo": "Change photo",
+  "Upload photo": "Upload photo",
+  "No email": "No email",
+  "Display name": "Display name",
+  "Shown in the sidebar account footer and comment author surfaces.": "Shown in the sidebar account footer and comment author surfaces.",
+  "Email is managed by your auth session and is read-only here.": "Email is managed by your auth session and is read-only here.",
+  "Save profile": "Save profile",
+  "Company access updated": "Company access updated",
+  "No user selected": "No user selected",
+  "Instance role updated": "Instance role updated",
+  "Loading instance users…": "Loading instance users…",
+  "Instance admin access is required to manage users.": "Instance admin access is required to manage users.",
+  "Failed to load users.": "Failed to load users.",
+  "Instance Access": "Instance Access",
+  "Search users, manage instance-admin status, and control which companies they can access.": "Search users, manage instance-admin status, and control which companies they can access.",
+  "Search by name or email": "Search by name or email",
+  "{{count}} active company memberships": "{{count}} active company memberships",
+  "Select a user to inspect instance access.": "Select a user to inspect instance access.",
+  "Loading user access…": "Loading user access…",
+  "Failed to load user access.": "Failed to load user access.",
+  "Remove instance admin": "Remove instance admin",
+  "Promote to instance admin": "Promote to instance admin",
+  "Company access": "Company access",
+  "Toggle company membership for this user. New access defaults to an active operator membership.": "Toggle company membership for this user. New access defaults to an active operator membership.",
+  "Save company access": "Save company access",
+  "Current memberships": "Current memberships",
+  "unset": "unset",
+  "Join Requests": "Join Requests",
+  "Join request approved": "Join request approved",
+  "Join request rejected": "Join request rejected",
+  "Select a company to review join requests.": "Select a company to review join requests.",
+  "Loading join requests…": "Loading join requests…",
+  "You do not have permission to review join requests for this company.": "You do not have permission to review join requests for this company.",
+  "Failed to load join requests.": "Failed to load join requests.",
+  "Join Request Queue": "Join Request Queue",
+  "Review human and agent join requests outside the mixed inbox feed. This queue uses the same approval mutations as the inline inbox cards.": "Review human and agent join requests outside the mixed inbox feed. This queue uses the same approval mutations as the inline inbox cards.",
+  "Request type": "Request type",
+  "Pending approval": "Pending approval",
+  "No join requests match the current filters.": "No join requests match the current filters.",
+  "Unknown human requester": "Unknown human requester",
+  "Unknown agent requester": "Unknown agent requester",
+  "Invite context": "Invite context",
+  "{{type}} join invite{{suffix}}": "{{type}} join invite{{suffix}}",
+  "default role {{role}}": "default role {{role}}",
+  "Invite metadata unavailable": "Invite metadata unavailable",
+  "Request details": "Request details",
+  "Submitted {{date}}": "Submitted {{date}}",
+  "Source IP {{ip}}": "Source IP {{ip}}",
+  "Clipboard unavailable": "Clipboard unavailable",
+  "Copy the invite URL manually from the field below.": "Copy the invite URL manually from the field below.",
+  "Invite created": "Invite created",
+  "Invite ready below and copied to clipboard.": "Invite ready below and copied to clipboard.",
+  "Invite ready below.": "Invite ready below.",
+  "Failed to create invite": "Failed to create invite",
+  "Invite revoked": "Invite revoked",
+  "Failed to revoke invite": "Failed to revoke invite",
+  "Select a company to manage invites.": "Select a company to manage invites.",
+  "Loading invites…": "Loading invites…",
+  "You do not have permission to manage company invites.": "You do not have permission to manage company invites.",
+  "Failed to load invites.": "Failed to load invites.",
+  "Company Invites": "Company Invites",
+  "Create human invite links for company access. New invite links are copied to your clipboard when they are generated.": "Create human invite links for company access. New invite links are copied to your clipboard when they are generated.",
+  "Create invite": "Create invite",
+  "Generate a human invite link and choose the default access it should request.": "Generate a human invite link and choose the default access it should request.",
+  "Choose a role": "Choose a role",
+  "Viewer": "Viewer",
+  "Can view company work and follow along without operational permissions.": "Can view company work and follow along without operational permissions.",
+  "No built-in grants.": "No built-in grants.",
+  "Operator": "Operator",
+  "Recommended for people who need to help run work without managing access.": "Recommended for people who need to help run work without managing access.",
+  "Can assign tasks.": "Can assign tasks.",
+  "Admin": "Admin",
+  "Recommended for operators who need to invite people, create agents, and approve joins.": "Recommended for operators who need to invite people, create agents, and approve joins.",
+  "Can create agents, invite users, assign tasks, and approve join requests.": "Can create agents, invite users, assign tasks, and approve join requests.",
+  "Full company access, including membership and permission management.": "Full company access, including membership and permission management.",
+  "Everything in Admin, plus managing members and permission grants.": "Everything in Admin, plus managing members and permission grants.",
+  "Each invite link is single-use. The first successful use consumes the link and creates or reuses the matching join request before approval.": "Each invite link is single-use. The first successful use consumes the link and creates or reuses the matching join request before approval.",
+  "Invite history below keeps the audit trail.": "Invite history below keeps the audit trail.",
+  "Latest invite link": "Latest invite link",
+  "Copied": "Copied",
+  "This URL includes the current Paperclip domain returned by the server.": "This URL includes the current Paperclip domain returned by the server.",
+  "Open invite": "Open invite",
+  "Invite history": "Invite history",
+  "Review invite status, role, inviter, and any linked join request.": "Review invite status, role, inviter, and any linked join request.",
+  "Open join request queue": "Open join request queue",
+  "No invites have been created for this company yet.": "No invites have been created for this company yet.",
+  "Invited by": "Invited by",
+  "Join request": "Join request",
+  "State": "State",
+  "Unknown inviter": "Unknown inviter",
+  "Review request": "Review request",
+  "Inactive": "Inactive",
+  "Loading more…": "Loading more…",
+  "View more": "View more",
+  "Company Access": "Company Access",
+  "Manage company user memberships, membership status, and explicit permission grants for {{name}}.": "Manage company user memberships, membership status, and explicit permission grants for {{name}}.",
+  "This account can manage access here through instance-admin privileges, but it does not currently hold an active company membership.": "This account can manage access here through instance-admin privileges, but it does not currently hold an active company membership.",
+  "Humans": "Humans",
+  "Manage human company memberships, status, and grants here.": "Manage human company memberships, status, and grants here.",
+  "Pending human joins": "Pending human joins",
+  "Review human join requests before they become active company members.": "Review human join requests before they become active company members.",
+  "{{count}} pending": "{{count}} pending",
+  "No email available": "No email available",
+  "Approve human": "Approve human",
+  "Reject human": "Reject human",
+  "User account": "User account",
+  "No user memberships found for this company yet.": "No user memberships found for this company yet.",
+  "Edit member": "Edit member",
+  "Update company role, membership status, and explicit grants for {{name}}.": "Update company role, membership status, and explicit grants for {{name}}.",
+  "Company role": "Company role",
+  "Membership status": "Membership status",
+  "Suspended": "Suspended",
+  "Roles provide implicit grants automatically. Explicit grants below are only for overrides and extra access that should persist even if the role changes.": "Roles provide implicit grants automatically. Explicit grants below are only for overrides and extra access that should persist even if the role changes.",
+  "Implicit grants from role": "Implicit grants from role",
+  "{{role}} currently includes these permissions automatically.": "{{role}} currently includes these permissions automatically.",
+  "No role is selected, so this member has no implicit grants right now.": "No role is selected, so this member has no implicit grants right now.",
+  "Included implicitly by the {{role}} role. Add an explicit grant only if it should stay after the role changes.": "Included implicitly by the {{role}} role. Add an explicit grant only if it should stay after the role changes.",
+  "selected": "selected",
+  "Stored explicitly for this member.": "Stored explicitly for this member.",
+  "Save access": "Save access",
+  "Create agents": "Create agents",
+  "Invite humans and agents": "Invite humans and agents",
+  "Manage members and grants": "Manage members and grants",
+  "Assign tasks": "Assign tasks",
+  "Assign scoped tasks": "Assign scoped tasks",
+  "Approve join requests": "Approve join requests",
+  "No explicit grants": "No explicit grants",
+  "No Parent": "No Parent",
+  "No Workspace": "No Workspace",
+  "Blocked": "Blocked",
+  "Email": "Email",
+  "Password": "Password",
+  "Create {{label}}": "Create {{label}}",
+  "New {{label}}": "New {{label}}",
+  "Rendering {{shown}} of {{total}} issues": "Rendering {{shown}} of {{total}} issues",
+  "inviteLanding.acceptBootstrapInvite": "Accept bootstrap invite",
+  "inviteLanding.acceptCompanyInvite": "Accept company invite",
+  "inviteLanding.acceptInvite": "Accept invite",
+  "inviteLanding.accountAlreadyBelongs": "This account already belongs to the company.",
+  "inviteLanding.accountExistsForEmail": "An account already exists for {{email}}. Sign in below to continue with this invite.",
+  "inviteLanding.accountMayExist": "An account may already exist for {{email}}. Try signing in instead.",
+  "inviteLanding.accountReadyIntro": "Your account is ready. Review the invite details, then accept it to continue.",
+  "inviteLanding.agentApprovalRequest": "This invite will create an approval request for a new agent in {{company}}.",
+  "inviteLanding.agentJoinRequest": "Agent join request",
+  "inviteLanding.agentReviewIntro": "Review the invite details, then submit the agent information below to start the join request.",
+  "inviteLanding.alreadyBelongsToCompany": "This account already belongs to {{company}}.",
+  "inviteLanding.alreadySignedUpHint": "Already signed up before? Use the existing-account option instead so the invite lands on the right Paperclip user.",
+  "inviteLanding.approvalPage": "Approval page",
+  "inviteLanding.askApproverVisitPrefix": "Ask them to visit ",
+  "inviteLanding.askApproverVisitSuffix": " to approve your request.",
+  "inviteLanding.authFailed": "Authentication failed",
+  "inviteLanding.awaitingApproval": "Your request is still awaiting approval. {{approver}} must approve your request to join.",
+  "inviteLanding.bootstrapComplete": "Bootstrap complete",
+  "inviteLanding.checkingAccess": "Checking your company access. Try again in a moment.",
+  "inviteLanding.checkingYourAccess": "Checking your access...",
+  "inviteLanding.claimSecret": "Claim secret",
+  "inviteLanding.companyAccessLabel": "Company access",
+  "inviteLanding.companyAdmin": "A company admin",
+  "inviteLanding.companySettingsAccess": "Company Settings → Access",
+  "inviteLanding.continue": "Continue",
+  "inviteLanding.createAccount": "Create account",
+  "inviteLanding.createAccountAndContinue": "Create account and continue",
+  "inviteLanding.createAccountIntro": "Create your Paperclip account first. If you already have one, switch to sign in and continue the invite with the same email.",
+  "inviteLanding.createYourAccount": "Create your account",
+  "inviteLanding.failedAcceptInvite": "Failed to accept invite",
+  "inviteLanding.fillRequired": "Please fill in all required fields.",
+  "inviteLanding.finishingSignIn": "Finishing sign-in...",
+  "inviteLanding.haveAccount": "I already have an account",
+  "inviteLanding.invalidCredentials": "That email and password did not match an existing Paperclip account. Check both fields, or create an account first if you are new here.",
+  "inviteLanding.invalidToken": "Invalid invite token.",
+  "inviteLanding.inviteAlreadyUsed": "This invite has already been used.",
+  "inviteLanding.inviteExpires": "Invite expires",
+  "inviteLanding.inviteNotFound": "Invite not found",
+  "inviteLanding.inviteUnavailable": "Invite not available",
+  "inviteLanding.inviteUnavailableBody": "This invite may be expired, revoked, or already used.",
+  "inviteLanding.invitedToJoin": "You've been invited to join Paperclip",
+  "inviteLanding.joinCompany": "Join {{company}}",
+  "inviteLanding.joinRequestRejected": "This join request was not approved.",
+  "inviteLanding.joinedCompany": "You joined the company",
+  "inviteLanding.loadingInvite": "Loading invite...",
+  "inviteLanding.messageFromInviter": "Message from inviter",
+  "inviteLanding.noAccountYetHint": "No account yet? Switch back to create account so you can accept the invite with a new login.",
+  "inviteLanding.onboarding": "Onboarding",
+  "inviteLanding.openBoard": "Open board",
+  "inviteLanding.openingCompany": "Opening company...",
+  "inviteLanding.paperclipBoard": "Paperclip board",
+  "inviteLanding.refreshAfterApproval": "Refresh this page after you've been approved — you'll be redirected automatically.",
+  "inviteLanding.requestToJoin": "Request to join {{company}}",
+  "inviteLanding.requestedAccess": "Requested access",
+  "inviteLanding.setUpPaperclip": "Set up Paperclip",
+  "inviteLanding.signInAndContinue": "Sign in and continue",
+  "inviteLanding.signInIntro": "Use the Paperclip account that already matches this invite. If you do not have one yet, switch back to create account.",
+  "inviteLanding.signInToContinue": "Sign in to continue",
+  "inviteLanding.signUpIntro": "Start with a Paperclip account. After that, you'll come right back here to accept the invite for {{company}}.",
+  "inviteLanding.signedInAs": "Signed in as {{account}}.",
+  "inviteLanding.submitAgentDetails": "Submit agent details",
+  "inviteLanding.submitRequest": "Submit request",
+  "inviteLanding.submittingForCompany": "Submitting your join request for {{company}}.",
+  "inviteLanding.submittingJoinRequest": "Submitting join request",
+  "inviteLanding.submittingRequest": "Submitting request...",
+  "inviteLanding.thatEmail": "that email",
+  "inviteLanding.thisAccount": "this account",
+  "inviteLanding.thisCompany": "this Paperclip company",
+  "inviteLanding.thisWillSetUpPaperclip": "This will finish setting up Paperclip.",
+  "inviteLanding.thisWillSubmitJoinRequest": "This will submit or complete your join request for {{company}}.",
+  "inviteLanding.working": "Working...",
+  "Profile": "Profile",
+  "Access": "Access",
+  "Env": "Env",
+  "Deployment and auth": "Deployment and auth",
+  "Auth readiness": "Auth readiness",
+  "Bootstrap status": "Bootstrap status",
+  "Bootstrap invite": "Bootstrap invite",
+  "Not ready": "Not ready",
+  "Setup required": "Setup required",
+  "modeBadge.localTrusted": "Local trusted",
+  "modeBadge.authenticatedPrivate": "Authenticated private",
+  "modeBadge.authenticatedPublic": "Authenticated public",
+  "sidebarAccountMenu.languageDescription": "Choose the interface language for this browser.",
+  "instanceGeneralSettings.localTrustedDescription": "Local trusted mode is optimized for a local operator. Browser requests run as local board context and no sign-in is required.",
+  "instanceGeneralSettings.authenticatedPublicDescription": "Authenticated public mode requires sign-in for board access and is intended for public URLs.",
+  "instanceGeneralSettings.authenticatedPrivateDescription": "Authenticated private mode requires sign-in and is intended for LAN, VPN, or other private-network deployments.",
+  "projectProperties.env": "Env",
+  "Danger Zone": "Danger Zone",
+  "Enabled": "Enabled",
+  "General": "General",
+  "Heartbeats": "Heartbeats",
+  "Loading general settings...": "Loading general settings...",
+  "Failed to load general settings.": "Failed to load general settings.",
+  "Failed to update general settings.": "Failed to update general settings.",
+  "Hide the username segment in home-directory paths and similar operator-visible log output. Standalone username mentions outside of paths are not yet masked in the live transcript view. This is off by default.": "Hide the username segment in home-directory paths and similar operator-visible log output. Standalone username mentions outside of paths are not yet masked in the live transcript view. This is off by default.",
+  "Toggle username log censoring": "Toggle username log censoring",
+  "Select a company to create secrets": "Select a company to create secrets",
+  "Invites": "Invites",
+  "View profile": "View profile",
+  "Open your activity, task, and usage ledger.": "Open your activity, task, and usage ledger.",
+  "Workspaces": "Workspaces",
+  "Start services": "Start services",
+  "Stop services": "Stop services",
+  "Copy branch": "Copy branch",
+  "Branch copied": "Branch copied",
+  "Copy path": "Copy path",
+  "Path copied": "Path copied",
+  "Service": "Service",
+  "Cleanup failed": "Cleanup failed",
+  "Linked issues": "Linked issues",
+  "+{{count}} more": "+{{count}} more",
+  "{{count}} workspace": "{{count}} workspace",
+  "{{count}} workspaces": "{{count}} workspaces",
+  "{{running}}/{{total}} services": "{{running}}/{{total}} services",
+  "No workspace activity yet.": "No workspace activity yet.",
+  "No non-default workspace activity yet.": "No non-default workspace activity yet.",
+  "Cleanup attention needed": "Cleanup attention needed",
+  "Users": "Users",
+  "Touched": "Touched",
+  "Spend": "Spend",
+  "All-time tokens": "All-time tokens",
+  "Open assigned": "Open assigned",
+  "7-day actions": "7-day actions",
+  "All time": "All time",
+  "tokens total": "tokens total",
+  "completions": "completions",
+  "Recent tasks": "Recent tasks",
+  "No touched tasks yet.": "No touched tasks yet.",
+  "Recent activity": "Recent activity",
+  "No direct user actions recorded yet.": "No direct user actions recorded yet.",
+  "Agent attribution": "Agent attribution",
+  "Provider mix": "Provider mix",
+  "Issue-linked usage": "Issue-linked usage",
+  "Billed through {{name}}": "Billed through {{name}}",
+  "No issue-linked token usage yet.": "No issue-linked token usage yet.",
+  "No provider usage attributed yet.": "No provider usage attributed yet.",
+  "Select a company to view user profiles.": "Select a company to view user profiles.",
+  "User profile not found for this company.": "User profile not found for this company.",
+  "Member": "Member",
+  "joined {{date}}": "joined {{date}}",
+  "{{amount}} spent": "{{amount}} spent",
+  "{{rate}} rate": "{{rate}} rate",
+  "{{count}} created": "{{count}} created",
+  "{{count}} comments": "{{count}} comments",
+  "userProfile.tokensPerDay": "tokens / day",
+  "userProfile.completions": "completions",
+  "issueRelatedWork.references": "References",
+  "issueRelatedWork.referencesDescription": "Other tasks this issue currently points at in its title, description, comments, or documents.",
+  "issueRelatedWork.noReferences": "This issue does not reference any other tasks yet.",
+  "issueRelatedWork.referencedBy": "Referenced by",
+  "issueRelatedWork.referencedByDescription": "Other tasks that currently point at this issue.",
+  "issueRelatedWork.noReferencedBy": "No other tasks reference this issue yet.",
+  "issueReferences.added": "Added references",
+  "issueReferences.removed": "Removed references",
+  "issueThreadInteraction.status.accepted": "Accepted",
+  "issueThreadInteraction.status.rejected": "Rejected",
+  "issueThreadInteraction.status.answered": "Answered",
+  "issueThreadInteraction.status.expired": "Expired",
+  "issueThreadInteraction.kind.suggestTasks": "Suggested tasks",
+  "issueThreadInteraction.kind.askUserQuestions": "Ask user questions",
+  "issueThreadInteraction.kind.confirmation": "Confirmation",
+  "issueThreadInteraction.includeTask": "Include {{title}}",
+  "issueThreadInteraction.childTask": "Child task",
+  "Billing": "Billing",
+  "issueThreadInteraction.oneHiddenFollowOnTask": "1 follow-on task hidden in preview",
+  "issueThreadInteraction.hiddenFollowOnTasks": "{{count}} follow-on tasks hidden in preview",
+  "issueThreadInteraction.oneDraftIssue": "1 draft issue",
+  "issueThreadInteraction.draftIssues": "{{count}} draft issues",
+  "issueThreadInteraction.defaultParent": "Default parent",
+  "issueThreadInteraction.resolutionSummary": "Resolution summary",
+  "issueThreadInteraction.createdAndSkippedDrafts": "Created {{created}} draft {{issueWord}} and skipped {{skipped}} during review.",
+  "issueThreadInteraction.createdAllDrafts": "Created all {{count}} draft {{issueWord}}.",
+  "issueThreadInteraction.rejectionReason": "Rejection reason",
+  "No reason provided.": "No reason provided.",
+  "issueThreadInteraction.allDraftsSelected": "All {{count}} draft {{issueWord}} selected",
+  "issueThreadInteraction.someDraftsSelected": "{{selected}} of {{total}} draft {{issueWord}} selected",
+  "issueThreadInteraction.skippedIfAccepted": "{{count}} will be skipped if you accept this interaction.",
+  "issueThreadInteraction.accepting": "Accepting...",
+  "issueThreadInteraction.acceptDrafts": "Accept drafts",
+  "issueThreadInteraction.acceptSelectedDrafts": "Accept selected drafts",
+  "issueThreadInteraction.resetSelection": "Reset selection",
+  "issueThreadInteraction.rejectSuggestionPlaceholder": "Add a short reason for rejecting this suggestion",
+  "issueThreadInteraction.saveRejection": "Save rejection",
+  "issueThreadInteraction.questionNumber": "Question {{count}}",
+  "issueThreadInteraction.pick": "Pick",
+  "issueThreadInteraction.pickMany": "Pick many",
+  "Required": "Required",
+  "Optional": "Optional",
+  "issueThreadInteraction.submitAfterForm": "Submit once after you finish the full form.",
+  "issueThreadInteraction.submitting": "Submitting...",
+  "issueThreadInteraction.submitAnswers": "Submit answers",
+  "Answer": "Answer",
+  "issueThreadInteraction.noAnswerRecorded": "No answer recorded.",
+  "issueThreadInteraction.submittedSummary": "Submitted summary",
+  "Confirmed": "Confirmed",
+  "Declined": "Declined",
+  "issueThreadInteraction.expiredByComment": "Expired by comment",
+  "issueThreadInteraction.expiredByTargetChange": "Expired by target change",
+  "issueThreadInteraction.supersededByComment": "A board comment superseded this confirmation before it was resolved.",
+  "issueThreadInteraction.staleTarget": "The requested target changed before this confirmation was resolved.",
+  "issueThreadInteraction.jumpToComment": "Jump to comment",
+  "issueThreadInteraction.requestFailed": "This request could not be resolved. Try again or create a new request.",
+  "issueThreadInteraction.revisionPlaceholder": "Optional: what would you like revised?",
+  "issueThreadInteraction.declinePlaceholder": "Optional: tell the agent what you'd change.",
+  "Try again": "Try again",
+  "issueThreadInteraction.confirming": "Confirming...",
+  "Confirm": "Confirm",
+  "Decline": "Decline",
+  "issueThreadInteraction.declineReasonRequired": "A decline reason is required.",
+  "issueThreadInteraction.cancelDecline": "Cancel decline",
+  "issueThreadInteraction.wakesOnConfirm": "Wakes on confirm",
+  "issueThreadInteraction.wakesAssignee": "Wakes assignee",
+  "issueThreadInteraction.suggestedTaskTree": "Suggested task tree",
+  "issueThreadInteraction.questionsForOperator": "Questions for the operator",
+  "issueThreadInteraction.confirmationRequested": "Confirmation requested",
+  "issueThreadInteraction.proposedBy": "proposed by {{name}}",
+  "Created {{time}}": "Created {{time}}",
+  "issueThreadInteraction.resolvedBy": "Resolved by {{name}}",
+  "issueThreadInteraction.resolvedOn": " on {{date}}",
+  "issueChatThread.theLinkedIssue": "the linked issue",
+  "issueChatThread.theLinkedIssues": "the linked issues",
+  "issueChatThread.itIs": "it is",
+  "issueChatThread.theyAre": "they are",
+  "issueChatThread.blockedByLinkedIssue": "Work on this issue is blocked by {{blocker}} until {{pronoun}} complete. Comments still wake the assignee for questions or triage.",
+  "issueChatThread.blockedUntilTodo": "Work on this issue is blocked until it is moved back to todo. Comments still wake the assignee for questions or triage.",
+  "issueChatThread.pausedByBudget": "It was paused by a budget hard stop.",
+  "issueChatThread.pausedBySystem": "It was paused by the system.",
+  "issueChatThread.pausedManually": "It was paused manually.",
+  "issueChatThread.agentPaused": "{{name}} is paused. New runs will not start until the agent is resumed. {{detail}}",
+  "issueThreadInteraction.requestConfirmed": "Request confirmed",
+  "issueThreadInteraction.acceptedDraftsAndSkipped": "Accepted {{count}} drafts and skipped {{skipped}}",
+  "issueThreadInteraction.suggestedTasksAccepted": "Suggested tasks accepted",
+  "issueThreadInteraction.acceptFailed": "Accept failed",
+  "issueThreadInteraction.unableToAcceptSuggestedTasks": "Unable to accept the suggested tasks",
+  "issueThreadInteraction.requestDeclined": "Request declined",
+  "issueThreadInteraction.suggestionRejected": "Suggestion rejected",
+  "issueThreadInteraction.rejectFailed": "Reject failed",
+  "issueThreadInteraction.unableToRejectSuggestedTasks": "Unable to reject the suggested tasks",
+  "issueThreadInteraction.answersSubmitted": "Answers submitted",
+  "issueThreadInteraction.submitFailed": "Submit failed",
+  "issueThreadInteraction.unableToSubmitAnswers": "Unable to submit answers",
+  "issueThreadInteraction.queuedCommentCanceled": "Queued comment canceled",
+  "issueThreadInteraction.queuedMessageRestored": "The queued message was restored to the composer.",
+  "Cancel failed": "Cancel failed",
+  "issueThreadInteraction.unableToCancelQueuedComment": "Unable to cancel the queued comment",
+  "issues": "issues",
+  "Attachments": "Attachments",
+  " · started {{time}}": " · started {{time}}",
+  ". Resume from the root issue to deliver deferred work.": ". Resume from the root issue to deliver deferred work.",
+  "Active subtree pause released.": "Active subtree pause released.",
+  "Applying...": "Applying...",
+  "Archive from inbox": "Archive from inbox",
+  "Assign an agent to wake them for triage while the subtree remains paused.": "Assign an agent to wake them for triage while the subtree remains paused.",
+  "Back to inbox": "Back to inbox",
+  "Cancel subtree...": "Cancel subtree...",
+  "Cancel {{count}} issues": "Cancel {{count}} issues",
+  "Cancelling a subtree is destructive. Non-terminal issues will be marked cancelled, and running or queued work will be interrupted where possible.": "Cancelling a subtree is destructive. Non-terminal issues will be marked cancelled, and running or queued work will be interrupted where possible.",
+  "Complete": "Complete",
+  "Copy as markdown": "Copy as markdown",
+  "Deferred wake": "Deferred wake",
+  "Enable Environments": "Enable Environments",
+  "Environment choices use the same adapter support matrix as agent defaults. SSH environments are available for remote-managed adapters.": "Environment choices use the same adapter support matrix as agent defaults. SSH environments are available for remote-managed adapters.",
+  "Explain why this subtree control is being applied...": "Explain why this subtree control is being applied...",
+  "I understand this will cancel {{count}} issues.": "I understand this will cancel {{count}} issues.",
+  "More issue actions": "More issue actions",
+  "No active subtree pause hold is available to resume.": "No active subtree pause hold is available to resume.",
+  "No assigned agents are eligible to wake from this preview.": "No assigned agents are eligible to wake from this preview.",
+  "Opt into features that are still being evaluated before they become default behavior.": "Opt into features that are still being evaluated before they become default behavior.",
+  "Pause and stop work": "Pause and stop work",
+  "Pause subtree...": "Pause subtree...",
+  "Preview unavailable.": "Preview unavailable.",
+  "Reason (optional)": "Reason (optional)",
+  "Reason (required)": "Reason (required)",
+  "Restore subtree...": "Restore subtree...",
+  "Restore {{count}} issues": "Restore {{count}} issues",
+  "Resume subtree": "Resume subtree",
+  "Retry preview": "Retry preview",
+  "Root and descendant execution is held until resume. Human comments can still wake assignees for triage.": "Root and descendant execution is held until resume. Human comments can still wake assignees for triage.",
+  "Sending this comment will wake {{name}} for triage while the subtree remains paused.": "Sending this comment will wake {{name}} for triage while the subtree remains paused.",
+  "Show environment management in company settings and allow project and agent environment assignment controls.": "Show environment management in company settings and allow project and agent environment assignment controls.",
+  "Show execution workspace controls in project configuration and allow isolated workspace behavior for new and existing issue runs.": "Show execution workspace controls in project configuration and allow isolated workspace behavior for new and existing issue runs.",
+  "Subtree control applied.": "Subtree control applied.",
+  "Subtree pause is active.": "Subtree pause is active.",
+  "Subtree paused": "Subtree paused",
+  "Subtree paused. {{count}} run cancelled.": "Subtree paused. {{count}} run cancelled.",
+  "Subtree resumed": "Subtree resumed",
+  "This issue is paused by ancestor": "This issue is paused by ancestor",
+  "Toggle environments experimental setting": "Toggle environments experimental setting",
+  "View affected ({{count}})": "View affected ({{count}})",
+  "Wake affected agents ({{count}})": "Wake affected agents ({{count}})",
+  "Wake assigned agents after this operation completes.": "Wake assigned agents after this operation completes.",
+  "agentConfig.companyDefaultLocal": "Company default (Local)",
+  "agentConfig.defaultEnvironment": "Default environment",
+  "agentConfig.defaultEnvironmentHint": "Agent-level default execution target. Project and issue settings can still override this.",
+  "agentConfig.execution": "Execution",
+  "companySettings.addEnvironment": "Add environment",
+  "companySettings.createEnvironment": "Create environment",
+  "companySettings.creating": "Creating...",
+  "companySettings.draftProbeFailed": "Draft probe failed",
+  "companySettings.draftProbePassed": "Draft probe passed",
+  "companySettings.driver": "Driver",
+  "companySettings.editEnvironment": "Edit environment",
+  "companySettings.editing": "Editing",
+  "companySettings.environmentCreated": "Environment created",
+  "companySettings.environmentDescriptionHint": "Optional note about what this machine is for.",
+  "companySettings.environmentDriverHint": "Local runs on this host. SSH stores a remote machine target.",
+  "companySettings.environmentNameHint": "Operator-facing name for this execution target.",
+  "companySettings.environmentProbeFailed": "Environment probe failed",
+  "companySettings.environmentProbeFailedSentence": "Environment probe failed.",
+  "companySettings.environmentProbePassed": "Environment probe passed",
+  "companySettings.environmentReady": "{{name}} is ready.",
+  "companySettings.environmentSaveFailed": "Environment save failed.",
+  "companySettings.environmentSupportByAdapter": "Environment support by adapter",
+  "companySettings.environmentUpdated": "Environment updated",
+  "companySettings.environments": "Environments",
+  "companySettings.environmentsHint": "Environment choices use the same adapter support matrix as agent defaults. SSH environments are available for remote-managed adapters.",
+  "companySettings.failedToSaveEnvironment": "Failed to save environment",
+  "companySettings.host": "Host",
+  "companySettings.hostHint": "DNS name or IP address for the remote machine.",
+  "companySettings.knownHosts": "Known hosts",
+  "companySettings.knownHostsHint": "Optional known_hosts block used when strict host key checking is enabled.",
+  "companySettings.noEnvironments": "No environments saved for this company yet.",
+  "companySettings.noSavedSecret": "No saved secret",
+  "companySettings.port": "Port",
+  "companySettings.portHint": "Defaults to 22.",
+  "companySettings.privateKey": "Private key",
+  "companySettings.privateKeyHint": "Optional PEM private key. Leave blank to rely on the server's SSH agent or default keychain.",
+  "companySettings.remoteWorkspacePath": "Remote workspace path",
+  "companySettings.remoteWorkspacePathHint": "Absolute path that Paperclip will verify during SSH connection tests.",
+  "companySettings.runsOnThisPaperclipHost": "Runs on this Paperclip host.",
+  "companySettings.saveEnvironment": "Save environment",
+  "companySettings.sshHostFallback": "SSH host",
+  "companySettings.sshUserFallback": "user",
+  "companySettings.strictHostKeyChecking": "Strict host key checking",
+  "companySettings.strictHostKeyCheckingHint": "Keep this on unless you deliberately want probe-time host key acceptance disabled.",
+  "companySettings.testConnection": "Test connection",
+  "companySettings.testDraft": "Test draft",
+  "companySettings.username": "Username",
+  "companySettings.usernameHint": "SSH login user.",
+  "the assignee": "the assignee",
+  "{{count}} descendant held": "{{count}} descendant held",
+  "{{mode}} applied": "{{mode}} applied"
 }

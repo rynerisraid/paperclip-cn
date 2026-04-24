@@ -11,6 +11,10 @@ import type { Agent, IssueComment } from "@penclipai/shared";
 import type { ActiveRunForIssue, LiveRunForIssue } from "../api/heartbeats";
 import { translateInstant } from "../i18n";
 import { formatAssigneeUserLabel } from "./assignees";
+import {
+  buildIssueThreadInteractionSummary,
+  type IssueThreadInteraction,
+} from "./issue-thread-interactions";
 import type { IssueTimelineEvent } from "./issue-timeline-events";
 import {
   summarizeNotice,
@@ -27,6 +31,7 @@ export interface IssueChatComment extends IssueComment {
   clientStatus?: "pending" | "queued";
   queueState?: "queued";
   queueTargetRunId?: string | null;
+  queueReason?: "hold" | "active_run" | "other";
 }
 
 export interface IssueChatLinkedRun {
@@ -330,6 +335,7 @@ function createCommentMessage(args: {
     clientStatus: comment.clientStatus ?? null,
     queueState: comment.queueState ?? null,
     queueTargetRunId: comment.queueTargetRunId ?? null,
+    queueReason: comment.queueReason ?? null,
     interruptedRunId: comment.interruptedRunId ?? null,
   };
 
@@ -400,6 +406,23 @@ function createTimelineEventMessage(args: {
         actorId: event.actorId,
         statusChange: event.statusChange ?? null,
         assigneeChange: event.assigneeChange ?? null,
+      },
+    },
+  };
+  return message;
+}
+
+function createInteractionMessage(interaction: IssueThreadInteraction) {
+  const message: ThreadSystemMessage = {
+    id: `interaction:${interaction.id}`,
+    role: "system",
+    createdAt: toDate(interaction.createdAt),
+    content: [{ type: "text", text: buildIssueThreadInteractionSummary(interaction) }],
+    metadata: {
+      custom: {
+        kind: "interaction",
+        anchorId: `interaction-${interaction.id}`,
+        interaction,
       },
     },
   };
@@ -766,6 +789,7 @@ function createLiveRunMessage(args: {
 
 export function buildIssueChatMessages(args: {
   comments: readonly IssueChatComment[];
+  interactions?: readonly IssueThreadInteraction[];
   timelineEvents: readonly IssueTimelineEvent[];
   linkedRuns: readonly IssueChatLinkedRun[];
   liveRuns: readonly LiveRunForIssue[];
@@ -782,6 +806,7 @@ export function buildIssueChatMessages(args: {
 }) {
   const {
     comments,
+    interactions = [],
     timelineEvents,
     linkedRuns,
     liveRuns,
@@ -804,6 +829,14 @@ export function buildIssueChatMessages(args: {
       createdAtMs: toTimestamp(comment.createdAt),
       order: 1,
       message: createCommentMessage({ comment, agentMap, currentUserId, userLabelMap, companyId, projectId }),
+    });
+  }
+
+  for (const interaction of sortByCreated(interactions)) {
+    orderedMessages.push({
+      createdAtMs: toTimestamp(interaction.createdAt),
+      order: 2,
+      message: createInteractionMessage(interaction),
     });
   }
 

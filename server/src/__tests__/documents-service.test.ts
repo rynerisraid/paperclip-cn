@@ -1,79 +1,115 @@
-import { describe, expect, it, vi } from "vitest";
+import { randomUUID } from "node:crypto";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import {
+  companies,
+  createDb,
+  documentRevisions,
+  documents,
+  issueDocuments,
+  issues,
+} from "@penclipai/db";
+import { ISSUE_CONTINUATION_SUMMARY_DOCUMENT_KEY } from "@penclipai/shared";
+import {
+  getEmbeddedPostgresTestSupport,
+  startEmbeddedPostgresTestDatabase,
+} from "./helpers/embedded-postgres.js";
 import { documentService } from "../services/documents.js";
 
-describe("documentService.restoreIssueDocumentRevision", () => {
-  it("maps revision number races to a 409 conflict", async () => {
-    const existing = {
-      id: "document-1",
-      companyId: "company-1",
-      issueId: "issue-1",
+const embeddedPostgresSupport = await getEmbeddedPostgresTestSupport();
+const describeEmbeddedPostgres = embeddedPostgresSupport.supported ? describe : describe.skip;
+
+if (!embeddedPostgresSupport.supported) {
+  console.warn(
+    `Skipping embedded Postgres document service tests on this host: ${embeddedPostgresSupport.reason ?? "unsupported environment"}`,
+  );
+}
+
+describeEmbeddedPostgres("documentService system issue documents", () => {
+  let db!: ReturnType<typeof createDb>;
+  let svc!: ReturnType<typeof documentService>;
+  let tempDb: Awaited<ReturnType<typeof startEmbeddedPostgresTestDatabase>> | null = null;
+
+  beforeAll(async () => {
+    tempDb = await startEmbeddedPostgresTestDatabase("paperclip-documents-service-");
+    db = createDb(tempDb.connectionString);
+    svc = documentService(db);
+  }, 20_000);
+
+  afterEach(async () => {
+    await db.delete(documentRevisions);
+    await db.delete(issueDocuments);
+    await db.delete(documents);
+    await db.delete(issues);
+    await db.delete(companies);
+  });
+
+  afterAll(async () => {
+    await tempDb?.cleanup();
+  });
+
+  async function createIssueWithDocuments() {
+    const companyId = randomUUID();
+    const issueId = randomUUID();
+
+    await db.insert(companies).values({
+      id: companyId,
+      name: "Paperclip",
+      issuePrefix: `T${companyId.replace(/-/g, "").slice(0, 6).toUpperCase()}`,
+      requireBoardApprovalForNewAgents: false,
+    });
+
+    await db.insert(issues).values({
+      id: issueId,
+      companyId,
+      identifier: "PAP-1600",
+      title: "System document filtering",
+      description: "Validate document filtering",
+      status: "in_progress",
+      priority: "medium",
+    });
+
+    await svc.upsertIssueDocument({
+      issueId,
       key: "plan",
       title: "Plan",
       format: "markdown",
-      latestBody: "current body",
-      latestRevisionId: "revision-2",
-      latestRevisionNumber: 2,
-      createdByAgentId: null,
-      createdByUserId: "user-1",
-      updatedByAgentId: null,
-      updatedByUserId: "user-1",
-      createdAt: new Date("2026-04-01T00:00:00.000Z"),
-      updatedAt: new Date("2026-04-01T00:00:00.000Z"),
-    };
-    const revision = {
-      id: "revision-1",
-      companyId: "company-1",
-      documentId: "document-1",
-      revisionNumber: 1,
-      title: "Plan",
+      body: "# Plan",
+    });
+    await svc.upsertIssueDocument({
+      issueId,
+      key: ISSUE_CONTINUATION_SUMMARY_DOCUMENT_KEY,
+      title: "Continuation Summary",
       format: "markdown",
-      body: "older body",
-    };
-
-    const tx = {
-      select: vi
-        .fn()
-        .mockReturnValueOnce({
-          from: vi.fn().mockReturnValue({
-            innerJoin: vi.fn().mockReturnValue({
-              where: vi.fn().mockResolvedValue([existing]),
-            }),
-          }),
-        })
-        .mockReturnValueOnce({
-          from: vi.fn().mockReturnValue({
-            where: vi.fn().mockResolvedValue([revision]),
-          }),
-        }),
-      insert: vi.fn().mockReturnValue({
-        values: vi.fn().mockReturnValue({
-          returning: vi.fn().mockRejectedValue({ code: "23505" }),
-        }),
-      }),
-      update: vi.fn(),
-    };
-    const db = {
-      transaction: vi.fn(async (callback: (innerTx: typeof tx) => Promise<unknown>) => callback(tx)),
-    };
-
-    const svc = documentService(db as never);
-
-    await expect(
-      svc.restoreIssueDocumentRevision({
-        issueId: "issue-1",
-        key: "plan",
-        revisionId: "revision-1",
-        createdByUserId: "user-2",
-      }),
-    ).rejects.toMatchObject({
-      status: 409,
-      message: "Document was updated by someone else",
-      details: {
-        currentRevisionId: "revision-2",
-      },
+      body: "# Handoff",
     });
 
-    expect(tx.insert).toHaveBeenCalledTimes(1);
-    expect(tx.update).not.toHaveBeenCalled();
+    return { issueId };
+  }
+
+  it("filters continuation summaries from default document lists and issue payload summaries", async () => {
+    const { issueId } = await createIssueWithDocuments();
+
+    const defaultDocuments = await svc.listIssueDocuments(issueId);
+    expect(defaultDocuments.map((doc) => doc.key)).toEqual(["plan"]);
+
+    const payload = await svc.getIssueDocumentPayload({ id: issueId, description: null });
+    expect(payload.planDocument?.key).toBe("plan");
+    expect(payload.documentSummaries.map((doc) => doc.key)).toEqual(["plan"]);
+  });
+
+  it("keeps system documents available for includeSystem and direct fetch callers", async () => {
+    const { issueId } = await createIssueWithDocuments();
+
+    const debugDocuments = await svc.listIssueDocuments(issueId, { includeSystem: true });
+    expect(debugDocuments.map((doc) => doc.key)).toEqual([
+      ISSUE_CONTINUATION_SUMMARY_DOCUMENT_KEY,
+      "plan",
+    ]);
+
+    const directHandoff = await svc.getIssueDocumentByKey(issueId, ISSUE_CONTINUATION_SUMMARY_DOCUMENT_KEY);
+    expect(directHandoff).toEqual(expect.objectContaining({
+      key: ISSUE_CONTINUATION_SUMMARY_DOCUMENT_KEY,
+      body: "# Handoff",
+    }));
   });
 });

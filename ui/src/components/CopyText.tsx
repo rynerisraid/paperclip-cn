@@ -6,25 +6,32 @@ interface CopyTextProps {
   text: string;
   /** What to display. Defaults to `text`. */
   children?: React.ReactNode;
+  containerClassName?: string;
   className?: string;
+  ariaLabel?: string;
+  title?: string;
   /** Tooltip message shown after copying. Default: "Copied!" */
   copiedLabel?: string;
 }
 
-export function CopyText({ text, children, className, copiedLabel = "Copied!" }: CopyTextProps) {
+export function CopyText({
+  text,
+  children,
+  containerClassName,
+  className,
+  ariaLabel,
+  title,
+  copiedLabel = "Copied!",
+}: CopyTextProps) {
   const { t } = useTranslation();
-  const successLabel = copiedLabel === "Copied!" ? t("Copied!") : copiedLabel;
-  const failureLabel = t("Copy failed");
+  const successLabel = copiedLabel === "Copied!" ? t("Copied!", { defaultValue: "Copied!" }) : copiedLabel;
+  const failureLabel = t("Copy failed", { defaultValue: "Copy failed" });
   const [visible, setVisible] = useState(false);
   const [label, setLabel] = useState(successLabel);
   const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const triggerRef = useRef<HTMLButtonElement>(null);
 
-  useEffect(() => {
-    if (!visible) {
-      setLabel(successLabel);
-    }
-  }, [successLabel, visible]);
+  useEffect(() => () => clearTimeout(timerRef.current), []);
 
   const handleClick = useCallback(async () => {
     try {
@@ -55,10 +62,12 @@ export function CopyText({ text, children, className, copiedLabel = "Copied!" }:
   }, [failureLabel, successLabel, text]);
 
   return (
-    <span className="relative inline-flex">
+    <span className={cn("relative inline-flex", containerClassName)}>
       <button
         ref={triggerRef}
         type="button"
+        aria-label={ariaLabel}
+        title={title}
         className={cn(
           "cursor-copy hover:text-foreground transition-colors",
           className,
