@@ -130,6 +130,7 @@ for (const routeTest of routeTests) {
       routeTest.repoPath,
       "--pool=forks",
       "--poolOptions.forks.isolate=true",
+      "--teardownTimeout=1000",
     ],
     routeTest.repoPath,
   );

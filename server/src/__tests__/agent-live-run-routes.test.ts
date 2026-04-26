@@ -7,7 +7,6 @@ const mockAgentService = vi.hoisted(() => ({
 }));
 
 const mockHeartbeatService = vi.hoisted(() => ({
-  buildRunOutputSilence: vi.fn(),
   getRunIssueSummary: vi.fn(),
   getActiveRunIssueSummaryForAgent: vi.fn(),
   buildRunOutputSilence: vi.fn(),
@@ -161,7 +160,6 @@ describe("agent live run routes", () => {
       feedbackDataSharingPreference: "prompt",
     });
     mockInstanceSettingsService.listCompanyIds.mockResolvedValue(["company-1"]);
-    mockHeartbeatService.buildRunOutputSilence.mockResolvedValue(null);
     mockHeartbeatService.getRunIssueSummary.mockResolvedValue({
       id: "run-1",
       status: "running",
