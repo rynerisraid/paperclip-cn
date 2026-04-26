@@ -92,20 +92,21 @@ describe("readConfigFile", () => {
     expect(config).not.toBeNull();
     expect(config?.server.port).toBe(3900);
     expect(config?.database.embeddedPostgresPort).toBe(54331);
+    const expectedInstanceId = process.env.PAPERCLIP_INSTANCE_ID?.trim() || "default";
     expect(config?.database.embeddedPostgresDataDir).toBe(
-      path.resolve(os.homedir(), ".paperclip", "instances", "default", "db"),
+      path.resolve(os.homedir(), ".paperclip", "instances", expectedInstanceId, "db"),
     );
     expect(config?.database.backup.dir).toBe(
-      path.resolve(os.homedir(), ".paperclip", "instances", "default", "data", "backups"),
+      path.resolve(os.homedir(), ".paperclip", "instances", expectedInstanceId, "data", "backups"),
     );
     expect(config?.logging.logDir).toBe(
-      path.resolve(os.homedir(), ".paperclip", "instances", "default", "logs"),
+      path.resolve(os.homedir(), ".paperclip", "instances", expectedInstanceId, "logs"),
     );
     expect(config?.storage.localDisk.baseDir).toBe(
-      path.resolve(os.homedir(), ".paperclip", "instances", "default", "data", "storage"),
+      path.resolve(os.homedir(), ".paperclip", "instances", expectedInstanceId, "data", "storage"),
     );
     expect(config?.secrets.localEncrypted.keyFilePath).toBe(
-      path.resolve(os.homedir(), ".paperclip", "instances", "default", "secrets", "master.key"),
+      path.resolve(os.homedir(), ".paperclip", "instances", expectedInstanceId, "secrets", "master.key"),
     );
   });
 

@@ -365,11 +365,18 @@ export function IssueFiltersPopover({
                 </div>
               ) : null}
 
-              {enableRoutineVisibilityFilter ? (
-                <div className="space-y-1">
-                  <span className="text-xs text-muted-foreground">
-                    {t("projectWorkspace.visibility", { defaultValue: "Visibility" })}
-                  </span>
+              <div className="space-y-1">
+                <span className="text-xs text-muted-foreground">
+                  {t("projectWorkspace.visibility", { defaultValue: "Visibility" })}
+                </span>
+                <label className="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1 hover:bg-accent/50">
+                  <Checkbox
+                    checked={state.liveOnly}
+                    onCheckedChange={(checked) => onChange({ liveOnly: checked === true })}
+                  />
+                  <span className="text-sm">{t("issueFilters.liveRunsOnly", { defaultValue: "Live runs only" })}</span>
+                </label>
+                {enableRoutineVisibilityFilter ? (
                   <label className="flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1 hover:bg-accent/50">
                     <Checkbox
                       checked={state.hideRoutineExecutions}
@@ -377,8 +384,8 @@ export function IssueFiltersPopover({
                     />
                     <span className="text-sm">{t("Hide routine runs", { defaultValue: "Hide routine runs" })}</span>
                   </label>
-                </div>
-              ) : null}
+                ) : null}
+              </div>
             </div>
           </div>
         </div>

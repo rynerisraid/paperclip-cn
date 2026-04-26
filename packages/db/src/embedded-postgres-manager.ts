@@ -30,6 +30,7 @@ const execFileAsync = promisify(execFile);
 const DEFAULT_INITDB_FLAGS = ["--encoding=UTF8", "--locale=C", "--lc-messages=C"];
 const DEFAULT_EMBEDDED_POSTGRES_USER = "paperclip";
 const DEFAULT_EMBEDDED_POSTGRES_PASSWORD = "paperclip";
+const DEFAULT_PAPERCLIP_EMBEDDED_POSTGRES_PORT = 54329;
 const TEST_REGISTRY_VERSION = 1;
 const TEST_SUPPORT_VERSION = 1;
 
@@ -282,24 +283,46 @@ export function readPidFilePort(postmasterPidFile: string): number | null {
   }
 }
 
+function getReservedTestPorts(): Set<number> {
+  const configuredPorts = [
+    DEFAULT_PAPERCLIP_EMBEDDED_POSTGRES_PORT,
+    Number.parseInt(process.env.PAPERCLIP_EMBEDDED_POSTGRES_PORT ?? "", 10),
+    ...String(process.env.PAPERCLIP_TEST_POSTGRES_RESERVED_PORTS ?? "")
+      .split(",")
+      .map((value) => Number.parseInt(value.trim(), 10)),
+  ];
+  return new Set(configuredPorts.filter((port) => Number.isInteger(port) && port > 0 && port <= 65535));
+}
+
 export async function getAvailablePort(): Promise<number> {
-  return await new Promise((resolve, reject) => {
-    const server = net.createServer();
-    server.unref();
-    server.on("error", reject);
-    server.listen(0, "127.0.0.1", () => {
-      const address = server.address();
-      if (!address || typeof address === "string") {
-        server.close(() => reject(new Error("Failed to allocate embedded Postgres port")));
-        return;
-      }
-      const { port } = address;
-      server.close((error) => {
-        if (error) reject(error);
-        else resolve(port);
+  const reservedPorts = getReservedTestPorts();
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    const port = await new Promise<number>((resolve, reject) => {
+      const server = net.createServer();
+      server.unref();
+      server.on("error", reject);
+      server.listen(0, "127.0.0.1", () => {
+        const address = server.address();
+        if (!address || typeof address === "string") {
+          server.close(() => reject(new Error("Failed to allocate embedded Postgres port")));
+          return;
+        }
+        const { port } = address;
+        server.close((error) => {
+          if (error) reject(error);
+          else resolve(port);
+        });
       });
     });
-  });
+
+    if (!reservedPorts.has(port)) return port;
+  }
+
+  throw new Error(
+    `Failed to allocate embedded Postgres test port outside reserved Paperclip ports: ${[
+      ...reservedPorts,
+    ].join(", ")}`,
+  );
 }
 
 async function isPortInUse(port: number): Promise<boolean> {

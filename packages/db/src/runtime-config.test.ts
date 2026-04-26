@@ -172,7 +172,13 @@ describe("resolveDatabaseTarget", () => {
 
     expect(target).toMatchObject({
       mode: "embedded-postgres",
-      dataDir: path.resolve(os.homedir(), ".paperclip", "instances", "default", "db"),
+      dataDir: path.resolve(
+        os.homedir(),
+        ".paperclip",
+        "instances",
+        process.env.PAPERCLIP_INSTANCE_ID?.trim() || "default",
+        "db",
+      ),
       port: 54331,
       source: "embedded-postgres@54331",
     });

@@ -105,6 +105,14 @@ describe("IssueFiltersPopover", () => {
     expect(renderedHtml).toContain("max-h-[min(80vh,42rem)]");
     expect(renderedHtml).toContain("md:grid-cols-3");
     expect(renderedHtml).toContain("grid-cols-1");
+
+    const popoverContent = container.querySelector("[data-testid='popover-content']");
+    expect(popoverContent).not.toBeNull();
+    const layoutGrid = Array.from(popoverContent?.querySelectorAll("div") ?? []).find((element) =>
+      element.className.includes("md:grid-cols-3"),
+    );
+    expect(layoutGrid?.className).toContain("grid-cols-1");
+    expect(popoverContent?.textContent).toContain("Live runs only");
   });
 
   it("localizes filter labels and creator search copy", () => {
