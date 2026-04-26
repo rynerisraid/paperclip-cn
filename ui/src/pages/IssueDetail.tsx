@@ -99,6 +99,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { formatIssueActivityAction } from "@/lib/activity-format";
 import { buildIssuePropertiesPanelKey } from "../lib/issue-properties-panel-key";
 import { shouldRenderRichSubIssuesSection } from "../lib/issue-detail-subissues";
+import { filterIssueDescendants } from "../lib/issue-tree";
 import { buildSubIssueDefaultsForViewer } from "../lib/subIssueDefaults";
 import {
   Activity as ActivityIcon,
@@ -383,7 +384,7 @@ function IssueDetailLoadingState({
         <div className="flex items-center gap-2 min-w-0 flex-wrap">
           {headerSeed ? (
             <>
-              <StatusIcon status={headerSeed.status} />
+              <StatusIcon status={headerSeed.status} blockerAttention={headerSeed.blockerAttention} />
               <PriorityIcon priority={headerSeed.priority} />
               {identifier ? (
                 <span className="text-sm font-mono text-muted-foreground shrink-0">{identifier}</span>
@@ -580,7 +581,7 @@ type IssueDetailChatTabProps = {
   ) => Promise<void>;
   onAdd: (body: string, reopen?: boolean, reassignment?: CommentReassignment) => Promise<void>;
   onImageUpload: (file: File) => Promise<string>;
-  onAttachImage: (file: File) => Promise<void>;
+  onAttachImage: (file: File) => Promise<IssueAttachment | void>;
   onInterruptQueued: (runId: string) => Promise<void>;
   onCancelQueued: (commentId: string) => void;
   interruptingQueuedRunId: string | null;
@@ -695,6 +696,7 @@ const IssueDetailChatTab = memo(function IssueDetailChatTab({
   const commentsWithRunMeta = useMemo<IssueDetailComment[]>(() => {
     const activeRunStartedAt = runningIssueRun?.startedAt ?? runningIssueRun?.createdAt ?? null;
     const runMetaByCommentId = new Map<string, { runId: string; runAgentId: string | null; interruptedRunId: string | null }>();
+    const followUpCommentIds = new Set<string>();
     const agentIdByRunId = new Map<string, string>();
 
     for (const run of resolvedLinkedRuns) {
@@ -713,10 +715,22 @@ const IssueDetailChatTab = memo(function IssueDetailChatTab({
         interruptedRunId,
       });
     }
+    for (const evt of resolvedActivity) {
+      if (evt.action !== "issue.comment_added") continue;
+      const details = evt.details ?? {};
+      const commentId = typeof details["commentId"] === "string" ? details["commentId"] : null;
+      if (!commentId) continue;
+      if (details["followUpRequested"] === true || details["resumeIntent"] === true) {
+        followUpCommentIds.add(commentId);
+      }
+    }
 
     return comments.map((comment) => {
       const meta = runMetaByCommentId.get(comment.id);
       const nextComment: IssueDetailComment = meta ? { ...comment, ...meta } : { ...comment };
+      if (followUpCommentIds.has(comment.id)) {
+        nextComment.followUpRequested = true;
+      }
       const queuedTargetRunId = locallyQueuedCommentRunIds.get(comment.id) ?? null;
       const locallyQueuedComment = applyLocalQueuedIssueCommentState(nextComment, {
         queuedTargetRunId,
@@ -827,6 +841,7 @@ const IssueDetailChatTab = memo(function IssueDetailChatTab({
 
 type IssueDetailActivityTabProps = {
   issueId: string;
+  companyId: string;
   issueStatus: Issue["status"];
   childIssues: Issue[];
   agentMap: Map<string, Agent>;
@@ -840,6 +855,7 @@ type IssueDetailActivityTabProps = {
 
 function IssueDetailActivityTab({
   issueId,
+  companyId,
   issueStatus,
   childIssues,
   agentMap,
@@ -932,6 +948,7 @@ function IssueDetailActivityTab({
       <div className="mb-3">
         <IssueRunLedger
           issueId={issueId}
+          companyId={companyId}
           issueStatus={issueStatus}
           childIssues={childIssues}
           agentMap={agentMap}
@@ -1138,9 +1155,9 @@ export function IssueDetail() {
   const { data: rawChildIssues = [], isLoading: childIssuesLoading } = useQuery({
     queryKey:
       issue?.id && resolvedCompanyId
-        ? queryKeys.issues.listByParent(resolvedCompanyId, issue.id)
+        ? queryKeys.issues.listByDescendantRoot(resolvedCompanyId, issue.id)
         : ["issues", "parent", "pending"],
-    queryFn: () => issuesApi.list(resolvedCompanyId!, { parentId: issue!.id }),
+    queryFn: () => issuesApi.list(resolvedCompanyId!, { descendantOf: issue!.id }),
     enabled: !!resolvedCompanyId && !!issue?.id,
     placeholderData: keepPreviousDataForSameQueryTail<Issue[]>(issue?.id ?? "pending"),
   });
@@ -1292,8 +1309,11 @@ export function IssueDetail() {
     [issue?.project, issue?.projectId, orderedProjects],
   );
   const childIssues = useMemo(
-    () => [...rawChildIssues].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()),
-    [rawChildIssues],
+    () => {
+      const descendants = issue?.id ? filterIssueDescendants(issue.id, rawChildIssues) : rawChildIssues;
+      return [...descendants].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    },
+    [issue?.id, rawChildIssues],
   );
   const liveIssueIds = useMemo(() => collectLiveIssueIds(companyLiveRuns), [companyLiveRuns]);
   const issuePanelKey = useMemo(
@@ -2583,7 +2603,7 @@ export function IssueDetail() {
     return attachment.contentPath;
   }, [uploadAttachment]);
   const handleCommentAttachImage = useCallback(async (file: File) => {
-    await uploadAttachment.mutateAsync(file);
+    return uploadAttachment.mutateAsync(file);
   }, [uploadAttachment]);
   const handleInterruptQueuedRun = useCallback(async (runId: string) => {
     await interruptQueuedComment.mutateAsync(runId);
@@ -2747,7 +2767,7 @@ export function IssueDetail() {
   const canApplyTreeControl =
     Boolean(treeControlPreview)
     && !treeControlPreviewLoading
-    && (treeControlMode !== "cancel" || (treeControlReason.trim().length > 0 && treeControlCancelConfirmed));
+    && (treeControlMode !== "cancel" || treeControlCancelConfirmed);
   const attachmentUploadButton = (
     <>
       <input
@@ -2896,6 +2916,7 @@ export function IssueDetail() {
         <div className="flex items-center gap-2 min-w-0 flex-wrap">
           <StatusIcon
             status={issue.status}
+            blockerAttention={issue.blockerAttention}
             onChange={(status) => updateIssue.mutate({ status })}
           />
           <PriorityIcon
@@ -3125,6 +3146,7 @@ export function IssueDetail() {
           className="text-[15px] leading-7 text-foreground"
           placeholder={t("Add a description...", { defaultValue: "Add a description..." })}
           multiline
+          foldable
           mentions={mentionOptions}
           imageUploadHandler={async (file) => {
             const attachment = await uploadAttachment.mutateAsync(file);
@@ -3198,7 +3220,8 @@ export function IssueDetail() {
             projectId={issue.projectId ?? undefined}
             viewStateKey={`paperclip:issue-detail:${issue.id}:subissues-view`}
             issueLinkState={resolvedIssueDetailState ?? location.state}
-            searchFilters={{ parentId: issue.id }}
+            searchFilters={{ descendantOf: issue.id }}
+            searchWithinLoadedIssues
             baseCreateIssueDefaults={buildSubIssueDefaultsForViewer(issue, currentUserId)}
             createIssueLabel="Sub-issue"
             onUpdateIssue={handleChildIssueUpdate}
@@ -3466,6 +3489,7 @@ export function IssueDetail() {
           {detailTab === "activity" ? (
             <IssueDetailActivityTab
               issueId={issue.id}
+              companyId={issue.companyId}
               issueStatus={issue.status}
               childIssues={childIssues}
               agentMap={agentMap}

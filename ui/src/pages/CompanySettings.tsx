@@ -8,10 +8,11 @@ import {
   getAdapterEnvironmentSupport,
   type Environment,
   type EnvironmentProbeResult,
+  type JsonSchema,
 } from "@penclipai/shared";
 import { useCompany } from "../context/CompanyContext";
 import { useBreadcrumbs } from "../context/BreadcrumbContext";
-import { useToastActions } from "../context/ToastContext";
+import { useToast } from "../context/ToastContext";
 import { companiesApi } from "../api/companies";
 import { accessApi } from "../api/access";
 import { assetsApi } from "../api/assets";
@@ -23,6 +24,7 @@ import { formatDateTime } from "../lib/utils";
 import { Button } from "@/components/ui/button";
 import { Settings, Check, Download, Upload } from "lucide-react";
 import { CompanyPatternIcon } from "../components/CompanyPatternIcon";
+import { JsonSchemaForm, getDefaultValues, validateJsonSchemaForm } from "@/components/JsonSchemaForm";
 import {
   Field,
   ToggleField,
@@ -39,7 +41,7 @@ type AgentSnippetInput = {
 type EnvironmentFormState = {
   name: string;
   description: string;
-  driver: "local" | "ssh";
+  driver: "local" | "ssh" | "sandbox";
   sshHost: string;
   sshPort: string;
   sshUsername: string;
@@ -48,6 +50,8 @@ type EnvironmentFormState = {
   sshPrivateKeySecretId: string;
   sshKnownHosts: string;
   sshStrictHostKeyChecking: boolean;
+  sandboxProvider: string;
+  sandboxConfig: Record<string, unknown>;
 };
 
 const ENVIRONMENT_SUPPORT_ROWS = AGENT_ADAPTER_TYPES.map((adapterType) => ({
@@ -75,7 +79,12 @@ function buildEnvironmentPayload(form: EnvironmentFormState) {
             knownHosts: form.sshKnownHosts.trim() || null,
             strictHostKeyChecking: form.sshStrictHostKeyChecking,
           }
-        : {},
+        : form.driver === "sandbox"
+          ? {
+              provider: form.sandboxProvider.trim(),
+              ...form.sandboxConfig,
+            }
+          : {},
   } as const;
 }
 
@@ -92,6 +101,8 @@ function createEmptyEnvironmentForm(): EnvironmentFormState {
     sshPrivateKeySecretId: "",
     sshKnownHosts: "",
     sshStrictHostKeyChecking: true,
+    sandboxProvider: "",
+    sandboxConfig: {},
   };
 }
 
@@ -106,7 +117,8 @@ function readSshConfig(environment: Environment) {
           ? config.port
           : "22",
     username: typeof config.username === "string" ? config.username : "",
-    remoteWorkspacePath: typeof config.remoteWorkspacePath === "string" ? config.remoteWorkspacePath : "",
+    remoteWorkspacePath:
+      typeof config.remoteWorkspacePath === "string" ? config.remoteWorkspacePath : "",
     privateKey: "",
     privateKeySecretId:
       config.privateKeySecretRef &&
@@ -123,6 +135,38 @@ function readSshConfig(environment: Environment) {
   };
 }
 
+function readSandboxConfig(environment: Environment) {
+  const config = environment.config ?? {};
+  const { provider: rawProvider, ...providerConfig } = config;
+  return {
+    provider: typeof rawProvider === "string" && rawProvider.trim().length > 0
+      ? rawProvider
+        : "fake",
+    config: providerConfig,
+  };
+}
+
+function normalizeJsonSchema(schema: unknown): JsonSchema | null {
+  return schema && typeof schema === "object" && !Array.isArray(schema)
+    ? schema as JsonSchema
+    : null;
+}
+
+function summarizeSandboxConfig(config: Record<string, unknown>): string | null {
+  for (const key of ["template", "image", "region", "workspacePath"]) {
+    const value = config[key];
+    if (typeof value === "string" && value.trim().length > 0) {
+      return value;
+    }
+  }
+  return null;
+}
+
+function LocalizedText({ value }: { value: string }) {
+  const { t } = useTranslation();
+  return <>{t(value, { defaultValue: value })}</>;
+}
+
 function SupportMark({ supported }: { supported: boolean }) {
   return supported ? (
     <span className="inline-flex items-center gap-1 text-green-700 dark:text-green-400">
@@ -134,13 +178,7 @@ function SupportMark({ supported }: { supported: boolean }) {
   );
 }
 
-function LocalizedText({ value }: { value: string }) {
-  const { t } = useTranslation();
-  return <>{t(value, { defaultValue: value })}</>;
-}
-
 const FEEDBACK_TERMS_URL = import.meta.env.VITE_FEEDBACK_TERMS_URL?.trim() || "https://paperclip.ing/tos";
-
 export function CompanySettings() {
   const { t } = useTranslation();
   const {
@@ -150,7 +188,7 @@ export function CompanySettings() {
     setSelectedCompanyId
   } = useCompany();
   const { setBreadcrumbs } = useBreadcrumbs();
-  const { pushToast } = useToastActions();
+  const { pushToast } = useToast();
   const queryClient = useQueryClient();
   // General settings local state
   const [companyName, setCompanyName] = useState("");
@@ -197,7 +235,7 @@ export function CompanySettings() {
   const { data: secrets } = useQuery({
     queryKey: selectedCompanyId ? ["company-secrets", selectedCompanyId] : ["company-secrets", "none"],
     queryFn: () => secretsApi.list(selectedCompanyId!),
-    enabled: Boolean(selectedCompanyId) && environmentsEnabled,
+    enabled: Boolean(selectedCompanyId),
   });
 
   const generalDirty =
@@ -518,6 +556,19 @@ export function CompanySettings() {
       return;
     }
 
+    if (environment.driver === "sandbox") {
+      const sandbox = readSandboxConfig(environment);
+      setEnvironmentForm({
+        ...createEmptyEnvironmentForm(),
+        name: environment.name,
+        description: environment.description ?? "",
+        driver: "sandbox",
+        sandboxProvider: sandbox.provider,
+        sandboxConfig: sandbox.config,
+      });
+      return;
+    }
+
     setEnvironmentForm({
       ...createEmptyEnvironmentForm(),
       name: environment.name,
@@ -531,6 +582,53 @@ export function CompanySettings() {
     setEnvironmentForm(createEmptyEnvironmentForm());
   }
 
+  const discoveredPluginSandboxProviders = Object.entries(environmentCapabilities?.sandboxProviders ?? {})
+    .filter(([provider, capability]) => provider !== "fake" && capability.supportsRunExecution)
+    .map(([provider, capability]) => ({
+      provider,
+      displayName: capability.displayName || provider,
+      description: capability.description,
+      configSchema: normalizeJsonSchema(capability.configSchema),
+    }))
+    .sort((left, right) => left.displayName.localeCompare(right.displayName));
+  const sandboxCreationEnabled = discoveredPluginSandboxProviders.length > 0;
+  const sandboxSupportVisible = sandboxCreationEnabled;
+  const pluginSandboxProviders =
+    environmentForm.sandboxProvider.trim().length > 0 &&
+    environmentForm.sandboxProvider !== "fake" &&
+    !discoveredPluginSandboxProviders.some((provider) => provider.provider === environmentForm.sandboxProvider)
+      ? [
+          ...discoveredPluginSandboxProviders,
+          { provider: environmentForm.sandboxProvider, displayName: environmentForm.sandboxProvider, description: undefined, configSchema: null },
+        ]
+      : discoveredPluginSandboxProviders;
+
+  const selectedSandboxProvider = pluginSandboxProviders.find(
+    (provider) => provider.provider === environmentForm.sandboxProvider,
+  ) ?? null;
+  const selectedSandboxSchema = selectedSandboxProvider?.configSchema ?? null;
+  const sandboxConfigErrors =
+    environmentForm.driver === "sandbox" && selectedSandboxSchema
+      ? validateJsonSchemaForm(selectedSandboxSchema as any, environmentForm.sandboxConfig)
+      : {};
+
+  useEffect(() => {
+    if (environmentForm.driver !== "sandbox") return;
+    if (environmentForm.sandboxProvider.trim().length > 0 && environmentForm.sandboxProvider !== "fake") return;
+    const firstProvider = discoveredPluginSandboxProviders[0]?.provider;
+    if (!firstProvider) return;
+    const firstSchema = discoveredPluginSandboxProviders[0]?.configSchema;
+    setEnvironmentForm((current) => (
+      current.driver !== "sandbox" || (current.sandboxProvider.trim().length > 0 && current.sandboxProvider !== "fake")
+        ? current
+        : {
+            ...current,
+            sandboxProvider: firstProvider,
+            sandboxConfig: firstSchema ? getDefaultValues(firstSchema as any) : {},
+          }
+    ));
+  }, [discoveredPluginSandboxProviders, environmentForm.driver, environmentForm.sandboxProvider]);
+
   const environmentFormValid =
     environmentForm.name.trim().length > 0 &&
     (environmentForm.driver !== "ssh" ||
@@ -538,7 +636,11 @@ export function CompanySettings() {
         environmentForm.sshHost.trim().length > 0 &&
         environmentForm.sshUsername.trim().length > 0 &&
         environmentForm.sshRemoteWorkspacePath.trim().length > 0
-      ));
+      )) &&
+    (environmentForm.driver !== "sandbox" ||
+      environmentForm.sandboxProvider.trim().length > 0 &&
+      environmentForm.sandboxProvider !== "fake" &&
+      Object.keys(sandboxConfigErrors).length === 0);
 
   return (
     <div className="max-w-2xl space-y-6">
@@ -705,7 +807,7 @@ export function CompanySettings() {
             <div className="rounded-md border border-border/60 bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
               {t("companySettings.environmentsHint", {
                 defaultValue:
-                  "Environment choices use the same adapter support matrix as agent defaults. SSH environments are available for remote-managed adapters.",
+                  "Environment choices use the same adapter support matrix as agent defaults. SSH is always available for remote-managed adapters, and sandbox environments appear only when a run-capable sandbox provider plugin is installed.",
               })}
             </div>
 
@@ -719,6 +821,11 @@ export function CompanySettings() {
                     <th className="py-2 pr-3 font-medium">{t("Adapter", { defaultValue: "Adapter" })}</th>
                     <th className="px-3 py-2 font-medium">{t("Local", { defaultValue: "Local" })}</th>
                     <th className="px-3 py-2 font-medium">SSH</th>
+                    {sandboxSupportVisible ? (
+                      <th className="px-3 py-2 font-medium">
+                        {t("companySettings.sandbox", { defaultValue: "Sandbox" })}
+                      </th>
+                    ) : null}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/60">
@@ -727,15 +834,22 @@ export function CompanySettings() {
                     support,
                   })) ?? ENVIRONMENT_SUPPORT_ROWS).map(({ adapterType, support }) => (
                     <tr key={adapterType}>
-                      <td className="py-2 pr-3 font-medium">
-                        {adapterLabels[adapterType] ?? adapterType}
-                      </td>
+                      <td className="py-2 pr-3 font-medium">{adapterLabels[adapterType] ?? adapterType}</td>
                       <td className="px-3 py-2">
                         <SupportMark supported={support.drivers.local === "supported"} />
                       </td>
                       <td className="px-3 py-2">
                         <SupportMark supported={support.drivers.ssh === "supported"} />
                       </td>
+                      {sandboxSupportVisible ? (
+                        <td className="px-3 py-2">
+                          <SupportMark
+                            supported={discoveredPluginSandboxProviders.some(
+                              (provider) => support.sandboxProviders[provider.provider] === "supported",
+                            )}
+                          />
+                        </td>
+                      ) : null}
                     </tr>
                   ))}
                 </tbody>
@@ -751,11 +865,28 @@ export function CompanySettings() {
                 (environments ?? []).map((environment) => {
                   const probe = probeResults[environment.id] ?? null;
                   const isEditing = editingEnvironmentId === environment.id;
+                  const environmentSummary =
+                    environment.driver === "ssh"
+                      ? `${typeof environment.config.host === "string"
+                          ? environment.config.host
+                          : t("companySettings.sshHostFallback", { defaultValue: "SSH host" })} · ${
+                          typeof environment.config.username === "string"
+                            ? environment.config.username
+                            : t("companySettings.sshUserFallback", { defaultValue: "user" })
+                        }`
+                      : environment.driver === "sandbox"
+                        ? (() => {
+                            const provider =
+                              typeof environment.config.provider === "string" ? environment.config.provider : "sandbox";
+                            const displayName =
+                              environmentCapabilities?.sandboxProviders?.[provider]?.displayName ?? provider;
+                            const summary = summarizeSandboxConfig(environment.config as Record<string, unknown>);
+                            return `${displayName} ${t("companySettings.sandboxProvider", { defaultValue: "sandbox provider" })}${summary ? ` · ${summary}` : ""}`;
+                          })()
+                        : t("companySettings.runsOnThisPaperclipHost", { defaultValue: "Runs on this Paperclip host." });
+
                   return (
-                    <div
-                      key={environment.id}
-                      className="rounded-md border border-border/70 px-3 py-3"
-                    >
+                    <div key={environment.id} className="rounded-md border border-border/70 px-3 py-3">
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div className="space-y-1">
                           <div className="text-sm font-medium">
@@ -764,20 +895,7 @@ export function CompanySettings() {
                           {environment.description ? (
                             <div className="text-xs text-muted-foreground">{environment.description}</div>
                           ) : null}
-                          {environment.driver === "ssh" ? (
-                            <div className="text-xs text-muted-foreground">
-                              {typeof environment.config.host === "string"
-                                ? environment.config.host
-                                : t("companySettings.sshHostFallback", { defaultValue: "SSH host" })} ·{" "}
-                              {typeof environment.config.username === "string"
-                                ? environment.config.username
-                                : t("companySettings.sshUserFallback", { defaultValue: "user" })}
-                            </div>
-                          ) : (
-                            <div className="text-xs text-muted-foreground">
-                              {t("companySettings.runsOnThisPaperclipHost", { defaultValue: "Runs on this Paperclip host." })}
-                            </div>
-                          )}
+                          <div className="text-xs text-muted-foreground">{environmentSummary}</div>
                         </div>
                         <div className="flex flex-wrap items-center gap-2">
                           {environment.driver !== "local" ? (
@@ -789,7 +907,9 @@ export function CompanySettings() {
                             >
                               {environmentProbeMutation.isPending
                                 ? t("Testing...", { defaultValue: "Testing..." })
-                                : t("companySettings.testConnection", { defaultValue: "Test connection" })}
+                                : environment.driver === "ssh"
+                                  ? t("companySettings.testConnection", { defaultValue: "Test connection" })
+                                  : t("companySettings.testProvider", { defaultValue: "Test provider" })}
                             </Button>
                           ) : null}
                           <Button
@@ -859,7 +979,8 @@ export function CompanySettings() {
                 <Field
                   label={t("companySettings.driver", { defaultValue: "Driver" })}
                   hint={t("companySettings.environmentDriverHint", {
-                    defaultValue: "Local runs on this host. SSH stores a remote machine target.",
+                    defaultValue:
+                      "Local runs on this host. SSH stores a remote machine target. Sandbox stores plugin-backed provider config.",
                   })}
                 >
                   <select
@@ -868,10 +989,34 @@ export function CompanySettings() {
                     onChange={(e) =>
                       setEnvironmentForm((current) => ({
                         ...current,
-                        driver: e.target.value === "local" ? "local" : "ssh",
+                        sandboxProvider:
+                          e.target.value === "sandbox"
+                            ? current.sandboxProvider.trim() || discoveredPluginSandboxProviders[0]?.provider || ""
+                            : current.sandboxProvider,
+                        sandboxConfig:
+                          e.target.value === "sandbox"
+                            ? (
+                                current.sandboxProvider.trim().length > 0 && current.driver === "sandbox"
+                                  ? current.sandboxConfig
+                                  : discoveredPluginSandboxProviders[0]?.configSchema
+                                    ? getDefaultValues(discoveredPluginSandboxProviders[0].configSchema as any)
+                                    : {}
+                              )
+                            : current.sandboxConfig,
+                        driver:
+                          e.target.value === "local"
+                            ? "local"
+                            : e.target.value === "sandbox"
+                              ? "sandbox"
+                              : "ssh",
                       }))}
                   >
                     <option value="ssh">SSH</option>
+                    {sandboxCreationEnabled || environmentForm.driver === "sandbox" ? (
+                      <option value="sandbox">
+                        {t("companySettings.sandbox", { defaultValue: "Sandbox" })}
+                      </option>
+                    ) : null}
                     <option value="local">{t("Local", { defaultValue: "Local" })}</option>
                   </select>
                 </Field>
@@ -986,6 +1131,63 @@ export function CompanySettings() {
                   </div>
                 ) : null}
 
+                {environmentForm.driver === "sandbox" ? (
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <Field
+                      label={t("companySettings.provider", { defaultValue: "Provider" })}
+                      hint={t("companySettings.sandboxProviderHint", {
+                        defaultValue: "Installed run-capable sandbox provider plugins appear here.",
+                      })}
+                    >
+                      <select
+                        className="w-full rounded-md border border-border bg-transparent px-2.5 py-1.5 text-sm outline-none"
+                        value={environmentForm.sandboxProvider}
+                        onChange={(e) => {
+                          const nextProviderKey = e.target.value;
+                          const nextProvider =
+                            pluginSandboxProviders.find((provider) => provider.provider === nextProviderKey) ?? null;
+                          setEnvironmentForm((current) => ({
+                            ...current,
+                            sandboxProvider: nextProviderKey,
+                            sandboxConfig:
+                              current.sandboxProvider === nextProviderKey
+                                ? current.sandboxConfig
+                                : nextProvider?.configSchema
+                                  ? getDefaultValues(nextProvider.configSchema as any)
+                                  : {},
+                          }));
+                        }}
+                      >
+                        {pluginSandboxProviders.map((provider) => (
+                          <option key={provider.provider} value={provider.provider}>
+                            {provider.displayName}
+                          </option>
+                        ))}
+                      </select>
+                    </Field>
+                    <div className="space-y-3 md:col-span-2">
+                      {selectedSandboxProvider?.description ? (
+                        <div className="text-xs text-muted-foreground">{selectedSandboxProvider.description}</div>
+                      ) : null}
+                      {selectedSandboxSchema ? (
+                        <JsonSchemaForm
+                          schema={selectedSandboxSchema as any}
+                          values={environmentForm.sandboxConfig}
+                          onChange={(values) =>
+                            setEnvironmentForm((current) => ({ ...current, sandboxConfig: values }))}
+                          errors={sandboxConfigErrors}
+                        />
+                      ) : (
+                        <div className="rounded-md border border-border/60 bg-muted/20 px-3 py-2 text-xs text-muted-foreground">
+                          {t("companySettings.sandboxNoExtraFields", {
+                            defaultValue: "This provider does not declare additional configuration fields.",
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : null}
+
                 <div className="flex flex-wrap items-center gap-2">
                   <Button
                     size="sm"
@@ -1040,7 +1242,6 @@ export function CompanySettings() {
           </div>
         </div>
       ) : null}
-
       {/* Hiring */}
       <div className="space-y-4" data-testid="company-settings-team-section">
         <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
@@ -1202,16 +1403,16 @@ export function CompanySettings() {
           </p>
           <div className="mt-3 flex items-center gap-2">
             <Button size="sm" variant="outline" asChild>
-              <Link to="/company/export">
+              <a href="/company/export">
                 <Download className="mr-1.5 h-3.5 w-3.5" />
                 {t("companySettings.export")}
-              </Link>
+              </a>
             </Button>
             <Button size="sm" variant="outline" asChild>
-              <Link to="/company/import">
+              <a href="/company/import">
                 <Upload className="mr-1.5 h-3.5 w-3.5" />
                 {t("companySettings.import")}
-              </Link>
+              </a>
             </Button>
           </div>
         </div>

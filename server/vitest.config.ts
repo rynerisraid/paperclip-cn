@@ -6,5 +6,22 @@ export default defineConfig({
     globalSetup: ["../packages/db/src/test-embedded-postgres-global-setup.ts"],
     hookTimeout: 30_000,
     teardownTimeout: 30_000,
+    isolate: true,
+    maxConcurrency: 1,
+    maxWorkers: 1,
+    minWorkers: 1,
+    pool: "forks",
+    poolOptions: {
+      forks: {
+        isolate: true,
+        maxForks: 1,
+        minForks: 1,
+      },
+    },
+    sequence: {
+      concurrent: false,
+      hooks: "list",
+    },
+    setupFiles: ["./src/__tests__/setup-supertest.ts"],
   },
 });

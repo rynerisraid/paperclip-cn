@@ -303,21 +303,29 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
     [adapterType],
   );
   const runnableEnvironments = useMemo(
-    () => environments.filter((environment) => supportedEnvironmentDrivers.has(environment.driver)),
+    () => environments.filter((environment) => {
+      if (!supportedEnvironmentDrivers.has(environment.driver)) return false;
+      if (environment.driver !== "sandbox") return true;
+      const provider = typeof environment.config?.provider === "string" ? environment.config.provider : null;
+      return provider !== null && provider !== "fake";
+    }),
     [environments, supportedEnvironmentDrivers],
   );
 
   // Fetch adapter models for the effective adapter type
+  const modelQueryKey = selectedCompanyId
+    ? queryKeys.agents.adapterModels(selectedCompanyId, adapterType)
+    : ["agents", "none", "adapter-models", adapterType];
   const {
     data: fetchedModels,
     error: fetchedModelsError,
   } = useQuery({
-    queryKey: selectedCompanyId
-      ? queryKeys.agents.adapterModels(selectedCompanyId, adapterType)
-      : ["agents", "none", "adapter-models", adapterType],
+    queryKey: modelQueryKey,
     queryFn: () => agentsApi.adapterModels(selectedCompanyId!, adapterType),
     enabled: Boolean(selectedCompanyId),
   });
+  const [refreshModelsError, setRefreshModelsError] = useState<string | null>(null);
+  const [refreshingModels, setRefreshingModels] = useState(false);
   const models = fetchedModels ?? externalModels ?? [];
   const adapterCommandField =
     adapterType === "hermes_local" ? "hermesCommand" : "command";
@@ -406,6 +414,20 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
   const currentModelId = isCreate
     ? val!.model
     : eff("adapterConfig", "model", String(config.model ?? ""));
+
+  async function handleRefreshModels() {
+    if (!selectedCompanyId) return;
+    setRefreshingModels(true);
+    setRefreshModelsError(null);
+    try {
+      const refreshed = await agentsApi.adapterModels(selectedCompanyId, adapterType, { refresh: true });
+      queryClient.setQueryData(modelQueryKey, refreshed);
+    } catch (error) {
+      setRefreshModelsError(error instanceof Error ? error.message : "Failed to refresh adapter models.");
+    } finally {
+      setRefreshingModels(false);
+    }
+  }
 
   const thinkingEffortKey =
     adapterType === "codex_local"
@@ -812,14 +834,19 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
                   const result = await refetchDetectedModel();
                   return result.data?.model ?? null;
                 }}
-                detectModelLabel={t("agentConfig.detectFromConfig", { defaultValue: "Detect from config" })}
-                emptyDetectHint={t("agentConfig.selectModel", { defaultValue: "Select model" })}
+                onRefreshModels={adapterType === "codex_local" ? handleRefreshModels : undefined}
+                refreshingModels={refreshingModels}
+                detectModelLabel={t("agentConfig.detectModel", { defaultValue: "Detect model" })}
+                emptyDetectHint={t("agentConfig.noDetectedModelSelectManually", {
+                  defaultValue: "No model detected. Select or enter one manually.",
+                })}
               />
-              {fetchedModelsError && (
+              {(refreshModelsError || fetchedModelsError) && (
                 <p className="text-xs text-destructive">
-                  {fetchedModelsError instanceof Error
-                    ? fetchedModelsError.message
-                    : t("agentConfig.failedToLoadAdapterModels", { defaultValue: "Failed to load adapter models." })}
+                  {refreshModelsError
+                    ?? (fetchedModelsError instanceof Error
+                      ? fetchedModelsError.message
+                      : t("agentConfig.failedToLoadAdapterModels", { defaultValue: "Failed to load adapter models." }))}
                 </p>
               )}
 
@@ -1160,6 +1187,8 @@ function ModelDropdown({
   detectedModel,
   detectedModelCandidates,
   onDetectModel,
+  onRefreshModels,
+  refreshingModels,
   detectModelLabel,
   emptyDetectHint,
 }: {
@@ -1175,6 +1204,8 @@ function ModelDropdown({
   detectedModel?: string | null;
   detectedModelCandidates?: string[];
   onDetectModel?: () => Promise<string | null>;
+  onRefreshModels?: () => Promise<void>;
+  refreshingModels?: boolean;
   detectModelLabel?: string;
   emptyDetectHint?: string;
 }) {
@@ -1315,6 +1346,24 @@ function ModelDropdown({
                 : detectedModel
                   ? (detectModelLabel?.replace(/^Detect\b/, "Re-detect") ?? t("agentConfig.detectFromConfig", { defaultValue: "Detect from config" }))
                   : (detectModelLabel ?? t("agentConfig.detectFromConfig", { defaultValue: "Detect from config" }))}
+            </button>
+          )}
+          {onRefreshModels && !modelSearch.trim() && (
+            <button
+              type="button"
+              className="flex items-center gap-1.5 w-full px-2 py-1.5 text-xs rounded hover:bg-accent/50 text-muted-foreground"
+              onClick={() => {
+                void onRefreshModels();
+              }}
+              disabled={refreshingModels}
+            >
+              <svg aria-hidden="true" focusable="false" className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 12a9 9 0 0 1 15.28-6.36L21 8" />
+                <path d="M21 3v5h-5" />
+                <path d="M21 12a9 9 0 0 1-15.28 6.36L3 16" />
+                <path d="M8 16H3v5" />
+              </svg>
+              {refreshingModels ? "Refreshing..." : "Refresh models"}
             </button>
           )}
           {value && (!models.some((m) => m.id === value) || promotedModelIds.has(value)) && (

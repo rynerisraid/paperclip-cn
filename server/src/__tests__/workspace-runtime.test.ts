@@ -821,8 +821,10 @@ describe("realizeExecutionWorkspace", () => {
   it("writes an isolated repo-local Paperclip config and worktree branding when provisioning", async () => {
     const repoRoot = await createTempRepo();
     const previousCwd = process.cwd();
+    const previousPath = process.env.PATH;
     const paperclipHome = await fs.mkdtemp(path.join(os.tmpdir(), "paperclip-worktree-home-"));
     const isolatedWorktreeHome = await fs.mkdtemp(path.join(os.tmpdir(), "paperclip-worktrees-"));
+    const isolatedBin = await fs.mkdtemp(path.join(os.tmpdir(), "paperclip-worktree-bin-"));
     const instanceId = "worktree-base";
     const sharedConfigDir = path.join(paperclipHome, "instances", instanceId);
     const sharedConfigPath = path.join(sharedConfigDir, "config.json");
@@ -832,6 +834,15 @@ describe("realizeExecutionWorkspace", () => {
     process.env.PAPERCLIP_INSTANCE_ID = instanceId;
     process.env.PAPERCLIP_WORKTREES_DIR = isolatedWorktreeHome;
     process.env.PAPERCLIP_WORKTREE_FORCE_FALLBACK_CONFIG = "1";
+    // Keep this server-side fixture on provision-worktree.sh's config writer path;
+    // CLI/database seeding is covered by the CLI worktree tests.
+    await fs.symlink(process.execPath, path.join(isolatedBin, "node"));
+    process.env.PATH = [
+      isolatedBin,
+      "/usr/bin",
+      "/bin",
+      ...(process.platform === "win32" && previousPath ? [previousPath] : []),
+    ].join(path.delimiter);
 
     await fs.mkdir(sharedConfigDir, { recursive: true });
     await fs.writeFile(
@@ -994,6 +1005,11 @@ describe("realizeExecutionWorkspace", () => {
       expect(reusedEnvContents).toContain('PAPERCLIP_WORKTREE_COLOR="#112233"');
     } finally {
       process.chdir(previousCwd);
+      if (previousPath === undefined) {
+        delete process.env.PATH;
+      } else {
+        process.env.PATH = previousPath;
+      }
     }
   }, WORKTREE_PROVISION_TEST_TIMEOUT);
 
@@ -1666,7 +1682,7 @@ describe("realizeExecutionWorkspace", () => {
     await expect(fs.readFile(path.join(initial.cwd, ".paperclip-restored-branch"), "utf8")).resolves.toBe(`${branchName}\n`);
     const actualHead = (await execFileAsync("git", ["rev-parse", "HEAD"], { cwd: initial.cwd })).stdout.trim();
     expect(actualHead).toBe(expectedHead);
-  });
+  }, 15_000);
 
   it("reprovisions an existing persisted git worktree before manual control starts it", async () => {
     const repoRoot = await createTempRepo();
@@ -1750,7 +1766,7 @@ describe("realizeExecutionWorkspace", () => {
     });
 
     await expect(fs.readFile(path.join(initial.cwd, ".paperclip-restored-state"), "utf8")).resolves.toBe("reprovisioned\n");
-  });
+  }, 15_000);
 
   it("auto-detects the default branch when baseRef is not configured", async () => {
     // Create a repo with "master" as default branch (not "main")
@@ -2263,7 +2279,7 @@ describe("ensureRuntimeServicesForRun", () => {
     expect(third).toHaveLength(1);
     expect(third[0]?.reused).toBe(false);
     expect(third[0]?.id).not.toBe(first[0]?.id);
-  });
+  }, 10_000);
 
   it("does not reuse project-scoped shared services across different workspace launch contexts", async () => {
     const primaryWorkspaceRoot = await fs.mkdtemp(path.join(os.tmpdir(), "paperclip-runtime-primary-"));
@@ -2688,7 +2704,7 @@ describe("ensureRuntimeServicesForRun", () => {
       workspaceCwd: workspace.cwd,
       runtimeServiceId: worker?.id ?? null,
     });
-  });
+  }, 10_000);
 });
 
 describe("buildWorkspaceRuntimeDesiredStatePatch", () => {

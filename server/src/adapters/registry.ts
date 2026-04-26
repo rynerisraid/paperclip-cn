@@ -67,7 +67,7 @@ import {
   agentConfigurationDoc as openclawGatewayAgentConfigurationDoc,
   models as openclawGatewayModels,
 } from "@penclipai/adapter-openclaw-gateway";
-import { listCodexModels } from "./codex-models.js";
+import { listCodexModels, refreshCodexModels } from "./codex-models.js";
 import { listCursorModels } from "./cursor-models.js";
 import {
   execute as piExecute,
@@ -137,6 +137,7 @@ const codexLocalAdapter: ServerAdapterModule = {
   sessionManagement: getAdapterSessionManagement("codex_local") ?? undefined,
   models: codexModels,
   listModels: listCodexModels,
+  refreshModels: refreshCodexModels,
   supportsLocalAgentJwt: true,
   supportsInstructionsBundle: true,
   instructionsPathKey: "instructionsFilePath",
@@ -409,6 +410,20 @@ export function getServerAdapter(type: string): ServerAdapterModule {
 export async function listAdapterModels(type: string): Promise<{ id: string; label: string }[]> {
   const adapter = findActiveServerAdapter(type);
   if (!adapter) return [];
+  if (adapter.listModels) {
+    const discovered = await adapter.listModels();
+    if (discovered.length > 0) return discovered;
+  }
+  return adapter.models ?? [];
+}
+
+export async function refreshAdapterModels(type: string): Promise<{ id: string; label: string }[]> {
+  const adapter = findActiveServerAdapter(type);
+  if (!adapter) return [];
+  if (adapter.refreshModels) {
+    const refreshed = await adapter.refreshModels();
+    if (refreshed.length > 0) return refreshed;
+  }
   if (adapter.listModels) {
     const discovered = await adapter.listModels();
     if (discovered.length > 0) return discovered;
