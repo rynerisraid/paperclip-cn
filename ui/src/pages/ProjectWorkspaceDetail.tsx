@@ -320,10 +320,10 @@ export function ProjectWorkspaceDetail() {
         request.action === "run"
           ? t("projectWorkspace.runtimeJobCompleted")
           : request.action === "stop"
-            ? t("projectWorkspace.runtimeCommandStopped")
+            ? "Workspace service stopped. Issue execution is not paused."
             : request.action === "restart"
-              ? t("projectWorkspace.runtimeCommandRestarted")
-              : t("projectWorkspace.runtimeCommandStarted"),
+              ? "Workspace service restarted. Issue execution is not paused."
+              : "Workspace service started.",
       );
     },
     onError: (error) => {

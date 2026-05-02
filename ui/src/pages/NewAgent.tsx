@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useSearchParams } from "@/lib/router";
 import { useTranslation } from "react-i18next";
@@ -7,7 +7,7 @@ import { useBreadcrumbs } from "../context/BreadcrumbContext";
 import { agentsApi } from "../api/agents";
 import { companySkillsApi } from "../api/companySkills";
 import { queryKeys } from "../lib/queryKeys";
-import { AGENT_ROLES } from "@penclipai/shared";
+import { AGENT_ROLES, type AdapterEnvironmentTestResult } from "@penclipai/shared";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -18,7 +18,11 @@ import {
 import { Shield } from "lucide-react";
 import { cn, agentUrl } from "../lib/utils";
 import { roleLabels } from "../components/agent-config-primitives";
-import { AgentConfigForm, type CreateConfigValues } from "../components/AgentConfigForm";
+import {
+  AgentConfigForm,
+  AdapterEnvironmentResult,
+  type CreateConfigValues,
+} from "../components/AgentConfigForm";
 import { defaultCreateValues } from "../components/agent-config-defaults";
 import { getUIAdapter, listUIAdapters } from "../adapters";
 import { useDisabledAdaptersSync } from "../adapters/use-disabled-adapters";
@@ -42,7 +46,7 @@ function isBundledPaperclipSkill(skill: { key: string; metadata?: unknown }) {
   return (
     metadata?.sourceKind === "paperclip_bundled"
     || skill.key.startsWith("penclipai/paperclip-cn/")
-    || skill.key.startsWith("paperclipai/paperclip/")
+    || skill.key.startsWith("penclip/paperclip/")
     || skill.key.startsWith("penclipai/paperclip/")
   );
 }
@@ -86,6 +90,15 @@ export function NewAgent() {
   const [selectedSkillKeys, setSelectedSkillKeys] = useState<string[]>([]);
   const [roleOpen, setRoleOpen] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [testAgentAction, setTestAgentAction] = useState<(() => void) | null>(null);
+  const [testAgentState, setTestAgentState] = useState({ disabled: true, pending: false });
+  const [testAgentFeedback, setTestAgentFeedback] = useState<{
+    errorMessage: string | null;
+    result: AdapterEnvironmentTestResult | null;
+  }>({
+    errorMessage: null,
+    result: null,
+  });
 
   const { data: agents } = useQuery({
     queryKey: queryKeys.agents.list(selectedCompanyId!),
@@ -218,6 +231,21 @@ export function NewAgent() {
     });
   }
 
+  const handleTestAgentActionChange = useCallback((fn: (() => void) | null) => {
+    setTestAgentAction(() => fn);
+  }, []);
+
+  const handleTestAgentStateChange = useCallback((state: { disabled: boolean; pending: boolean }) => {
+    setTestAgentState(state);
+  }, []);
+
+  const handleTestAgentFeedbackChange = useCallback((feedback: {
+    errorMessage: string | null;
+    result: AdapterEnvironmentTestResult | null;
+  }) => {
+    setTestAgentFeedback(feedback);
+  }, []);
+
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <div>
@@ -294,6 +322,9 @@ export function NewAgent() {
           values={configValues}
           onChange={(patch) => setConfigValues((prev) => ({ ...prev, ...patch }))}
           adapterModels={adapterModels}
+          onTestActionChange={handleTestAgentActionChange}
+          onTestActionStateChange={handleTestAgentStateChange}
+          onTestFeedbackChange={handleTestAgentFeedbackChange}
         />
 
         <div className="border-t border-border px-4 py-4">
@@ -342,17 +373,38 @@ export function NewAgent() {
           {formError && (
             <p className="text-xs text-destructive mb-2">{formError}</p>
           )}
-          <div className="flex items-center justify-end gap-2">
-            <Button variant="outline" size="sm" onClick={() => navigate("/agents")}>
-              {t("Cancel")}
-            </Button>
-            <Button
-              size="sm"
-              disabled={!name.trim() || createAgent.isPending}
-              onClick={handleSubmit}
-            >
-              {createAgent.isPending ? t("Creating…") : t("newAgent.create")}
-            </Button>
+          <div className="space-y-3">
+            {testAgentFeedback.errorMessage && (
+              <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+                {testAgentFeedback.errorMessage}
+              </div>
+            )}
+            {testAgentFeedback.result && (
+              <AdapterEnvironmentResult result={testAgentFeedback.result} />
+            )}
+            <div className="flex items-center justify-between gap-2">
+              <Button variant="outline" size="sm" onClick={() => navigate("/agents")}>
+                Cancel
+              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={testAgentState.disabled}
+                  onClick={() => testAgentAction?.()}
+                >
+                  {testAgentState.pending ? "Testing..." : "Test Agent"}
+                </Button>
+                <Button
+                  size="sm"
+                  disabled={!name.trim() || createAgent.isPending}
+                  onClick={handleSubmit}
+                >
+                  {createAgent.isPending ? "Creating…" : "Create agent"}
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
       </div>

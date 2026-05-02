@@ -12,6 +12,7 @@ const nonServerProjects = [
   "@penclipai/shared",
   "@penclipai/db",
   "@penclipai/adapter-utils",
+  "@penclipai/adapter-acpx-local",
   "@penclipai/adapter-codex-local",
   "@penclipai/adapter-opencode-local",
   "@penclipai/ui",

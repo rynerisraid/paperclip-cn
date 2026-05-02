@@ -13,20 +13,20 @@
     "ui": "./dist/ui/"
   },
   "scripts": {
-    "prebuild": "node ../../../../scripts/ensure-plugin-build-deps.mjs",
+    "prebuild": "pnpm --filter @penclipai/plugin-sdk ensure-build-deps",
     "build": "tsc && node ./scripts/build-ui.mjs",
     "clean": "rm -rf dist",
-    "typecheck": "pnpm --filter @penclipai/plugin-sdk build && tsc --noEmit"
+    "typecheck": "pnpm --filter @penclipai/plugin-sdk ensure-build-deps && tsc --noEmit"
   },
   "dependencies": {
     "@paperclipai/plugin-sdk": "workspace:@penclipai/plugin-sdk@*",
     "@paperclipai/shared": "workspace:@penclipai/shared@*"
   },
   "devDependencies": {
-    "esbuild": "^0.27.3",
     "@types/node": "^24.6.0",
     "@types/react": "^19.0.8",
     "@types/react-dom": "^19.0.3",
+    "esbuild": "^0.27.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "typescript": "^5.7.3"

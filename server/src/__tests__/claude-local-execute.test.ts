@@ -1,7 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
+import { existsSync } from "node:fs";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { runChildProcess } from "@penclipai/adapter-utils/server-utils";
 import { execute } from "@penclipai/adapter-claude-local/server";
 
 async function writeFailingClaudeCommand(
@@ -37,6 +39,12 @@ const payload = {
   instructionsContents: instructionsFilePath ? fs.readFileSync(instructionsFilePath, "utf8") : null,
   skillEntries: addDir ? fs.readdirSync(path.join(addDir, ".claude", "skills")).sort() : [],
   claudeConfigDir: process.env.CLAUDE_CONFIG_DIR || null,
+  claudeConfigEntries: process.env.CLAUDE_CONFIG_DIR && fs.existsSync(process.env.CLAUDE_CONFIG_DIR)
+    ? fs.readdirSync(process.env.CLAUDE_CONFIG_DIR).sort()
+    : [],
+  paperclipApiUrl: process.env.PAPERCLIP_API_URL || null,
+  paperclipApiKey: process.env.PAPERCLIP_API_KEY || null,
+  paperclipApiBridgeMode: process.env.PAPERCLIP_API_BRIDGE_MODE || null,
 };
 if (capturePath) {
   fs.writeFileSync(capturePath, JSON.stringify(payload), "utf8");
@@ -57,9 +65,49 @@ type CapturePayload = {
   instructionsContents: string | null;
   skillEntries: string[];
   claudeConfigDir: string | null;
+  claudeConfigEntries?: string[];
+  paperclipApiUrl?: string | null;
+  paperclipApiKey?: string | null;
+  paperclipApiBridgeMode?: string | null;
   appendedSystemPromptFilePath?: string | null;
   appendedSystemPromptFileContents?: string | null;
 };
+
+function resolveTestPosixShellCommand() {
+  if (process.platform !== "win32") return "sh";
+  const candidates = [
+    "C:\\Program Files\\Git\\usr\\bin\\sh.exe",
+    "C:\\Program Files\\Git\\bin\\bash.exe",
+  ];
+  return candidates.find((candidate) => existsSync(candidate)) ?? "sh";
+}
+
+function rewriteWindowsPathsForGitShell(script: string) {
+  if (process.platform !== "win32") return script;
+  return script.replace(/([A-Za-z]):\\([^'"\s]*)/g, (_match, drive: string, rest: string) =>
+    `/${drive.toLowerCase()}/${rest.replace(/\\/g, "/")}`,
+  );
+}
+
+function toGitShellPath(value: string) {
+  if (process.platform !== "win32") return value;
+  return value.replace(/^([A-Za-z]):\\?/, (_match, drive: string) => `/${drive.toLowerCase()}/`).replace(/\\/g, "/");
+}
+
+function fromGitShellPath(value: string) {
+  if (process.platform !== "win32") return value;
+  return value.replace(/^\/([a-zA-Z])\/(.*)$/, (_match, drive: string, rest: string) =>
+    `${drive.toUpperCase()}:\\${rest.replace(/\//g, "\\")}`,
+  );
+}
+
+function envForGitShell(env: Record<string, string>) {
+  if (process.platform !== "win32") return env;
+  return {
+    ...env,
+    ...(process.env.HOME ? { HOME: toGitShellPath(process.env.HOME) } : {}),
+  };
+}
 
 async function writeRetryThenSucceedClaudeCommand(commandPath: string): Promise<void> {
   const script = `#!/usr/bin/env node
@@ -125,6 +173,47 @@ async function setupExecuteEnv(
       else process.env.HOME = previousHome;
       if (previousPath === undefined) delete process.env.PATH;
       else process.env.PATH = previousPath;
+    },
+  };
+}
+
+function createLocalSandboxRunner() {
+  let counter = 0;
+  return {
+    execute: async (input: {
+      command: string;
+      args?: string[];
+      cwd?: string;
+      env?: Record<string, string>;
+      stdin?: string;
+      timeoutMs?: number;
+      onLog?: (stream: "stdout" | "stderr", chunk: string) => Promise<void>;
+      onSpawn?: (meta: { pid: number; startedAt: string }) => Promise<void>;
+    }) => {
+      counter += 1;
+      const command = input.command === "sh" ? resolveTestPosixShellCommand() : input.command;
+      const hostCommand = input.command === "sh" ? command : fromGitShellPath(command);
+      const args = [...(input.args ?? [])];
+      if (input.command === "sh" && args[0] === "-lc" && typeof args[1] === "string") {
+        args[1] = rewriteWindowsPathsForGitShell(args[1]);
+      }
+      const hostCwd = fromGitShellPath(input.cwd ?? process.cwd());
+      return runChildProcess(
+        `sandbox-run-${counter}`,
+        hostCommand,
+        args,
+        {
+          cwd: hostCwd,
+          env: input.command === "sh" ? envForGitShell(input.env ?? {}) : input.env ?? {},
+          stdin: input.stdin,
+          timeoutSec: Math.max(1, Math.ceil((input.timeoutMs ?? 30_000) / 1000)),
+          graceSec: 5,
+          onLog: input.onLog ?? (async () => {}),
+          onSpawn: input.onSpawn
+            ? async (meta) => input.onSpawn?.({ pid: meta.pid, startedAt: meta.startedAt })
+            : undefined,
+        },
+      );
     },
   };
 }
@@ -410,6 +499,84 @@ describe("claude execute", () => {
       await fs.rm(root, { recursive: true, force: true });
     }
   });
+
+  it("injects bridge env into sandbox-managed remote runs", async () => {
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), "paperclip-claude-execute-sandbox-"));
+    const localWorkspace = path.join(root, "workspace");
+    const remoteWorkspace = path.join(root, "sandbox-$HOME");
+    const binDir = path.join(root, "bin");
+    const commandPath = path.join(binDir, "claude");
+    const capturePath = path.join(remoteWorkspace, "capture.json");
+    const claudeRoot = path.join(root, ".claude");
+    const previousHome = process.env.HOME;
+    const previousPath = process.env.PATH;
+
+    await fs.mkdir(localWorkspace, { recursive: true });
+    await fs.mkdir(remoteWorkspace, { recursive: true });
+    await fs.mkdir(binDir, { recursive: true });
+    await fs.mkdir(claudeRoot, { recursive: true });
+    await fs.writeFile(path.join(claudeRoot, "settings.json"), JSON.stringify({ theme: "test" }), "utf8");
+    await writeFakeClaudeCommand(commandPath);
+
+    process.env.HOME = root;
+    process.env.PATH = `${binDir}${path.delimiter}${process.env.PATH ?? ""}`;
+
+    try {
+      const result = await execute({
+        runId: "run-sandbox-auth",
+        agent: {
+          id: "agent-1",
+          companyId: "company-1",
+          name: "Claude Coder",
+          adapterType: "claude_local",
+          adapterConfig: {},
+        },
+        runtime: {
+          sessionId: null,
+          sessionParams: null,
+          sessionDisplayId: null,
+          taskKey: null,
+        },
+        config: {
+          command: commandPath,
+          cwd: localWorkspace,
+          env: {
+            PAPERCLIP_TEST_CAPTURE_PATH: capturePath,
+          },
+          promptTemplate: "Follow the paperclip heartbeat.",
+        },
+        context: {},
+        executionTarget: {
+          kind: "remote",
+          transport: "sandbox",
+          providerKey: "e2b",
+          environmentId: "env-1",
+          leaseId: "lease-1",
+          remoteCwd: remoteWorkspace,
+          timeoutMs: 30_000,
+          runner: createLocalSandboxRunner(),
+        },
+        authToken: "run-jwt-token",
+        onLog: async () => {},
+      });
+
+      expect(result.exitCode).toBe(0);
+      const capture = JSON.parse(await fs.readFile(capturePath, "utf8")) as CapturePayload;
+      expect(path.normalize(capture.claudeConfigDir ?? "")).toBe(
+        path.join(remoteWorkspace, ".paperclip-runtime", "claude", "config"),
+      );
+      expect(capture.claudeConfigEntries).toContain("settings.json");
+      expect(capture.paperclipApiUrl).toMatch(/^http:\/\/127\.0\.0\.1:\d+$/);
+      expect(capture.paperclipApiKey).not.toBe("run-jwt-token");
+      expect(capture.paperclipApiBridgeMode).toBe("queue_v1");
+    } finally {
+      if (previousHome === undefined) delete process.env.HOME;
+      else process.env.HOME = previousHome;
+      if (previousPath === undefined) delete process.env.PATH;
+      else process.env.PATH = previousPath;
+      await fs.rm(root, { recursive: true, force: true });
+    }
+  }, 90_000);
 
   it("reuses a stable Paperclip-managed Claude prompt bundle across equivalent runs", async () => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), "paperclip-claude-execute-bundle-"));

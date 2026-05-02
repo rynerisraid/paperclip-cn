@@ -92,6 +92,8 @@ Ship criteria for the board UI refresh:
 - [x] Keep comments and task updates auditable
 - [ ] Attach screenshots after QA
 
+Tooling: lean on [/react-perf-optimizer](skill://skill-react-perf?s=react-perf-optimizer) and [/vercel-react-best-practices](skill://skill-vercel-react?s=vercel-react-best-practices) so we don't regress render performance on the page it's open to. Inline skill chips like [/release-changelog](skill://skill-release?s=release-changelog) must sit on the surrounding text line, not hang below it.
+
 | Surface | Owner | State |
 | --- | --- | --- |
 | Issues | CodexCoder | In progress |
@@ -179,7 +181,7 @@ const validAdapterValues = {
   concurrency: 2,
   dryRun: true,
   notes: "Use the project worktree and post a concise task update before handoff.",
-  allowedCommands: ["pnpm --filter @paperclipai/ui typecheck", "pnpm build-storybook"],
+  allowedCommands: ["pnpm --filter @penclipai/ui typecheck", "pnpm build-storybook"],
   advanced: { timeoutSeconds: 900, requireApproval: false },
 };
 

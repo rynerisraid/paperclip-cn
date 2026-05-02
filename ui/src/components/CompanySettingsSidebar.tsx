@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { ChevronLeft, MailPlus, Settings, Shield, SlidersHorizontal } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { ChevronLeft, MailPlus, MonitorCog, Settings, Shield, SlidersHorizontal } from "lucide-react";
 import { sidebarBadgesApi } from "@/api/sidebarBadges";
 import { ApiError } from "@/api/client";
 import { Link } from "@/lib/router";
@@ -59,6 +59,12 @@ export function CompanySettingsSidebar() {
             to="/company/settings"
             label={t("General", { defaultValue: "General" })}
             icon={SlidersHorizontal}
+            end
+          />
+          <SidebarNavItem
+            to="/company/settings/environments"
+            label="Environments"
+            icon={MonitorCog}
             end
           />
           <SidebarNavItem

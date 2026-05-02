@@ -61,7 +61,8 @@ export function routineRoutes(
   router.get("/companies/:companyId/routines", async (req, res) => {
     const companyId = req.params.companyId as string;
     assertCompanyAccess(req, companyId);
-    const result = await svc.list(companyId);
+    const projectId = typeof req.query.projectId === "string" ? req.query.projectId : undefined;
+    const result = await svc.list(companyId, { projectId });
     res.json(result);
   });
 
@@ -286,6 +287,10 @@ export function routineRoutes(
     await assertBoardCanAssignTasks(req, routine.companyId);
     const run = await svc.runRoutine(routine.id, req.body, {
       requestedUiLocale: resolveExplicitRequestUiLocale(req),
+      actor: {
+        agentId: req.actor.type === "agent" ? req.actor.agentId : null,
+        userId: req.actor.type === "board" ? req.actor.userId ?? null : null,
+      },
     });
     const actor = getActorInfo(req);
     await logActivity(db, {

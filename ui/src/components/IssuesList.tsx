@@ -1,9 +1,10 @@
 import { startTransition, useDeferredValue, useEffect, useMemo, useState, useCallback, useRef } from "react";
-import { useQueries, useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
+import { useQueries, useQuery } from "@tanstack/react-query";
 import { accessApi } from "../api/access";
-import { useDialog } from "../context/DialogContext";
+import { useDialogActions } from "../context/DialogContext";
 import { useCompany } from "../context/CompanyContext";
+import { Link } from "@/lib/router";
 import { executionWorkspacesApi } from "../api/execution-workspaces";
 import { issuesApi } from "../api/issues";
 import { authApi } from "../api/auth";
@@ -15,6 +16,12 @@ import {
 } from "../lib/keyboardShortcuts";
 import { formatAssigneeUserLabel } from "../lib/assignees";
 import { buildCompanyUserLabelMap, buildCompanyUserProfileMap } from "../lib/company-members";
+import { createIssueDetailPath, withIssueDetailHeaderSeed } from "../lib/issueDetailBreadcrumb";
+import {
+  buildSubIssueProgressSummary,
+  shouldRenderSubIssueProgressSummary,
+  type SubIssueProgressSummary,
+} from "../lib/issue-detail-subissues";
 import { groupBy } from "../lib/groupBy";
 import {
   applyIssueFilters,
@@ -57,21 +64,55 @@ import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible";
 import { CircleDot, Plus, ArrowUpDown, Layers, Check, ChevronRight, List, ListTree, Columns3, User, Search, CircleSlash2 } from "lucide-react";
 import { KanbanBoard } from "./KanbanBoard";
 import { buildIssueTree, countDescendants } from "../lib/issue-tree";
-import { ISSUE_STATUSES, type Issue, type Project } from "@penclipai/shared";
 import { buildSubIssueDefaultsForViewer } from "../lib/subIssueDefaults";
 import { statusBadge } from "../lib/status-colors";
+import { workflowSort } from "../lib/workflow-sort";
+import { ISSUE_STATUSES, type Issue, type IssueStatus, type Project } from "@penclipai/shared";
 const ISSUE_SEARCH_DEBOUNCE_MS = 250;
 const ISSUE_SEARCH_RESULT_LIMIT = 200;
 const ISSUE_BOARD_COLUMN_RESULT_LIMIT = 200;
 const INITIAL_ISSUE_ROW_RENDER_LIMIT = 100;
 const ISSUE_ROW_RENDER_BATCH_SIZE = 150;
-const ISSUE_ROW_RENDER_BATCH_DELAY_MS = 0;
+const ISSUE_SCROLL_LOAD_THRESHOLD_PX = 320;
+
+function findIssuesScrollContainer(element: HTMLElement | null): HTMLElement | null {
+  if (!element || typeof window === "undefined") return null;
+  let current = element.parentElement;
+  while (current && current !== document.body && current !== document.documentElement) {
+    const overflowY = window.getComputedStyle(current).overflowY;
+    if (overflowY === "auto" || overflowY === "scroll" || overflowY === "overlay") {
+      return current;
+    }
+    current = current.parentElement;
+  }
+  return null;
+}
 const boardIssueStatuses = ISSUE_STATUSES;
+const issueStatusLabels: Record<IssueStatus, string> = {
+  backlog: "Backlog",
+  todo: "Todo",
+  in_progress: "In progress",
+  in_review: "In review",
+  done: "Done",
+  blocked: "Blocked",
+  cancelled: "Cancelled",
+};
+const progressSegmentClasses: Record<IssueStatus, string> = {
+  backlog: "bg-muted-foreground/40",
+  todo: "bg-blue-500",
+  in_progress: "bg-yellow-500",
+  in_review: "bg-violet-500",
+  done: "bg-green-500",
+  blocked: "bg-red-500",
+  cancelled: "bg-neutral-400",
+};
 
 /* ── View state ── */
 
+export type IssueSortField = "status" | "priority" | "title" | "created" | "updated" | "workflow";
+
 export type IssueViewState = IssueFilterState & {
-  sortField: "status" | "priority" | "title" | "created" | "updated";
+  sortField: IssueSortField;
   sortDir: "asc" | "desc";
   groupBy: "status" | "priority" | "assignee" | "workspace" | "parent" | "none";
   viewMode: "list" | "board";
@@ -106,11 +147,19 @@ function saveViewState(key: string, state: IssueViewState) {
   localStorage.setItem(key, JSON.stringify(state));
 }
 
-function getInitialViewState(key: string, initialAssignees?: string[]): IssueViewState {
+function getInitialViewState(
+  key: string,
+  initialAssignees?: string[],
+  defaultSortField?: IssueSortField,
+): IssueViewState {
+  const hasStored = hasStoredViewState(key);
   const stored = getViewState(key);
-  if (!initialAssignees) return stored;
+  const base = !hasStored && defaultSortField
+    ? { ...stored, sortField: defaultSortField, sortDir: "asc" as const }
+    : stored;
+  if (!initialAssignees) return base;
   return {
-    ...stored,
+    ...base,
     assignees: initialAssignees,
     statuses: [],
   };
@@ -120,14 +169,23 @@ function getInitialWorkspaceViewState(
   key: string,
   initialAssignees?: string[],
   initialWorkspaces?: string[],
+  defaultSortField?: IssueSortField,
 ): IssueViewState {
-  const stored = getInitialViewState(key, initialAssignees);
+  const stored = getInitialViewState(key, initialAssignees, defaultSortField);
   if (!initialWorkspaces) return stored;
   return {
     ...stored,
     workspaces: initialWorkspaces,
     statuses: [],
   };
+}
+
+function hasStoredViewState(key: string): boolean {
+  try {
+    return localStorage.getItem(key) !== null;
+  } catch {
+    return false;
+  }
 }
 
 function getIssueColumnsStorageKey(key: string): string {
@@ -158,6 +216,10 @@ function saveIssueColumns(key: string, columns: InboxIssueColumn[]) {
 }
 
 function sortIssues(issues: Issue[], state: IssueViewState): Issue[] {
+  if (state.sortField === "workflow") {
+    const ordered = workflowSort(issues);
+    return state.sortDir === "desc" ? [...ordered].reverse() : ordered;
+  }
   const sorted = [...issues];
   const dir = state.sortDir === "asc" ? 1 : -1;
   sorted.sort((a, b) => {
@@ -186,6 +248,84 @@ function issueMatchesLocalSearch(issue: Issue, normalizedSearch: string): boolea
     issue.title,
     issue.description,
   ].some((value) => value?.toLowerCase().includes(normalizedSearch));
+}
+
+function isActionableWorkflowStatus(status: IssueStatus): boolean {
+  return status !== "done" && status !== "cancelled" && status !== "blocked";
+}
+
+function buildChecklistStepNumberMap(issues: Issue[], nestingEnabled: boolean): Map<string, string> {
+  const stepNumberByIssueId = new Map<string, string>();
+
+  if (!nestingEnabled) {
+    issues.forEach((issue, index) => {
+      stepNumberByIssueId.set(issue.id, String(index + 1));
+    });
+    return stepNumberByIssueId;
+  }
+
+  const { roots, childMap } = buildIssueTree(issues);
+  const visit = (siblings: Issue[], prefix: string | null) => {
+    siblings.forEach((issue, index) => {
+      const stepNumber = prefix ? `${prefix}.${index + 1}` : String(index + 1);
+      stepNumberByIssueId.set(issue.id, stepNumber);
+      visit(childMap.get(issue.id) ?? [], stepNumber);
+    });
+  };
+  visit(roots, null);
+
+  issues.forEach((issue, index) => {
+    if (!stepNumberByIssueId.has(issue.id)) {
+      stepNumberByIssueId.set(issue.id, String(index + 1));
+    }
+  });
+
+  return stepNumberByIssueId;
+}
+
+function buildPreviousSiblingIssueIdMap(issues: Issue[], nestingEnabled: boolean): Map<string, string> {
+  const previousSiblingByIssueId = new Map<string, string>();
+
+  if (!nestingEnabled) {
+    const previousByParentId = new Map<string, Issue>();
+    for (const issue of issues) {
+      if (!issue.parentId) continue;
+      const previousSibling = previousByParentId.get(issue.parentId);
+      if (previousSibling) {
+        previousSiblingByIssueId.set(issue.id, previousSibling.id);
+      }
+      previousByParentId.set(issue.parentId, issue);
+    }
+    return previousSiblingByIssueId;
+  }
+
+  const { roots, childMap } = buildIssueTree(issues);
+  const visit = (siblings: Issue[]) => {
+    siblings.forEach((issue, index) => {
+      const previousSibling = index > 0 ? siblings[index - 1] : null;
+      if (issue.parentId && previousSibling?.parentId === issue.parentId) {
+        previousSiblingByIssueId.set(issue.id, previousSibling.id);
+      }
+      visit(childMap.get(issue.id) ?? []);
+    });
+  };
+  visit(roots);
+
+  return previousSiblingByIssueId;
+}
+
+function shouldSuppressSinglePreviousSiblingBlockerChip(
+  issue: Issue,
+  unresolvedVisibleBlockerIds: string[],
+  previousSiblingIssueId: string | undefined,
+): boolean {
+  return Boolean(
+    issue.parentId
+      && previousSiblingIssueId
+      && (issue.blockedBy ?? []).length === 1
+      && unresolvedVisibleBlockerIds.length === 1
+      && unresolvedVisibleBlockerIds[0] === previousSiblingIssueId,
+  );
 }
 
 /* ── Component ── */
@@ -222,9 +362,14 @@ interface IssuesListProps {
   searchWithinLoadedIssues?: boolean;
   baseCreateIssueDefaults?: Record<string, unknown>;
   createIssueLabel?: string;
+  defaultSortField?: IssueSortField;
+  showProgressSummary?: boolean;
   enableRoutineVisibilityFilter?: boolean;
+  hasMoreIssues?: boolean;
+  isLoadingMoreIssues?: boolean;
   mutedIssueIds?: Set<string>;
   issueBadgeById?: Map<string, string>;
+  onLoadMoreIssues?: () => void;
   onSearchChange?: (search: string) => void;
   onUpdateIssue: (id: string, data: Record<string, unknown>) => void;
 }
@@ -236,7 +381,6 @@ function IssueSearchInput({
   value: string;
   onDebouncedChange?: (search: string) => void;
 }) {
-  const { t } = useTranslation();
   const [draftValue, setDraftValue] = useState(value);
   const lastCommittedValueRef = useRef(value);
 
@@ -283,11 +427,92 @@ function IssueSearchInput({
             e.currentTarget.blur();
           }
         }}
-        placeholder={t("Search issues...", { defaultValue: "Search issues..." })}
+        placeholder="Search issues..."
         className="pl-7 text-xs sm:text-sm"
-        aria-label={t("Search issues", { defaultValue: "Search issues" })}
+        aria-label="Search issues"
         data-page-search-target="true"
       />
+    </div>
+  );
+}
+
+function SubIssueProgressSummaryStrip({
+  summary,
+  issueLinkState,
+}: {
+  summary: SubIssueProgressSummary;
+  issueLinkState?: unknown;
+}) {
+  const target = summary.target;
+  const targetIssue = target?.issue ?? null;
+  const targetPathId = targetIssue?.identifier ?? targetIssue?.id ?? "";
+  const targetState = targetIssue ? withIssueDetailHeaderSeed(issueLinkState, targetIssue) : undefined;
+  const statusEntries = ISSUE_STATUSES
+    .map((status) => ({ status, count: summary.countsByStatus[status] ?? 0 }))
+    .filter((entry) => entry.count > 0);
+
+  return (
+    <div className="border border-border bg-background p-3">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="min-w-0 flex-1 space-y-2">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+            <span className="font-medium text-foreground">
+              {summary.doneCount}/{summary.totalCount} done
+            </span>
+            <span className="text-muted-foreground">
+              {summary.inProgressCount} in progress
+            </span>
+            <span className="text-muted-foreground">
+              {summary.blockedCount} blocked
+            </span>
+          </div>
+          <div
+            role="progressbar"
+            aria-label="Sub-issues completion progress"
+            aria-valuemin={0}
+            aria-valuenow={summary.doneCount}
+            aria-valuemax={summary.totalCount}
+            className="flex h-2 w-full overflow-hidden rounded-full bg-muted"
+          >
+            {statusEntries.map(({ status, count }) => (
+              <span
+                key={status}
+                className={cn("h-full", progressSegmentClasses[status])}
+                style={{ width: `${(count / summary.totalCount) * 100}%` }}
+                title={`${issueStatusLabels[status]}: ${count}`}
+                aria-hidden="true"
+              />
+            ))}
+          </div>
+        </div>
+
+        <div className="min-w-0 border border-border bg-background px-3 py-2 text-sm lg:w-72">
+          {target && targetIssue ? (
+            <>
+              <div className="text-xs font-medium text-muted-foreground">
+                {target.kind === "next" ? "Next up" : "Waiting on blockers"}
+              </div>
+              <Link
+                to={createIssueDetailPath(targetPathId)}
+                state={targetState}
+                issuePrefetch={targetIssue}
+                className="mt-1 block min-w-0 text-foreground underline-offset-2 hover:underline"
+              >
+                <span className="font-mono text-xs text-muted-foreground">
+                  {targetIssue.identifier ?? targetIssue.id.slice(0, 8)}
+                </span>{" "}
+                <span>{targetIssue.title}</span>
+              </Link>
+            </>
+          ) : summary.totalCount === 0 ? (
+            <div className="text-sm font-medium text-foreground">No active sub-issues</div>
+          ) : summary.doneCount === summary.totalCount ? (
+            <div className="text-sm font-medium text-foreground">All sub-issues done</div>
+          ) : (
+            <div className="text-sm font-medium text-foreground">No actionable sub-issues</div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -309,15 +534,21 @@ export function IssuesList({
   searchWithinLoadedIssues = false,
   baseCreateIssueDefaults,
   createIssueLabel,
+  defaultSortField,
+  showProgressSummary = false,
   enableRoutineVisibilityFilter = false,
+  hasMoreIssues = false,
+  isLoadingMoreIssues = false,
   mutedIssueIds,
   issueBadgeById,
+  onLoadMoreIssues,
   onSearchChange,
   onUpdateIssue,
 }: IssuesListProps) {
+  const rootRef = useRef<HTMLDivElement | null>(null);
   const { t } = useTranslation();
   const { selectedCompanyId } = useCompany();
-  const { openNewIssue } = useDialog();
+  const { openNewIssue } = useDialogActions();
   const { data: session } = useQuery({
     queryKey: queryKeys.auth.session,
     queryFn: () => authApi.getSession(),
@@ -341,13 +572,15 @@ export function IssuesList({
   const initialWorkspacesKey = initialWorkspaces?.join("|") ?? "";
 
   const [viewState, setViewState] = useState<IssueViewState>(() =>
-    getInitialWorkspaceViewState(scopedKey, initialAssignees, initialWorkspaces),
+    getInitialWorkspaceViewState(scopedKey, initialAssignees, initialWorkspaces, defaultSortField),
   );
   const [assigneePickerIssueId, setAssigneePickerIssueId] = useState<string | null>(null);
   const [assigneeSearch, setAssigneeSearch] = useState("");
   const [issueSearch, setIssueSearch] = useState(initialSearch ?? "");
   const [renderedIssueRowLimit, setRenderedIssueRowLimit] = useState(INITIAL_ISSUE_ROW_RENDER_LIMIT);
   const [visibleIssueColumns, setVisibleIssueColumns] = useState<InboxIssueColumn[]>(() => loadIssueColumns(scopedKey));
+  const renderedIssueIdsRef = useRef("");
+  const initialServerFillRequestedRef = useRef(false);
   const deferredIssueSearch = useDeferredValue(issueSearch);
   const normalizedIssueSearch = deferredIssueSearch.trim().toLowerCase();
 
@@ -361,9 +594,9 @@ export function IssuesList({
     const nextContextKey = `${scopedKey}::${initialAssigneesKey}::${initialWorkspacesKey}`;
     if (prevViewStateContextKey.current !== nextContextKey) {
       prevViewStateContextKey.current = nextContextKey;
-      setViewState(getInitialWorkspaceViewState(scopedKey, initialAssignees, initialWorkspaces));
+      setViewState(getInitialWorkspaceViewState(scopedKey, initialAssignees, initialWorkspaces, defaultSortField));
     }
-  }, [scopedKey, initialAssignees, initialAssigneesKey, initialWorkspaces, initialWorkspacesKey]);
+  }, [scopedKey, initialAssignees, initialAssigneesKey, initialWorkspaces, initialWorkspacesKey, defaultSortField]);
 
   const prevColumnsScopedKey = useRef(scopedKey);
   useEffect(() => {
@@ -544,12 +777,9 @@ export function IssuesList({
     const knownAgentIds = new Set<string>();
 
     if (currentUserId) {
-      const currentUserLabel = currentUserId === "local-board"
-        ? t("Board", { defaultValue: "Board" })
-        : t("Me", { defaultValue: "Me" });
       options.set(`user:${currentUserId}`, {
         id: `user:${currentUserId}`,
-        label: currentUserLabel,
+        label: currentUserId === "local-board" ? "Board" : "Me",
         kind: "user",
         searchText: currentUserId === "local-board" ? "board me human local-board" : `me board human ${currentUserId}`,
       });
@@ -600,7 +830,7 @@ export function IssuesList({
       if (a.kind !== b.kind) return a.kind === "user" ? -1 : 1;
       return a.label.localeCompare(b.label);
     });
-  }, [agents, currentUserId, issues, t]);
+  }, [agents, currentUserId, issues]);
 
   const visibleIssueColumnSet = useMemo(() => new Set(visibleIssueColumns), [visibleIssueColumns]);
   const availableIssueColumns = useMemo(
@@ -678,6 +908,53 @@ export function IssuesList({
     issueFilterWorkspaceContext,
   ]);
 
+  const progressSummary = useMemo(
+    () => shouldRenderSubIssueProgressSummary(showProgressSummary, issues.length)
+      ? buildSubIssueProgressSummary(issues)
+      : null,
+    [issues, showProgressSummary],
+  );
+  const checklistAffordanceEnabled = useMemo(
+    () =>
+      defaultSortField === "workflow"
+      && viewState.groupBy === "none",
+    [defaultSortField, viewState.groupBy],
+  );
+  const workflowChecklistMeta = useMemo(() => {
+    if (!checklistAffordanceEnabled) return null;
+
+    const visibleIssueIds = new Set(filtered.map((issue) => issue.id));
+    const stepNumberByIssueId = buildChecklistStepNumberMap(filtered, viewState.nestingEnabled);
+    const previousSiblingIssueIdByIssueId = buildPreviousSiblingIssueIdMap(filtered, viewState.nestingEnabled);
+    const unresolvedVisibleBlockersByIssueId = new Map<string, string[]>();
+
+    filtered.forEach((issue) => {
+      const unresolvedVisible = (issue.blockedBy ?? [])
+        .map((blocker) => blocker.id)
+        .filter((blockerId) => {
+          if (!visibleIssueIds.has(blockerId)) return false;
+          const blockerIssue = issueById.get(blockerId);
+          if (!blockerIssue) return false;
+          return blockerIssue.status !== "done" && blockerIssue.status !== "cancelled";
+        });
+      const shouldSuppressChip = shouldSuppressSinglePreviousSiblingBlockerChip(
+        issue,
+        unresolvedVisible,
+        previousSiblingIssueIdByIssueId.get(issue.id),
+      );
+      unresolvedVisibleBlockersByIssueId.set(issue.id, shouldSuppressChip ? [] : unresolvedVisible);
+    });
+
+    const firstActionable = filtered.find((issue) => isActionableWorkflowStatus(issue.status)) ?? null;
+    const currentStepIssue = firstActionable ?? filtered.find((issue) => issue.status === "blocked") ?? null;
+
+    return {
+      stepNumberByIssueId,
+      unresolvedVisibleBlockersByIssueId,
+      currentStepIssueId: currentStepIssue?.id ?? null,
+    };
+  }, [checklistAffordanceEnabled, filtered, issueById, viewState.nestingEnabled]);
+
   const { data: labels } = useQuery({
     queryKey: queryKeys.issues.labels(selectedCompanyId!),
     queryFn: () => issuesApi.listLabels(selectedCompanyId!),
@@ -694,21 +971,13 @@ export function IssuesList({
       const groups = groupBy(filtered, (i) => i.status);
       return issueStatusOrder
         .filter((s) => groups[s]?.length)
-        .map((s) => ({
-          key: s,
-          label: t(issueFilterLabel(s), { defaultValue: issueFilterLabel(s) }),
-          items: groups[s]!,
-        }));
+        .map((s) => ({ key: s, label: issueFilterLabel(s), items: groups[s]! }));
     }
     if (viewState.groupBy === "priority") {
       const groups = groupBy(filtered, (i) => i.priority);
       return issuePriorityOrder
         .filter((p) => groups[p]?.length)
-        .map((p) => ({
-          key: p,
-          label: t(issueFilterLabel(p), { defaultValue: issueFilterLabel(p) }),
-          items: groups[p]!,
-        }));
+        .map((p) => ({ key: p, label: issueFilterLabel(p), items: groups[p]! }));
     }
     if (viewState.groupBy === "workspace") {
       const groups = groupBy(
@@ -724,9 +993,7 @@ export function IssuesList({
         })
         .map((key) => ({
           key,
-          label: key === "__no_workspace"
-            ? t("No Workspace", { defaultValue: "No Workspace" })
-            : (workspaceNameMap.get(key) ?? key.slice(0, 8)),
+          label: key === "__no_workspace" ? "No Workspace" : (workspaceNameMap.get(key) ?? key.slice(0, 8)),
           items: groups[key]!,
         }));
     }
@@ -741,9 +1008,7 @@ export function IssuesList({
         })
         .map((key) => ({
           key,
-          label: key === "__no_parent"
-            ? t("No Parent", { defaultValue: "No Parent" })
-            : (issueTitleMap.get(key) ?? key.slice(0, 8)),
+          label: key === "__no_parent" ? "No Parent" : (issueTitleMap.get(key) ?? key.slice(0, 8)),
           items: groups[key]!,
         }));
     }
@@ -756,34 +1021,106 @@ export function IssuesList({
       key,
       label:
         key === "__unassigned"
-          ? t("Unassigned", { defaultValue: "Unassigned" })
+          ? "Unassigned"
           : key.startsWith("__user:")
-            ? (formatAssigneeUserLabel(key.slice("__user:".length), currentUserId, companyUserLabelMap)
-              ?? t("User", { defaultValue: "User" }))
+            ? (formatAssigneeUserLabel(key.slice("__user:".length), currentUserId, companyUserLabelMap) ?? "User")
             : (agentName(key) ?? key.slice(0, 8)),
       items: groups[key]!,
     }));
-  }, [filtered, viewState.groupBy, agents, agentName, currentUserId, workspaceNameMap, issueTitleMap, companyUserLabelMap, t]);
+  }, [
+    filtered,
+    issueFilterWorkspaceContext,
+    viewState.groupBy,
+    agents,
+    agentName,
+    currentUserId,
+    workspaceNameMap,
+    issueTitleMap,
+    companyUserLabelMap,
+  ]);
 
   useEffect(() => {
     if (viewState.viewMode !== "list") return;
-    setRenderedIssueRowLimit(Math.min(filtered.length, INITIAL_ISSUE_ROW_RENDER_LIMIT));
+    const nextIssueIds = filtered.map((issue) => issue.id).join("|");
+    const previousIssueIds = renderedIssueIdsRef.current;
+    renderedIssueIdsRef.current = nextIssueIds;
+
+    setRenderedIssueRowLimit((current) => {
+      const nextInitialLimit = Math.min(filtered.length, INITIAL_ISSUE_ROW_RENDER_LIMIT);
+      const listAppended = previousIssueIds.length > 0
+        && nextIssueIds.startsWith(previousIssueIds)
+        && filtered.length >= current;
+      if (listAppended) return Math.min(filtered.length, Math.max(current, nextInitialLimit));
+      return nextInitialLimit;
+    });
   }, [filtered, viewState.viewMode]);
 
-  useEffect(() => {
+  const hasMoreRenderedRows = viewState.viewMode === "list" && renderedIssueRowLimit < filtered.length;
+  const remainingIssueRowCount = Math.max(filtered.length - renderedIssueRowLimit, 0);
+  const loadMoreIssueRows = useCallback(() => {
     if (viewState.viewMode !== "list") return;
-    if (renderedIssueRowLimit >= filtered.length) return;
-
-    const timeoutId = window.setTimeout(() => {
+    if (hasMoreRenderedRows) {
       startTransition(() => {
         setRenderedIssueRowLimit((current) => Math.min(filtered.length, current + ISSUE_ROW_RENDER_BATCH_SIZE));
       });
-    }, ISSUE_ROW_RENDER_BATCH_DELAY_MS);
+      return;
+    }
+    if (hasMoreIssues && !isLoadingMoreIssues) {
+      onLoadMoreIssues?.();
+    }
+  }, [
+    filtered.length,
+    hasMoreIssues,
+    hasMoreRenderedRows,
+    isLoadingMoreIssues,
+    onLoadMoreIssues,
+    viewState.viewMode,
+  ]);
 
-    return () => window.clearTimeout(timeoutId);
-  }, [filtered.length, renderedIssueRowLimit, viewState.viewMode]);
+  const canLoadMoreIssues = viewState.viewMode === "list"
+    && !isLoading
+    && (hasMoreRenderedRows || (hasMoreIssues && !isLoadingMoreIssues));
 
-  const remainingIssueRowCount = Math.max(filtered.length - renderedIssueRowLimit, 0);
+  useEffect(() => {
+    if (!canLoadMoreIssues) return;
+    let animationFrameId: number | null = null;
+    const scrollContainer = findIssuesScrollContainer(rootRef.current);
+    const scrollTarget: Window | HTMLElement = scrollContainer ?? window;
+
+    const checkScrollPosition = (trigger: "initial" | "scroll" | "resize" = "scroll") => {
+      if (animationFrameId !== null) return;
+      animationFrameId = window.requestAnimationFrame(() => {
+        animationFrameId = null;
+        const scrollHeight = scrollContainer?.scrollHeight ?? document.documentElement.scrollHeight;
+        if (scrollHeight === 0) return;
+        const viewportHeight = scrollContainer?.clientHeight ?? window.innerHeight;
+        const scrollBottom = scrollContainer
+          ? scrollContainer.scrollTop + scrollContainer.clientHeight
+          : window.scrollY + window.innerHeight;
+        const hasScrollableOverflow = scrollHeight > viewportHeight + 1;
+        const threshold = scrollHeight - ISSUE_SCROLL_LOAD_THRESHOLD_PX;
+        if (scrollBottom >= threshold) {
+          if (trigger === "initial" && !hasMoreRenderedRows && hasMoreIssues && !hasScrollableOverflow) {
+            if (initialServerFillRequestedRef.current) return;
+            initialServerFillRequestedRef.current = true;
+          }
+          loadMoreIssueRows();
+        }
+      });
+    };
+
+    const handleScroll = () => checkScrollPosition("scroll");
+    const handleResize = () => checkScrollPosition("resize");
+    scrollTarget.addEventListener("scroll", handleScroll, { passive: true });
+    window.addEventListener("resize", handleResize);
+    checkScrollPosition("initial");
+
+    return () => {
+      scrollTarget.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("resize", handleResize);
+      if (animationFrameId !== null) window.cancelAnimationFrame(animationFrameId);
+    };
+  }, [canLoadMoreIssues, hasMoreIssues, hasMoreRenderedRows, loadMoreIssueRows]);
 
   const newIssueDefaults = useCallback((groupKey?: string) => {
     const defaults: Record<string, unknown> = { ...(baseCreateIssueDefaults ?? {}) };
@@ -804,12 +1141,8 @@ export function IssuesList({
     return defaults;
   }, [baseCreateIssueDefaults, currentUserId, issueById, projectId, viewState.groupBy]);
 
-  const createActionLabel = createIssueLabel
-    ? t("Create {{label}}", { defaultValue: "Create {{label}}", label: createIssueLabel })
-    : t("Create Issue", { defaultValue: "Create Issue" });
-  const createButtonLabel = createIssueLabel
-    ? t("New {{label}}", { defaultValue: "New {{label}}", label: createIssueLabel })
-    : t("New Issue", { defaultValue: "New Issue" });
+  const createActionLabel = createIssueLabel ? `Create ${createIssueLabel}` : "Create Issue";
+  const createButtonLabel = createIssueLabel ? `New ${createIssueLabel}` : "New Issue";
   const openCreateIssueDialog = useCallback((groupKey?: string) => {
     openNewIssue(newIssueDefaults(groupKey));
   }, [newIssueDefaults, openNewIssue]);
@@ -841,7 +1174,11 @@ export function IssuesList({
   let remainingRowsToRender = viewState.viewMode === "list" ? renderedIssueRowLimit : Number.POSITIVE_INFINITY;
 
   return (
-    <div className="space-y-4">
+    <div ref={rootRef} className="space-y-4">
+      {progressSummary ? (
+        <SubIssueProgressSummaryStrip summary={progressSummary} issueLinkState={issueLinkState} />
+      ) : null}
+
       {/* Toolbar */}
       <div className="flex items-center justify-between gap-2 sm:gap-3">
         <div className="flex min-w-0 items-center gap-2 sm:gap-3">
@@ -864,14 +1201,14 @@ export function IssuesList({
             <button
               className={`p-1.5 transition-colors ${viewState.viewMode === "list" ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground"}`}
               onClick={() => updateView({ viewMode: "list" })}
-              title={t("List view", { defaultValue: "List view" })}
+              title="List view"
             >
               <List className="h-3.5 w-3.5" />
             </button>
             <button
               className={`p-1.5 transition-colors ${viewState.viewMode === "board" ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground"}`}
               onClick={() => updateView({ viewMode: "board" })}
-              title={t("Board view", { defaultValue: "Board view" })}
+              title="Board view"
             >
               <Columns3 className="h-3.5 w-3.5" />
             </button>
@@ -884,9 +1221,7 @@ export function IssuesList({
               size="icon"
               className={cn("hidden h-8 w-8 shrink-0 sm:inline-flex", viewState.nestingEnabled && "bg-accent")}
               onClick={() => updateView({ nestingEnabled: !viewState.nestingEnabled })}
-              title={viewState.nestingEnabled
-                ? t("Disable parent-child nesting", { defaultValue: "Disable parent-child nesting" })
-                : t("Enable parent-child nesting", { defaultValue: "Enable parent-child nesting" })}
+              title={viewState.nestingEnabled ? "Disable parent-child nesting" : "Enable parent-child nesting"}
             >
               <ListTree className="h-3.5 w-3.5" />
             </Button>
@@ -897,7 +1232,7 @@ export function IssuesList({
             visibleColumnSet={visibleIssueColumnSet}
             onToggleColumn={toggleIssueColumn}
             onResetColumns={() => setIssueColumns(DEFAULT_INBOX_ISSUE_COLUMNS)}
-            title={t("issuesList.chooseVisibleColumns", { defaultValue: "Choose which issue columns stay visible" })}
+            title="Choose which issue columns stay visible"
             iconOnly
           />
 
@@ -919,18 +1254,19 @@ export function IssuesList({
           {viewState.viewMode === "list" && (
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" size="icon" className="h-8 w-8 shrink-0" title={t("issuesList.sort", { defaultValue: "Sort" })}>
+                <Button variant="outline" size="icon" className="h-8 w-8 shrink-0" title="Sort">
                   <ArrowUpDown className="h-3.5 w-3.5" />
                 </Button>
               </PopoverTrigger>
               <PopoverContent align="end" className="w-48 p-0">
                 <div className="p-2 space-y-0.5">
                   {([
-                    ["status", t("Status", { defaultValue: "Status" })],
-                    ["priority", t("Priority", { defaultValue: "Priority" })],
-                    ["title", t("Title", { defaultValue: "Title" })],
-                    ["created", t("Created", { defaultValue: "Created" })],
-                    ["updated", t("Updated", { defaultValue: "Updated" })],
+                    ["workflow", "Workflow"],
+                    ["status", "Status"],
+                    ["priority", "Priority"],
+                    ["title", "Title"],
+                    ["created", "Created"],
+                    ["updated", "Updated"],
                   ] as const).map(([field, label]) => (
                     <button
                       key={field}
@@ -962,19 +1298,19 @@ export function IssuesList({
           {viewState.viewMode === "list" && (
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" size="icon" className="h-8 w-8 shrink-0" title={t("issuesList.group", { defaultValue: "Group" })}>
+                <Button variant="outline" size="icon" className="h-8 w-8 shrink-0" title="Group">
                   <Layers className="h-3.5 w-3.5" />
                 </Button>
               </PopoverTrigger>
               <PopoverContent align="end" className="w-44 p-0">
                 <div className="p-2 space-y-0.5">
                   {([
-                    ["status", t("Status", { defaultValue: "Status" })],
-                    ["priority", t("Priority", { defaultValue: "Priority" })],
-                    ["assignee", t("Assignee", { defaultValue: "Assignee" })],
-                    ["workspace", t("Workspace", { defaultValue: "Workspace" })],
-                    ["parent", t("Parent issue", { defaultValue: "Parent issue" })],
-                    ["none", t("None", { defaultValue: "None" })],
+                    ["status", "Status"],
+                    ["priority", "Priority"],
+                    ["assignee", "Assignee"],
+                    ["workspace", "Workspace"],
+                    ["parent", "Parent Issue"],
+                    ["none", "None"],
                   ] as const).map(([value, label]) => (
                     <button
                       key={value}
@@ -999,22 +1335,23 @@ export function IssuesList({
       {!searchWithinLoadedIssues && normalizedIssueSearch.length > 0 && searchedIssues.length === ISSUE_SEARCH_RESULT_LIMIT && (
         <p className="text-xs text-muted-foreground">
           {t("Showing up to {{count}} matches. Refine the search to narrow further.", {
-            defaultValue: "Showing up to {{count}} matches. Refine the search to narrow further.",
             count: ISSUE_SEARCH_RESULT_LIMIT,
+            defaultValue: `Showing up to ${ISSUE_SEARCH_RESULT_LIMIT} matches. Refine the search to narrow further.`,
           })}
         </p>
       )}
       {boardColumnLimitReached && (
         <p className="text-xs text-muted-foreground">
-          Some board columns are showing up to {ISSUE_BOARD_COLUMN_RESULT_LIMIT} issues. Refine filters or search to reveal the rest.
+          {t("Some board columns are showing up to {{count}} issues. Refine filters or search to reveal the rest.", {
+            count: ISSUE_BOARD_COLUMN_RESULT_LIMIT,
+            defaultValue: `Some board columns are showing up to ${ISSUE_BOARD_COLUMN_RESULT_LIMIT} issues. Refine filters or search to reveal the rest.`,
+          })}
         </p>
       )}
       {!isLoading && filtered.length === 0 && viewState.viewMode === "list" && (
         <EmptyState
           icon={CircleDot}
-          message={t("No issues match the current filters or search.", {
-            defaultValue: "No issues match the current filters or search.",
-          })}
+          message="No issues match the current filters or search."
           action={createActionLabel}
           onAction={() => openCreateIssueDialog()}
         />
@@ -1103,6 +1440,57 @@ export function IssuesList({
                         : viewState.collapsedParents.filter((id) => id !== issue.id),
                     });
                   };
+                  const checklistMeta = workflowChecklistMeta;
+                  const checklistStepNumber = checklistMeta?.stepNumberByIssueId.get(issue.id) ?? null;
+                  const unresolvedVisibleBlockers = checklistMeta?.unresolvedVisibleBlockersByIssueId.get(issue.id) ?? [];
+                  const checklistRowId = checklistMeta ? `issue-workflow-row-${issue.id}` : undefined;
+                  const doneRowTitleClass = checklistMeta && issue.status === "done"
+                    ? "text-muted-foreground"
+                    : undefined;
+                  const visibleBlockerChips = unresolvedVisibleBlockers
+                    .map((blockerId) => {
+                      const blockerIssue = issueById.get(blockerId);
+                      if (!blockerIssue) return null;
+                      const label = blockerIssue.identifier ?? blockerIssue.id.slice(0, 8);
+                      const blockerStep = checklistMeta?.stepNumberByIssueId.get(blockerId);
+                      const blockerStepSuffix = blockerStep ? ` \u00b7 step ${blockerStep}` : "";
+                      return { blockerId, chipLabel: `blocked by ${label}${blockerStepSuffix}` };
+                    })
+                    .filter((chip): chip is { blockerId: string; chipLabel: string } => chip !== null);
+                  const firstVisibleBlockerChip = visibleBlockerChips[0] ?? null;
+                  const additionalVisibleBlockerCount = Math.max(visibleBlockerChips.length - 1, 0);
+                  const additionalVisibleBlockerLabel = additionalVisibleBlockerCount > 0
+                    ? ` ... and ${additionalVisibleBlockerCount} more`
+                    : "";
+                  const firstVisibleBlockerDisplayLabel = firstVisibleBlockerChip
+                    ? `${firstVisibleBlockerChip.chipLabel}${additionalVisibleBlockerLabel}`
+                    : "";
+                  const hiddenVisibleBlockerLabels = visibleBlockerChips
+                    .slice(1)
+                    .map((chip) => chip.chipLabel)
+                    .join(", ");
+                  const firstVisibleBlockerTitle = additionalVisibleBlockerCount > 0
+                    ? `${firstVisibleBlockerDisplayLabel}: ${hiddenVisibleBlockerLabels}`
+                    : firstVisibleBlockerDisplayLabel;
+                  const checklistDependencyChips = checklistMeta && firstVisibleBlockerChip ? (
+                    <button
+                      key={firstVisibleBlockerChip.blockerId}
+                      type="button"
+                      onClick={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        const target = document.getElementById(`issue-workflow-row-${firstVisibleBlockerChip.blockerId}`);
+                        if (!target) return;
+                        target.scrollIntoView({ behavior: "smooth", block: "nearest" });
+                        target.focus?.();
+                      }}
+                      className="inline-flex items-center rounded-full border border-amber-400/45 bg-amber-50/60 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 hover:bg-amber-100/80 dark:border-amber-300/35 dark:bg-amber-400/10 dark:text-amber-300"
+                      title={firstVisibleBlockerTitle}
+                      aria-label={firstVisibleBlockerTitle}
+                    >
+                      {firstVisibleBlockerDisplayLabel}
+                    </button>
+                  ) : null;
 
                   return (
                     <div
@@ -1120,24 +1508,27 @@ export function IssuesList({
                       <IssueRow
                         issue={issue}
                         issueLinkState={issueLinkState}
+                        checklistStepNumber={checklistStepNumber}
+                        checklistCurrentStep={checklistMeta?.currentStepIssueId === issue.id}
+                        checklistDependencyChips={checklistDependencyChips}
+                        checklistRowId={checklistRowId}
+                        titleClassName={doneRowTitleClass}
                         titleSuffix={(
                           <>
                             {hasChildren && !isExpanded ? (
                               <span className="ml-1.5 text-xs text-muted-foreground">
-                                ({totalDescendants} {t(totalDescendants === 1 ? "sub-task" : "sub-tasks", {
-                                  defaultValue: totalDescendants === 1 ? "sub-task" : "sub-tasks",
-                                })})
+                                ({totalDescendants} sub-task{totalDescendants !== 1 ? "s" : ""})
                               </span>
                             ) : null}
                             {issueBadge ? (
                               issueBadge === "Paused" ? (
                                 <span
                                   className={cn("ml-1.5 inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium", statusBadge.paused)}
-                                  aria-label={t("Paused", { defaultValue: "Paused" })}
-                                  title={t("Paused", { defaultValue: "Paused" })}
+                                  aria-label="Paused"
+                                  title="Paused"
                                 >
                                   <CircleSlash2 className="h-3 w-3" />
-                                  {t("Paused", { defaultValue: "Paused" })}
+                                  Paused
                                 </span>
                               ) : (
                                 <span className="ml-1.5 inline-flex items-center rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-300">
@@ -1177,6 +1568,7 @@ export function IssuesList({
                               isLive={liveIssueIds?.has(issue.id) === true}
                               showStatus={visibleIssueColumnSet.has("status") && availableIssueColumnSet.has("status")}
                               showIdentifier={visibleIssueColumnSet.has("id") && availableIssueColumnSet.has("id")}
+                              checklistStepNumber={checklistStepNumber}
                               statusSlot={(
                                 <span onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
                                   <StatusIcon status={issue.status} blockerAttention={issue.blockerAttention} onChange={(s) => onUpdateIssue(issue.id, { status: s })} />
@@ -1223,7 +1615,7 @@ export function IssuesList({
                                         <Identity name={agentName(issue.assigneeAgentId)!} size="sm" className="min-w-0" />
                                       ) : issue.assigneeUserId ? (
                                         <Identity
-                                          name={assigneeUserLabel ?? t("User", { defaultValue: "User" })}
+                                          name={assigneeUserLabel ?? "User"}
                                           avatarUrl={assigneeUserProfile?.image ?? null}
                                           size="sm"
                                           className="min-w-0"
@@ -1233,7 +1625,7 @@ export function IssuesList({
                                           <span className="inline-flex h-6 w-6 items-center justify-center rounded-full border border-dashed border-muted-foreground/35 bg-muted/30">
                                             <User className="h-3.5 w-3.5" />
                                           </span>
-                                          {t("Assignee", { defaultValue: "Assignee" })}
+                                          Assignee
                                         </span>
                                       )}
                                     </button>
@@ -1246,7 +1638,7 @@ export function IssuesList({
                                   >
                                     <input
                                       className="mb-1 w-full border-b border-border bg-transparent px-2 py-1.5 text-xs outline-none placeholder:text-muted-foreground/50"
-                                      placeholder={t("Search assignees...", { defaultValue: "Search assignees..." })}
+                                      placeholder="Search assignees..."
                                       value={assigneeSearch}
                                       onChange={(e) => setAssigneeSearch(e.target.value)}
                                       autoFocus
@@ -1263,7 +1655,7 @@ export function IssuesList({
                                           assignIssue(issue.id, null, null);
                                         }}
                                       >
-                                        {t("No assignee", { defaultValue: "No assignee" })}
+                                        No assignee
                                       </button>
                                       {currentUserId && (
                                         <button
@@ -1278,7 +1670,7 @@ export function IssuesList({
                                           }}
                                         >
                                           <User className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                                          <span>{t("Me", { defaultValue: "Me" })}</span>
+                                          <span>Me</span>
                                         </button>
                                       )}
                                       {(agents ?? [])
@@ -1321,14 +1713,16 @@ export function IssuesList({
           </Collapsible>
           );
           })}
-          {remainingIssueRowCount > 0 && (
-            <p className="text-xs text-muted-foreground">
-              {t("Rendering {{shown}} of {{total}} issues", {
-                defaultValue: "Rendering {{shown}} of {{total}} issues",
-                shown: Math.min(renderedIssueRowLimit, filtered.length),
-                total: filtered.length,
-              })}
-            </p>
+          {(remainingIssueRowCount > 0 || hasMoreIssues || isLoadingMoreIssues) && (
+            <div className="py-2" data-testid="issues-load-more-sentinel">
+              <p className="text-xs text-muted-foreground">
+                {isLoadingMoreIssues
+                  ? "Loading more issues..."
+                  : remainingIssueRowCount > 0
+                    ? `Rendering ${Math.min(renderedIssueRowLimit, filtered.length)} of ${filtered.length} issues`
+                    : "Scroll to load more issues"}
+              </p>
+            </div>
           )}
         </>
       )}

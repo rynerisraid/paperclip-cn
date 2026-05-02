@@ -97,6 +97,11 @@ vi.mock("../adapters/metadata", () => ({
 
 vi.mock("../adapters/adapter-display-registry", () => ({
   getAdapterLabel: () => "Claude Code (local)",
+  getAdapterDisplay: () => ({
+    label: "Claude Code (local)",
+    description: "Local Claude agent",
+    icon: () => null,
+  }),
 }));
 
 vi.mock("../adapters/use-disabled-adapters", () => ({

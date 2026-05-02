@@ -1,7 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { existsSync } from "node:fs";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { runChildProcess } from "@penclipai/adapter-utils/server-utils";
 import { testEnvironment } from "@penclipai/adapter-cursor-local/server";
 
 async function writeFakeAgentCommand(binDir: string, argsCapturePath: string): Promise<string> {
@@ -25,6 +27,111 @@ console.log(JSON.stringify({
   await fs.writeFile(commandPath, script, "utf8");
   await fs.chmod(commandPath, 0o755);
   return commandPath;
+}
+
+async function writeFakeCursorAgentCommand(commandPath: string): Promise<void> {
+  const script = `#!/usr/bin/env node
+const fs = require("node:fs");
+const outPath = process.env.PAPERCLIP_TEST_ARGS_PATH;
+if (outPath) {
+  fs.writeFileSync(outPath, JSON.stringify({
+    command: process.argv[1],
+    argv: process.argv.slice(2),
+    path: process.env.PATH || "",
+  }), "utf8");
+}
+console.log(JSON.stringify({
+  type: "assistant",
+  message: { content: [{ type: "output_text", text: "hello" }] },
+}));
+console.log(JSON.stringify({
+  type: "result",
+  subtype: "success",
+  result: "hello",
+}));
+`;
+  await fs.mkdir(path.dirname(commandPath), { recursive: true });
+  await fs.writeFile(commandPath, script, "utf8");
+  await fs.chmod(commandPath, 0o755);
+}
+
+function resolveTestPosixShellCommand() {
+  if (process.platform !== "win32") return "sh";
+  const candidates = [
+    "C:\\Program Files\\Git\\usr\\bin\\sh.exe",
+    "C:\\Program Files\\Git\\bin\\bash.exe",
+  ];
+  return candidates.find((candidate) => existsSync(candidate)) ?? "sh";
+}
+
+function rewriteWindowsPathsForGitShell(script: string) {
+  if (process.platform !== "win32") return script;
+  return script.replace(/([A-Za-z]):\\([^'"\s]*)/g, (_match, drive: string, rest: string) =>
+    `/${drive.toLowerCase()}/${rest.replace(/\\/g, "/")}`,
+  );
+}
+
+function toGitShellPath(value: string) {
+  if (process.platform !== "win32") return value;
+  return value.replace(/^([A-Za-z]):\\?/, (_match, drive: string) => `/${drive.toLowerCase()}/`).replace(/\\/g, "/");
+}
+
+function fromGitShellPath(value: string) {
+  if (process.platform !== "win32") return value;
+  return value.replace(/^\/([a-zA-Z])\/(.*)$/, (_match, drive: string, rest: string) =>
+    `${drive.toUpperCase()}:\\${rest.replace(/\//g, "\\")}`,
+  );
+}
+
+function envForGitShell(env: Record<string, string>) {
+  if (process.platform !== "win32") return env;
+  return {
+    ...env,
+    ...(process.env.HOME ? { HOME: toGitShellPath(process.env.HOME) } : {}),
+  };
+}
+
+function firstPathEntry(pathValue: string) {
+  if (process.platform !== "win32") return pathValue.split(":")[0];
+  const gitShellMatch = pathValue.match(/^\/[a-zA-Z]\/[^:]*/);
+  if (gitShellMatch) return fromGitShellPath(gitShellMatch[0]);
+  return pathValue.split(path.delimiter)[0];
+}
+
+function createLocalSandboxRunner() {
+  let counter = 0;
+  return {
+    execute: async (input: {
+      command: string;
+      args?: string[];
+      cwd?: string;
+      env?: Record<string, string>;
+      stdin?: string;
+      timeoutMs?: number;
+      onLog?: (stream: "stdout" | "stderr", chunk: string) => Promise<void>;
+      onSpawn?: (meta: { pid: number; startedAt: string }) => Promise<void>;
+    }) => {
+      counter += 1;
+      const command = input.command === "sh" ? resolveTestPosixShellCommand() : input.command;
+      const hostCommand = input.command === "sh" ? command : fromGitShellPath(command);
+      const args = [...(input.args ?? [])];
+      if (input.command === "sh" && args[0] === "-lc" && typeof args[1] === "string") {
+        args[1] = rewriteWindowsPathsForGitShell(args[1]);
+      }
+      const hostCwd = fromGitShellPath(input.cwd ?? process.cwd());
+      return await runChildProcess(`cursor-sandbox-env-${counter}`, hostCommand, args, {
+        cwd: hostCwd,
+        env: input.command === "sh" ? envForGitShell(input.env ?? {}) : input.env ?? {},
+        stdin: input.stdin,
+        timeoutSec: Math.max(1, Math.ceil((input.timeoutMs ?? 30_000) / 1000)),
+        graceSec: 5,
+        onLog: input.onLog ?? (async () => {}),
+        onSpawn: input.onSpawn
+          ? async (meta) => input.onSpawn?.({ pid: meta.pid, startedAt: meta.startedAt })
+          : undefined,
+      });
+    },
+  };
 }
 
 describe("cursor environment diagnostics", () => {
@@ -122,6 +229,58 @@ describe("cursor environment diagnostics", () => {
     expect(args).toContain("--yolo");
     expect(args).not.toContain("--trust");
     await fs.rm(root, { recursive: true, force: true });
+  });
+
+  it("prefers ~/.local/bin/cursor-agent for remote sandbox probes when using the default command", async () => {
+    const root = path.join(
+      os.tmpdir(),
+      `paperclip-cursor-sandbox-probe-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    );
+    const homeDir = path.join(root, "home");
+    const remoteCwdLocal = path.join(root, "workspace");
+    const remoteCwd = toGitShellPath(remoteCwdLocal);
+    const argsCapturePath = path.join(root, "args.json");
+    const cursorAgentPath = path.join(homeDir, ".local", "bin", "cursor-agent");
+    await fs.mkdir(remoteCwdLocal, { recursive: true });
+    await writeFakeCursorAgentCommand(cursorAgentPath);
+
+    const previousHome = process.env.HOME;
+    process.env.HOME = homeDir;
+
+    try {
+      const result = await testEnvironment({
+        companyId: "company-1",
+        adapterType: "cursor",
+        executionTarget: {
+          kind: "remote",
+          transport: "sandbox",
+          remoteCwd,
+          runner: createLocalSandboxRunner(),
+          timeoutMs: 30_000,
+        },
+        config: {
+          command: "agent",
+          cwd: remoteCwd,
+          env: {
+            CURSOR_API_KEY: "test-key",
+            PAPERCLIP_TEST_ARGS_PATH: argsCapturePath,
+          },
+        },
+      });
+
+      expect(result.status).toBe("pass");
+      const capture = JSON.parse(await fs.readFile(argsCapturePath, "utf8")) as {
+        command: string;
+        argv: string[];
+        path: string;
+      };
+      expect(capture.command).toBe(cursorAgentPath);
+      expect(path.normalize(firstPathEntry(capture.path) ?? "")).toBe(path.join(homeDir, ".local", "bin"));
+    } finally {
+      if (previousHome === undefined) delete process.env.HOME;
+      else process.env.HOME = previousHome;
+      await fs.rm(root, { recursive: true, force: true });
+    }
   });
 
   it("emits cursor_native_auth_present when cli-config.json has authInfo and CURSOR_API_KEY is unset", async () => {

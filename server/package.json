@@ -40,10 +40,11 @@
     "postpack": "node ../scripts/fs-ops.mjs rm ui-dist",
     "clean": "node ../scripts/fs-ops.mjs rm dist",
     "start": "node dist/index.js",
-    "typecheck": "pnpm --filter @penclipai/plugin-sdk build && tsc --noEmit"
+    "typecheck": "pnpm --filter @penclipai/plugin-sdk ensure-build-deps && tsc --noEmit"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.888.0",
+    "@penclipai/adapter-acpx-local": "workspace:*",
     "@penclipai/adapter-claude-local": "workspace:*",
     "@penclipai/adapter-codebuddy-local": "workspace:*",
     "@penclipai/adapter-codex-local": "workspace:*",

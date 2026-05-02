@@ -1,5 +1,10 @@
 import { z } from "zod";
-import { AGENT_ICON_NAMES, AGENT_ROLES, PROJECT_STATUSES } from "../constants.js";
+import {
+  AGENT_ICON_NAMES,
+  AGENT_ROLES,
+  MAX_COMPANY_ATTACHMENT_MAX_BYTES,
+  PROJECT_STATUSES,
+} from "../constants.js";
 import { routineVariableSchema } from "./routine.js";
 import { brandColorSchema } from "./company.js";
 
@@ -39,6 +44,7 @@ export const portabilityCompanyManifestEntrySchema = z.object({
   description: z.string().nullable(),
   brandColor: brandColorSchema,
   logoPath: z.string().nullable(),
+  attachmentMaxBytes: z.number().int().min(1).max(MAX_COMPANY_ATTACHMENT_MAX_BYTES).nullable().default(null),
   requireBoardApprovalForNewAgents: z.boolean(),
   feedbackDataSharingEnabled: z.boolean().default(false),
   feedbackDataSharingConsentAt: z.string().datetime().nullable().default(null),
