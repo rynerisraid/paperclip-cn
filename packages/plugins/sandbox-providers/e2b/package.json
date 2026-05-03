@@ -51,7 +51,7 @@
     "postpack": "if [ -f package.dev.json ]; then mv package.dev.json package.json; fi"
   },
   "dependencies": {
-    "@paperclipai/plugin-sdk": "workspace:@penclipai/plugin-sdk@*",
+    "@paperclipai/plugin-sdk": "link:../../../../packages/plugins/sdk",
     "e2b": "^2.19.0"
   },
   "devDependencies": {
