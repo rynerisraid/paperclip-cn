@@ -80,6 +80,28 @@ test.describe("Onboarding wizard", () => {
     await page.getByRole("button", { name: "More Agent Adapter Types" }).click();
     await expect(page.getByRole("button", { name: "Process" })).toHaveCount(0);
 
+    if (SKIP_LLM) {
+      await page.route("**/api/companies/*/adapters/*/test-environment", async (route) => {
+        const adapterType = route.request().url().match(/\/adapters\/([^/]+)\/test-environment/)?.[1] ?? "unknown";
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            adapterType,
+            status: "pass",
+            testedAt: new Date().toISOString(),
+            checks: [
+              {
+                code: "e2e_skip_llm_adapter_probe",
+                level: "info",
+                message: "Live adapter probe skipped for the skip-LLM onboarding e2e.",
+              },
+            ],
+          }),
+        });
+      });
+    }
+
     await page.getByRole("button", { name: "Next" }).click();
 
     await expect(

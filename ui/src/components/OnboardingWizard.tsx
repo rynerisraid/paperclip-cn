@@ -66,6 +66,36 @@ import {
 } from "lucide-react";
 type Step = 1 | 2 | 3 | 4;
 type AdapterType = string;
+type CompanyListCache =
+  | Company[]
+  | {
+      companies?: Company[];
+      unauthorized?: boolean;
+    };
+
+function mergeCreatedCompanyIntoCache(
+  current: CompanyListCache | undefined,
+  company: Company,
+): CompanyListCache {
+  if (Array.isArray(current)) {
+    return [
+      company,
+      ...current.filter((entry) => entry.id !== company.id),
+    ];
+  }
+
+  const currentCompanies = Array.isArray(current?.companies)
+    ? current.companies
+    : [];
+  return {
+    ...current,
+    companies: [
+      company,
+      ...currentCompanies.filter((entry) => entry.id !== company.id),
+    ],
+    unauthorized: current?.unauthorized ?? false,
+  };
+}
 
 export function OnboardingWizard() {
   const { t } = useTranslation();
@@ -430,10 +460,10 @@ export function OnboardingWizard() {
     setError(null);
     try {
       const company = await companiesApi.create({ name: companyName.trim() });
-      queryClient.setQueryData<Company[]>(queryKeys.companies.all, (current = []) => [
-        company,
-        ...current.filter((entry) => entry.id !== company.id),
-      ]);
+      queryClient.setQueryData<CompanyListCache>(
+        queryKeys.companies.all,
+        (current) => mergeCreatedCompanyIntoCache(current, company),
+      );
       setCreatedCompanyId(company.id);
       setCreatedCompanyPrefix(company.issuePrefix);
       setSelectedCompanyId(company.id);
