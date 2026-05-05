@@ -1,8 +1,10 @@
 #!/usr/bin/env node
 
 import { spawnSync } from "node:child_process";
+import { cpSync, existsSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
-import { dirname, join, resolve } from "node:path";
+import { dirname, join, resolve, delimiter } from "node:path";
 
 import { buildReleasePackagePlan } from "./release-package-map.mjs";
 
@@ -20,11 +22,114 @@ function usage() {
       "  node scripts/bootstrap-npm-package.mjs <package-name-or-dir> [--publish --otp <code>] [--skip-build]",
       "",
       "Examples:",
-      "  node scripts/bootstrap-npm-package.mjs @paperclipai/adapter-acpx-local",
+      "  node scripts/bootstrap-npm-package.mjs @penclipai/adapter-acpx-local",
       "  node scripts/bootstrap-npm-package.mjs packages/adapters/acpx-local --publish",
       "",
     ].join("\n"),
   );
+}
+
+function resolveNpmInvocation() {
+  if (process.platform !== "win32") {
+    return {
+      command: "npm",
+      argsPrefix: [],
+    };
+  }
+
+  for (const entry of (process.env.PATH ?? "").split(delimiter).filter(Boolean)) {
+    const npmCliPath = join(entry, "node_modules", "npm", "bin", "npm-cli.js");
+    if (existsSync(npmCliPath)) {
+      return {
+        command: process.execPath,
+        argsPrefix: [npmCliPath],
+      };
+    }
+  }
+
+  return {
+    command: "npm",
+    argsPrefix: [],
+  };
+}
+
+function resolvePnpmInvocation() {
+  const npmExecPath = process.env.npm_execpath ?? "";
+  if (npmExecPath && /pnpm/i.test(npmExecPath) && existsSync(npmExecPath)) {
+    return {
+      command: process.execPath,
+      argsPrefix: [npmExecPath],
+    };
+  }
+
+  if (process.platform !== "win32") {
+    return {
+      command: "pnpm",
+      argsPrefix: [],
+    };
+  }
+
+  for (const entry of (process.env.PATH ?? "").split(delimiter).filter(Boolean)) {
+    const candidateDirs = [
+      join(entry, "node_modules", "pnpm"),
+    ];
+    const toolsPnpmDir = join(entry, ".tools", "pnpm");
+    if (existsSync(toolsPnpmDir)) {
+      for (const versionDir of readdirSync(toolsPnpmDir, { withFileTypes: true })) {
+        if (versionDir.isDirectory()) {
+          candidateDirs.push(join(toolsPnpmDir, versionDir.name, "node_modules", "pnpm"));
+        }
+      }
+    }
+    for (const candidateDir of candidateDirs) {
+      const pnpmCliPath = join(candidateDir, "bin", "pnpm.cjs");
+      if (existsSync(pnpmCliPath)) {
+        return {
+          command: process.execPath,
+          argsPrefix: [pnpmCliPath],
+        };
+      }
+    }
+  }
+
+  return {
+    command: "pnpm",
+    argsPrefix: [],
+  };
+}
+
+function runNpm(args, options = {}) {
+  const npmInvocation = resolveNpmInvocation();
+  return runCommand(npmInvocation.command, [...npmInvocation.argsPrefix, ...args], options);
+}
+
+function npmPublishOptions(options = {}) {
+  const token = process.env.NODE_AUTH_TOKEN || process.env.NPM_TOKEN;
+  if (!token || process.env.NPM_CONFIG_USERCONFIG) {
+    return { options, cleanup: () => {} };
+  }
+
+  const configDir = mkdtempSync(join(tmpdir(), "paperclip-npmrc-"));
+  const userConfig = join(configDir, ".npmrc");
+  writeFileSync(
+    userConfig,
+    [
+      "registry=https://registry.npmjs.org/",
+      `//registry.npmjs.org/:_authToken=${token}`,
+    ].join("\n"),
+  );
+
+  return {
+    options: {
+      ...options,
+      env: {
+        ...process.env,
+        ...(options.env ?? {}),
+        NPM_CONFIG_USERCONFIG: userConfig,
+      },
+    },
+    cleanup: () => rmSync(configDir, { recursive: true, force: true }),
+  };
 }
 
 function parseArgs(argv) {
@@ -110,7 +215,7 @@ function formatCommand(command, args) {
 }
 
 function ensureNpmAuth() {
-  const result = runCommand("npm", ["whoami"]);
+  const result = runNpm(["whoami"]);
   const stdout = result.stdout ?? "";
   const stderr = result.stderr ?? "";
 
@@ -127,7 +232,7 @@ function ensureNpmAuth() {
       [
         "npm auth check failed.",
         "This usually means the machine is either not logged into npm yet or has a stale token in ~/.npmrc.",
-        "Run `npm logout --registry=https://registry.npmjs.org/` and then `npm login` or `npm adduser` on this maintainer machine with an npm account that can publish to the @paperclipai scope, then rerun with --publish.",
+        "Run `npm logout --registry=https://registry.npmjs.org/` and then `npm login` or `npm adduser` on this maintainer machine with an npm account that can publish to the @penclipai scope, then rerun with --publish.",
         "Do not use this auth flow in CI; it is only for the one-time human bootstrap publish.",
       ].join(" "),
     );
@@ -137,7 +242,7 @@ function ensureNpmAuth() {
 }
 
 function inspectNpmPackage(packageName) {
-  const result = runCommand("npm", ["view", packageName, "version", "--json"]);
+  const result = runNpm(["view", packageName, "version", "--json"]);
 
   if (result.status === 0) {
     const version = JSON.parse((result.stdout ?? "").trim());
@@ -151,6 +256,81 @@ function inspectNpmPackage(packageName) {
 
   process.stderr.write(output ? `${output}\n` : "");
   throw new Error(`failed to query npm for ${packageName}`);
+}
+
+function isWorkspaceDependency(name, value) {
+  return name.startsWith("@penclipai/") && typeof value === "string" && value.startsWith("workspace:");
+}
+
+function resolvePublishedDependencyVersion(name) {
+  const npmState = inspectNpmPackage(name);
+  if (!npmState.exists) {
+    throw new Error(`${name} is a workspace dependency but is not published on npm yet`);
+  }
+
+  return npmState.version;
+}
+
+function resolvePublishDependencies(deps = {}) {
+  const next = {};
+  for (const [name, value] of Object.entries(deps)) {
+    next[name] = isWorkspaceDependency(name, value) ? resolvePublishedDependencyVersion(name) : value;
+  }
+  return Object.keys(next).length > 0 ? next : undefined;
+}
+
+function normalizeRepository(repository) {
+  if (!repository || typeof repository !== "object" || Array.isArray(repository)) {
+    return repository;
+  }
+
+  const next = { ...repository };
+  if (typeof next.url === "string" && /^https:\/\/github\.com\/.+[^.]$/.test(next.url)) {
+    next.url = `git+${next.url}.git`;
+  }
+  return next;
+}
+
+function buildPublishPackageJson(pkg) {
+  const publishConfig = pkg.pkg.publishConfig ?? {};
+  const packageJson = {
+    ...pkg.pkg,
+    repository: normalizeRepository(pkg.pkg.repository),
+    exports: publishConfig.exports ?? pkg.pkg.exports,
+    main: publishConfig.main ?? pkg.pkg.main,
+    types: publishConfig.types ?? pkg.pkg.types,
+    bin: publishConfig.bin ?? pkg.pkg.bin,
+    dependencies: resolvePublishDependencies(pkg.pkg.dependencies),
+    optionalDependencies: resolvePublishDependencies(pkg.pkg.optionalDependencies),
+    peerDependencies: resolvePublishDependencies(pkg.pkg.peerDependencies),
+    publishConfig: {
+      access: publishConfig.access ?? "public",
+    },
+  };
+
+  delete packageJson.devDependencies;
+  delete packageJson.scripts;
+  delete packageJson.clean;
+  delete packageJson.typecheck;
+
+  return Object.fromEntries(Object.entries(packageJson).filter(([, value]) => value !== undefined));
+}
+
+function preparePublishStaging(pkg) {
+  const sourceDir = join(repoRoot, pkg.dir);
+  const packageJson = buildPublishPackageJson(pkg);
+  const stagingDir = mkdtempSync(join(tmpdir(), "paperclip-bootstrap-publish-"));
+  const files = Array.isArray(packageJson.files) ? packageJson.files : [];
+
+  for (const file of files) {
+    const sourcePath = join(sourceDir, file);
+    if (existsSync(sourcePath)) {
+      cpSync(sourcePath, join(stagingDir, file), { recursive: true });
+    }
+  }
+
+  writeFileSync(join(stagingDir, "package.json"), `${JSON.stringify(packageJson, null, 2)}\n`);
+  return stagingDir;
 }
 
 function resolveTargetPackage(selector, packages = buildReleasePackagePlan()) {
@@ -179,7 +359,7 @@ function printNextSteps(pkg) {
       "Publish succeeded. Next:",
       `1. Open https://www.npmjs.com/package/${pkg.name}`,
       "2. Go to Settings -> Trusted publishing",
-      "3. Add repository paperclipai/paperclip",
+      "3. Add repository penclipai/paperclip-cn",
       "4. Set workflow filename to release.yml",
       "5. Optionally enable Settings -> Publishing access -> Require two-factor authentication and disallow tokens",
       "",
@@ -187,13 +367,19 @@ function printNextSteps(pkg) {
   );
 }
 
-function publishPackage(pkg, otp) {
+function publishPackage(pkg, stagingDir, otp) {
   const publishArgs = ["publish", "--access", "public"];
   if (otp) {
     publishArgs.push("--otp", otp);
   }
 
-  const result = runCommand("npm", publishArgs, { cwd: join(repoRoot, pkg.dir) });
+  const publish = npmPublishOptions({ cwd: stagingDir });
+  let result;
+  try {
+    result = runNpm(publishArgs, publish.options);
+  } finally {
+    publish.cleanup();
+  }
   const stdout = result.stdout ?? "";
   const stderr = result.stderr ?? "";
   const output = `${stdout}\n${stderr}`.trim();
@@ -233,10 +419,6 @@ function main(argv) {
   const pkg = resolveTargetPackage(selector);
   process.stdout.write(`Selected ${pkg.name} (${pkg.dir})\n`);
 
-  if (publish && !otp) {
-    throw new Error("`--publish` requires `--otp <code>`. Generate a fresh npm one-time password and rerun.");
-  }
-
   const npmState = inspectNpmPackage(pkg.name);
   if (npmState.exists) {
     throw new Error(`${pkg.name} already exists on npm at version ${npmState.version}; bootstrap is only for first publish`);
@@ -251,27 +433,35 @@ function main(argv) {
 
   if (!skipBuild && typeof pkg.pkg?.scripts?.build === "string") {
     process.stdout.write(`Building ${pkg.name}...\n`);
-    runChecked("pnpm", ["--filter", pkg.name, "build"]);
+    const pnpmInvocation = resolvePnpmInvocation();
+    runChecked(pnpmInvocation.command, [...pnpmInvocation.argsPrefix, "--filter", pkg.name, "build"]);
   }
+
+  const stagingDir = preparePublishStaging(pkg);
 
   process.stdout.write(`Previewing publish payload for ${pkg.name}...\n`);
-  runChecked("npm", ["pack", "--dry-run"], { cwd: join(repoRoot, pkg.dir) });
+  const npmInvocation = resolveNpmInvocation();
+  try {
+    runChecked(npmInvocation.command, [...npmInvocation.argsPrefix, "pack", "--dry-run"], { cwd: stagingDir });
 
-  if (!publish) {
-    process.stdout.write(
-      [
-        "",
-        "Dry run complete. To perform the first publish from an authenticated maintainer machine, run:",
-        `node scripts/bootstrap-npm-package.mjs ${pkg.name} --publish --otp <code>`,
-        "",
-      ].join("\n"),
-    );
-    return;
+    if (!publish) {
+      process.stdout.write(
+        [
+          "",
+          "Dry run complete. To perform the first publish from an authenticated maintainer machine, run:",
+          `node scripts/bootstrap-npm-package.mjs ${pkg.name} --publish --otp <code>`,
+          "",
+        ].join("\n"),
+      );
+      return;
+    }
+
+    process.stdout.write(`Publishing ${pkg.name}...\n`);
+    publishPackage(pkg, stagingDir, otp);
+    printNextSteps(pkg);
+  } finally {
+    rmSync(stagingDir, { recursive: true, force: true });
   }
-
-  process.stdout.write(`Publishing ${pkg.name}...\n`);
-  publishPackage(pkg, otp);
-  printNextSteps(pkg);
 }
 
 const isDirectRun = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
@@ -286,9 +476,11 @@ if (isDirectRun) {
 }
 
 export {
+  buildPublishPackageJson,
   ensureNpmAuth,
   inspectNpmPackage,
   parseArgs,
   publishPackage,
+  preparePublishStaging,
   resolveTargetPackage,
 };

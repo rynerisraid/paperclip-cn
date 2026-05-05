@@ -83,8 +83,8 @@ Repo policy:
 
 Bootstrap sequence for a new package:
 
-1. publish the package once from a trusted maintainer machine using normal npm auth
-2. open that package on npm and add the `paperclipai/paperclip` trusted publisher for `.github/workflows/release.yml`
+1. publish the package once from a trusted maintainer machine using npm account 2FA or a granular token with bypass 2FA enabled
+2. open that package on npm and add the `penclipai/paperclip-cn` trusted publisher for `.github/workflows/release.yml`
 3. rerun or dry-run the release flow as needed to confirm CI publishing now works
 4. only then enable `"publishFromCi": true`
 
