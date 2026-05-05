@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 
 import { spawnSync } from "node:child_process";
+import { existsSync } from "node:fs";
+import path from "node:path";
 
 import { buildReleasePackagePlan } from "./release-package-map.mjs";
 
@@ -12,8 +14,33 @@ function classifyNpmViewFailure(output) {
   return /\bE404\b|404 Not Found|could not be found/i.test(output) ? "missing" : "registry_error";
 }
 
+function resolveNpmInvocation() {
+  if (process.platform !== "win32") {
+    return {
+      command: "npm",
+      argsPrefix: [],
+    };
+  }
+
+  for (const entry of (process.env.PATH ?? "").split(path.delimiter).filter(Boolean)) {
+    const npmCliPath = path.join(entry, "node_modules", "npm", "bin", "npm-cli.js");
+    if (existsSync(npmCliPath)) {
+      return {
+        command: process.execPath,
+        argsPrefix: [npmCliPath],
+      };
+    }
+  }
+
+  return {
+    command: "npm",
+    argsPrefix: [],
+  };
+}
+
 function inspectNpmPackage(packageName) {
-  const result = spawnSync("npm", ["view", packageName, "name", "--json"], {
+  const npmInvocation = resolveNpmInvocation();
+  const result = spawnSync(npmInvocation.command, [...npmInvocation.argsPrefix, "view", packageName, "name", "--json"], {
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
   });

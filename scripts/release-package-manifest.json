@@ -7,7 +7,7 @@
   {
     "dir": "packages/adapters/acpx-local",
     "name": "@penclipai/adapter-acpx-local",
-    "publishFromCi": true
+    "publishFromCi": false
   },
   {
     "dir": "packages/adapters/claude-local",
