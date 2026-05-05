@@ -11,12 +11,11 @@ import type { RunProcessResult } from "./server-utils.js";
 
 const execFile = promisify(execFileCallback);
 
-function resolveTestPosixShellCommand() {
-  if (process.platform !== "win32") return "/bin/sh";
-  const candidates = [
-    "C:\\Program Files\\Git\\usr\\bin\\sh.exe",
-    "C:\\Program Files\\Git\\bin\\bash.exe",
-  ];
+function resolveTestPosixShellCommand(command: "bash" | "sh") {
+  if (process.platform !== "win32") return command === "bash" ? "/bin/bash" : "/bin/sh";
+  const candidates = command === "bash"
+    ? ["C:\\Program Files\\Git\\bin\\bash.exe", "C:\\Program Files\\Git\\usr\\bin\\bash.exe"]
+    : ["C:\\Program Files\\Git\\usr\\bin\\sh.exe", "C:\\Program Files\\Git\\bin\\bash.exe"];
   return candidates.find((candidate) => existsSync(candidate)) ?? "sh";
 }
 
@@ -72,12 +71,20 @@ describe("command managed runtime", () => {
           ...process.env,
           ...input.env,
         };
-        const command = input.command === "sh" ? resolveTestPosixShellCommand() : input.command;
+        const command =
+          input.command === "sh" || input.command === "bash"
+            ? resolveTestPosixShellCommand(input.command)
+            : input.command;
         const args = [...(input.args ?? [])];
-        if (input.command === "sh" && args[0] === "-lc" && typeof args[1] === "string") {
+        if ((input.command === "sh" || input.command === "bash") && args[0] === "-lc" && typeof args[1] === "string") {
           args[1] = rewriteWindowsPathsForGitShell(args[1]);
         }
-        if (input.stdin != null && input.command === "sh" && args[0] === "-lc" && typeof args[1] === "string") {
+        if (
+          input.stdin != null &&
+          (input.command === "sh" || input.command === "bash") &&
+          args[0] === "-lc" &&
+          typeof args[1] === "string"
+        ) {
           env.PAPERCLIP_TEST_STDIN = input.stdin;
           args[1] = `printf '%s' \"$PAPERCLIP_TEST_STDIN\" | (${args[1]})`;
         }

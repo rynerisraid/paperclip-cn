@@ -37,6 +37,7 @@ import {
 import { DEFAULT_CURSOR_LOCAL_MODEL } from "@penclipai/adapter-cursor-local";
 import { DEFAULT_GEMINI_LOCAL_MODEL } from "@penclipai/adapter-gemini-local";
 import { DEFAULT_QWEN_LOCAL_MODEL } from "@penclipai/adapter-qwen-local";
+import { DEFAULT_OPENCODE_LOCAL_MODEL, isValidOpenCodeModelId } from "@penclipai/adapter-opencode-local";
 
 function isBundledPaperclipSkill(skill: { key: string; metadata?: unknown }) {
   const metadata =
@@ -68,7 +69,7 @@ function createValuesForAdapterType(
   } else if (adapterType === "cursor") {
     nextValues.model = DEFAULT_CURSOR_LOCAL_MODEL;
   } else if (adapterType === "opencode_local") {
-    nextValues.model = "";
+    nextValues.model = DEFAULT_OPENCODE_LOCAL_MODEL;
   }
   return nextValues;
 }
@@ -104,19 +105,6 @@ export function NewAgent() {
     queryKey: queryKeys.agents.list(selectedCompanyId!),
     queryFn: () => agentsApi.list(selectedCompanyId!),
     enabled: !!selectedCompanyId,
-  });
-
-  const {
-    data: adapterModels,
-    error: adapterModelsError,
-    isLoading: adapterModelsLoading,
-    isFetching: adapterModelsFetching,
-  } = useQuery({
-    queryKey: selectedCompanyId
-      ? queryKeys.agents.adapterModels(selectedCompanyId, configValues.adapterType)
-      : ["agents", "none", "adapter-models", configValues.adapterType],
-    queryFn: () => agentsApi.adapterModels(selectedCompanyId!, configValues.adapterType),
-    enabled: Boolean(selectedCompanyId),
   });
 
   const { data: companySkills } = useQuery({
@@ -174,38 +162,15 @@ export function NewAgent() {
     if (!selectedCompanyId || !name.trim()) return;
     setFormError(null);
     const selectedModel = configValues.model.trim();
-    if (configValues.adapterType === "opencode_local" || configValues.adapterType === "hermes_local") {
-      if (!selectedModel) {
-        setFormError(
-          configValues.adapterType === "opencode_local"
-            ? t("OpenCode requires an explicit model in provider/model format.")
-            : t("Hermes requires an explicit model in provider/model format."),
-        );
+    if (configValues.adapterType === "opencode_local") {
+      if (!isValidOpenCodeModelId(selectedModel)) {
+        setFormError("OpenCode requires an explicit model in provider/model format.");
         return;
       }
     }
-    if (configValues.adapterType === "opencode_local") {
-      if (adapterModelsError) {
-        setFormError(
-          adapterModelsError instanceof Error
-            ? adapterModelsError.message
-            : t("newAgent.failedToLoadOpenCodeModels"),
-        );
-        return;
-      }
-      if (adapterModelsLoading || adapterModelsFetching) {
-        setFormError(t("OpenCode models are still loading. Please wait and try again."));
-        return;
-      }
-      const discovered = adapterModels ?? [];
-      if (!discovered.some((entry) => entry.id === selectedModel)) {
-        setFormError(
-          discovered.length === 0
-            ? t("No OpenCode models discovered. Run `opencode models` and authenticate providers.")
-            : t("newAgent.unavailableOpenCodeModel", { selectedModel }),
-        );
-        return;
-      }
+    if (configValues.adapterType === "hermes_local" && !selectedModel) {
+      setFormError(t("Hermes requires an explicit model in provider/model format."));
+      return;
     }
     createAgent.mutate(
       buildNewAgentHirePayload({
@@ -321,7 +286,6 @@ export function NewAgent() {
           mode="create"
           values={configValues}
           onChange={(patch) => setConfigValues((prev) => ({ ...prev, ...patch }))}
-          adapterModels={adapterModels}
           onTestActionChange={handleTestAgentActionChange}
           onTestActionStateChange={handleTestAgentStateChange}
           onTestFeedbackChange={handleTestAgentFeedbackChange}

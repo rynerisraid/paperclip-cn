@@ -8,6 +8,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   adapterExecutionTargetSessionIdentity,
   adapterExecutionTargetToRemoteSpec,
+  adapterExecutionTargetUsesPaperclipBridge,
   runAdapterExecutionTargetProcess,
   runAdapterExecutionTargetShellCommand,
   startAdapterExecutionTargetPaperclipBridge,
@@ -15,12 +16,11 @@ import {
 } from "./execution-target.js";
 import { runChildProcess } from "./server-utils.js";
 
-function resolveTestPosixShellCommand() {
-  if (process.platform !== "win32") return "sh";
-  const candidates = [
-    "C:\\Program Files\\Git\\usr\\bin\\sh.exe",
-    "C:\\Program Files\\Git\\bin\\bash.exe",
-  ];
+function resolveTestPosixShellCommand(command: "bash" | "sh") {
+  if (process.platform !== "win32") return command === "bash" ? "/bin/bash" : "sh";
+  const candidates = command === "bash"
+    ? ["C:\\Program Files\\Git\\bin\\bash.exe", "C:\\Program Files\\Git\\usr\\bin\\bash.exe"]
+    : ["C:\\Program Files\\Git\\usr\\bin\\sh.exe", "C:\\Program Files\\Git\\bin\\bash.exe"];
   return candidates.find((candidate) => existsSync(candidate)) ?? "sh";
 }
 
@@ -56,9 +56,12 @@ describe("sandbox adapter execution targets", () => {
         onSpawn?: (meta: { pid: number; startedAt: string }) => Promise<void>;
       }) => {
         counter += 1;
-        const command = input.command === "sh" ? resolveTestPosixShellCommand() : input.command;
+        const command =
+          input.command === "sh" || input.command === "bash"
+            ? resolveTestPosixShellCommand(input.command)
+            : input.command;
         const args = [...(input.args ?? [])];
-        if (input.command === "sh" && args[0] === "-lc" && typeof args[1] === "string") {
+        if ((input.command === "sh" || input.command === "bash") && args[0] === "-lc" && typeof args[1] === "string") {
           args[1] = rewriteWindowsPathsForGitShell(args[1]);
         }
         return runChildProcess(`sandbox-run-${counter}`, command, args, {
@@ -125,7 +128,6 @@ describe("sandbox adapter execution targets", () => {
       environmentId: "env-1",
       leaseId: "lease-1",
       remoteCwd: "/workspace",
-      paperclipTransport: "bridge",
     });
   });
 
@@ -156,6 +158,68 @@ describe("sandbox adapter execution targets", () => {
 
     expect(runner.execute).toHaveBeenCalledWith(expect.objectContaining({
       command: "sh",
+      args: ["-lc", 'printf %s "$HOME"'],
+      cwd: "/workspace",
+      timeoutMs: 7000,
+    }));
+  });
+
+  it("treats SSH targets as bridge-only", () => {
+    const target = {
+      kind: "remote" as const,
+      transport: "ssh" as const,
+      remoteCwd: "/workspace",
+      spec: {
+        host: "ssh.example.test",
+        port: 22,
+        username: "paperclip",
+        remoteWorkspacePath: "/workspace",
+        remoteCwd: "/workspace",
+        privateKey: null,
+        knownHosts: null,
+        strictHostKeyChecking: true,
+      },
+    };
+
+    expect(adapterExecutionTargetUsesPaperclipBridge(target)).toBe(true);
+    expect(adapterExecutionTargetSessionIdentity(target)).toEqual({
+      transport: "ssh",
+      host: "ssh.example.test",
+      port: 22,
+      username: "paperclip",
+      remoteCwd: "/workspace",
+    });
+  });
+
+  it("uses the provider-declared shell for sandbox helper commands", async () => {
+    const runner = {
+      execute: vi.fn(async () => ({
+        exitCode: 0,
+        signal: null,
+        timedOut: false,
+        stdout: "/home/sandbox",
+        stderr: "",
+        pid: null,
+        startedAt: new Date().toISOString(),
+      })),
+    };
+    const target: AdapterSandboxExecutionTarget = {
+      kind: "remote",
+      transport: "sandbox",
+      providerKey: "custom-provider",
+      shellCommand: "bash",
+      remoteCwd: "/workspace",
+      runner,
+    };
+
+    await runAdapterExecutionTargetShellCommand("run-2b", target, 'printf %s "$HOME"', {
+      cwd: "/local/workspace",
+      env: {},
+      timeoutSec: 7,
+    });
+
+    expect(runner.execute).toHaveBeenCalledWith(expect.objectContaining({
+      command: "bash",
       args: ["-lc", 'printf %s "$HOME"'],
       cwd: "/workspace",
       timeoutMs: 7000,
@@ -196,7 +260,6 @@ describe("sandbox adapter execution targets", () => {
       environmentId: "env-1",
       leaseId: "lease-1",
       remoteCwd,
-      paperclipTransport: "bridge",
       runner: createLocalSandboxRunner(),
       timeoutMs: 30_000,
     };
@@ -274,7 +337,6 @@ describe("sandbox adapter execution targets", () => {
       environmentId: "env-1",
       leaseId: "lease-1",
       remoteCwd,
-      paperclipTransport: "bridge",
       runner: createLocalSandboxRunner(),
       timeoutMs: 30_000,
     };

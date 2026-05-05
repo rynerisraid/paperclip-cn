@@ -45,10 +45,11 @@ import { DEFAULT_CODEBUDDY_LOCAL_MODEL } from "@penclipai/adapter-codebuddy-loca
 import { buildNewAgentRuntimeConfig } from "../lib/new-agent-runtime-config";
 import {
   DEFAULT_CODEX_LOCAL_BYPASS_APPROVALS_AND_SANDBOX,
-  DEFAULT_CODEX_LOCAL_MODEL
+  DEFAULT_CODEX_LOCAL_MODEL,
 } from "@penclipai/adapter-codex-local";
 import { DEFAULT_CURSOR_LOCAL_MODEL } from "@penclipai/adapter-cursor-local";
 import { DEFAULT_GEMINI_LOCAL_MODEL } from "@penclipai/adapter-gemini-local";
+import { DEFAULT_OPENCODE_LOCAL_MODEL, isValidOpenCodeModelId } from "@penclipai/adapter-opencode-local";
 import { DEFAULT_QWEN_LOCAL_MODEL } from "@penclipai/adapter-qwen-local";
 import { resolveRouteOnboardingOptions } from "../lib/onboarding-route";
 import { AsciiArtAnimation } from "./AsciiArtAnimation";
@@ -248,10 +249,12 @@ export function OnboardingWizard() {
     isLoading: adapterModelsLoading,
     isFetching: adapterModelsFetching
   } = useQuery({
+    // The wizard doesn't expose an environment selector, so models always
+    // resolve against the local Paperclip host (environmentId = null).
     queryKey: createdCompanyId
-      ? queryKeys.agents.adapterModels(createdCompanyId, adapterType)
-      : ["agents", "none", "adapter-models", adapterType],
-    queryFn: () => agentsApi.adapterModels(createdCompanyId!, adapterType),
+      ? queryKeys.agents.adapterModels(createdCompanyId, adapterType, null)
+      : ["agents", "none", "adapter-models", adapterType, null],
+    queryFn: () => agentsApi.adapterModels(createdCompanyId!, adapterType, { environmentId: null }),
     enabled: Boolean(createdCompanyId) && effectiveOnboardingOpen && step === 2
   });
   const getCapabilities = useAdapterCapabilities();
@@ -396,8 +399,10 @@ export function OnboardingWizard() {
           : adapterType === "gemini_local"
             ? model || DEFAULT_GEMINI_LOCAL_MODEL
           : adapterType === "cursor"
-          ? model || DEFAULT_CURSOR_LOCAL_MODEL
-          : model,
+            ? model || DEFAULT_CURSOR_LOCAL_MODEL
+            : adapterType === "opencode_local"
+              ? model || DEFAULT_OPENCODE_LOCAL_MODEL
+              : model,
       command,
       args,
       url,
@@ -502,7 +507,7 @@ export function OnboardingWizard() {
     try {
       const selectedModelId = model.trim();
       if (adapterType === "opencode_local" || adapterType === "hermes_local") {
-        if (!selectedModelId) {
+        if (adapterType === "opencode_local" ? !isValidOpenCodeModelId(selectedModelId) : !selectedModelId) {
           setError(
             adapterType === "opencode_local"
               ? t("OpenCode requires an explicit model in provider/model format.")
@@ -870,13 +875,11 @@ export function OnboardingWizard() {
                               setModel(DEFAULT_QWEN_LOCAL_MODEL);
                               return;
                             }
-                            if (
-                              nextType !== "codex_local" &&
-                              nextType !== "codebuddy_local" &&
-                              nextType !== "qwen_local"
-                            ) {
-                              setModel("");
+                            if (nextType === "opencode_local") {
+                              setModel(DEFAULT_OPENCODE_LOCAL_MODEL);
+                              return;
                             }
+                            setModel("");
                           }}
                         >
                           {opt.recommended && (
@@ -935,9 +938,7 @@ export function OnboardingWizard() {
                                 return;
                               }
                               if (nextType === "opencode_local") {
-                                if (!model.includes("/")) {
-                                  setModel("");
-                                }
+                                setModel(DEFAULT_OPENCODE_LOCAL_MODEL);
                                 return;
                               }
                               setModel("");

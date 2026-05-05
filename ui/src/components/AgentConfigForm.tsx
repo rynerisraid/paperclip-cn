@@ -21,6 +21,7 @@ import {
 } from "@penclipai/adapter-codex-local";
 import { DEFAULT_CURSOR_LOCAL_MODEL } from "@penclipai/adapter-cursor-local";
 import { DEFAULT_GEMINI_LOCAL_MODEL } from "@penclipai/adapter-gemini-local";
+import { DEFAULT_OPENCODE_LOCAL_MODEL } from "@penclipai/adapter-opencode-local";
 import {
   Popover,
   PopoverContent,
@@ -28,7 +29,7 @@ import {
 } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { FolderOpen, Heart, ChevronDown, X } from "lucide-react";
-import { cn } from "../lib/utils";
+import { asBoolean, asFiniteNumber, asObject, cn } from "../lib/utils";
 import { extractModelName, extractProviderId } from "../lib/model-utils";
 import { queryKeys } from "../lib/queryKeys";
 import { useCompany } from "../context/CompanyContext";
@@ -176,6 +177,19 @@ const claudeThinkingEffortOptions = [
   { id: "high", label: "High" },
 ] as const;
 
+const MAX_TURN_CONTINUATION_DEFAULT_MAX_ATTEMPTS = 2;
+const MAX_TURN_CONTINUATION_MAX_ATTEMPTS_CAP = 10;
+const MAX_TURN_CONTINUATION_DEFAULT_DELAY_SEC = 1;
+const MAX_TURN_CONTINUATION_MAX_DELAY_SEC = 300;
+
+function clampInteger(value: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, Math.floor(value)));
+}
+
+function clampDelayMsFromSeconds(value: number) {
+  return clampInteger(value, 0, MAX_TURN_CONTINUATION_MAX_DELAY_SEC) * 1000;
+}
+
 
 /* ---- Form ---- */
 
@@ -312,6 +326,17 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
     () => new Set(supportedEnvironmentDriversForAdapter(adapterType)),
     [adapterType],
   );
+  const val = isCreate ? props.values : null;
+  const set = isCreate
+    ? (patch: Partial<CreateConfigValues>) => props.onChange(patch)
+    : null;
+  const currentDefaultEnvironmentId = isCreate
+    ? val!.defaultEnvironmentId ?? ""
+    : eff("identity", "defaultEnvironmentId", props.agent.defaultEnvironmentId ?? "");
+  const currentDefaultEnvironment = useMemo(
+    () => environments.find((environment) => environment.id === currentDefaultEnvironmentId) ?? null,
+    [currentDefaultEnvironmentId, environments],
+  );
   const runnableEnvironments = useMemo(
     () => environments.filter((environment) => {
       if (!supportedEnvironmentDrivers.has(environment.driver)) return false;
@@ -324,14 +349,16 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
 
   // Fetch adapter models for the effective adapter type
   const modelQueryKey = selectedCompanyId
-    ? queryKeys.agents.adapterModels(selectedCompanyId, adapterType)
+    ? queryKeys.agents.adapterModels(selectedCompanyId, adapterType, currentDefaultEnvironmentId || null)
     : ["agents", "none", "adapter-models", adapterType];
   const {
     data: fetchedModels,
     error: fetchedModelsError,
   } = useQuery({
     queryKey: modelQueryKey,
-    queryFn: () => agentsApi.adapterModels(selectedCompanyId!, adapterType),
+    queryFn: () => agentsApi.adapterModels(selectedCompanyId!, adapterType, {
+      environmentId: currentDefaultEnvironmentId || null,
+    }),
     enabled: Boolean(selectedCompanyId),
   });
   const [refreshModelsError, setRefreshModelsError] = useState<string | null>(null);
@@ -352,7 +379,7 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
       }
       return agentsApi.detectModel(selectedCompanyId, adapterType);
     },
-    enabled: Boolean(selectedCompanyId && isLocal),
+    enabled: Boolean(selectedCompanyId && isLocal && adapterType !== "opencode_local"),
   });
   const detectedModel = detectedModelData?.model ?? null;
   const detectedModelCandidates = detectedModelData?.candidates ?? [];
@@ -405,12 +432,6 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
     return typeof value === "string" ? value : "";
   }, [adapterCheapDefault]);
 
-  // Create mode helpers
-  const val = isCreate ? props.values : null;
-  const set = isCreate
-    ? (patch: Partial<CreateConfigValues>) => props.onChange(patch)
-    : null;
-
   function buildAdapterConfigForTest(): Record<string, unknown> {
     if (isCreate) {
       return uiAdapter.buildAdapterConfig(val!);
@@ -436,15 +457,9 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
       if (!selectedCompanyId) {
         throw new Error("Select a company to test adapter environment");
       }
-      const selectedEnvironmentId = isCreate
-        ? val!.defaultEnvironmentId ?? null
-        : eff("identity", "defaultEnvironmentId", props.agent.defaultEnvironmentId ?? null);
       return agentsApi.testEnvironment(selectedCompanyId, adapterType, {
         adapterConfig: buildAdapterConfigForTest(),
-        environmentId:
-          typeof selectedEnvironmentId === "string" && selectedEnvironmentId.length > 0
-            ? selectedEnvironmentId
-            : null,
+        environmentId: currentDefaultEnvironmentId || null,
       });
     },
   });
@@ -628,9 +643,27 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
       heartbeat: mergedHeartbeat,
     };
   }, [isCreate, overlay.heartbeat, runtimeConfig, val]);
-  const currentDefaultEnvironmentId = isCreate
-    ? val!.defaultEnvironmentId ?? ""
-    : eff("identity", "defaultEnvironmentId", props.agent.defaultEnvironmentId ?? "");
+  const effectiveHeartbeat = asObject(effectiveRuntimeConfig.heartbeat);
+  const maxTurnContinuation = asObject(effectiveHeartbeat.maxTurnContinuation);
+  const maxTurnContinuationEnabled = asBoolean(maxTurnContinuation.enabled, true);
+  const maxTurnContinuationMaxAttempts = clampInteger(
+    asFiniteNumber(maxTurnContinuation.maxAttempts, MAX_TURN_CONTINUATION_DEFAULT_MAX_ATTEMPTS),
+    0,
+    MAX_TURN_CONTINUATION_MAX_ATTEMPTS_CAP,
+  );
+  const maxTurnContinuationDelaySec = clampInteger(
+    asFiniteNumber(maxTurnContinuation.delayMs, MAX_TURN_CONTINUATION_DEFAULT_DELAY_SEC * 1000) / 1000,
+    0,
+    MAX_TURN_CONTINUATION_MAX_DELAY_SEC,
+  );
+
+  function updateMaxTurnContinuation(patch: Record<string, unknown>) {
+    mark("heartbeat", "maxTurnContinuation", {
+      ...maxTurnContinuation,
+      ...patch,
+    });
+  }
+
   return (
     <div className={cn("relative", cards && "space-y-6")}>
       {/* ---- Floating Save button (edit mode, when dirty) ---- */}
@@ -805,7 +838,7 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
                     } else if (t === "cursor") {
                       nextValues.model = DEFAULT_CURSOR_LOCAL_MODEL;
                     } else if (t === "opencode_local") {
-                      nextValues.model = "";
+                      nextValues.model = DEFAULT_OPENCODE_LOCAL_MODEL;
                     }
                     set!(nextValues);
                   } else {
@@ -821,9 +854,11 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
                             ? DEFAULT_CODEX_LOCAL_MODEL
                             : t === "gemini_local"
                               ? DEFAULT_GEMINI_LOCAL_MODEL
+                            : t === "opencode_local"
+                              ? DEFAULT_OPENCODE_LOCAL_MODEL
                             : t === "cursor"
                               ? DEFAULT_CURSOR_LOCAL_MODEL
-                            : "",
+                              : "",
                         effort: "",
                         modelReasoningEffort: "",
                         variant: "",
@@ -946,10 +981,12 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
                 creatable
                 detectedModel={detectedModel}
                 detectedModelCandidates={[]}
-                onDetectModel={async () => {
-                  const result = await refetchDetectedModel();
-                  return result.data?.model ?? null;
-                }}
+                onDetectModel={adapterType === "opencode_local"
+                  ? undefined
+                  : async () => {
+                      const result = await refetchDetectedModel();
+                      return result.data?.model ?? null;
+                    }}
                 onRefreshModels={adapterType === "codex_local" ? handleRefreshModels : undefined}
                 refreshingModels={refreshingModels}
                 detectModelLabel="Detect model"
@@ -961,6 +998,13 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
                     ?? (fetchedModelsError instanceof Error
                       ? fetchedModelsError.message
                       : "Failed to load adapter models.")}
+                </p>
+              )}
+              {adapterType === "opencode_local"
+                && currentDefaultEnvironment
+                && currentDefaultEnvironment.driver !== "local" && (
+                <p className="text-xs text-muted-foreground">
+                  Live OpenCode model discovery only runs for Local environments. Using the curated list and manual entry for {currentDefaultEnvironment.name}.
                 </p>
               )}
 
@@ -1187,6 +1231,40 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
                   className={inputClass}
                 />
               </Field>
+              <div className="rounded-md border border-border/70 px-3 py-2">
+                <ToggleField
+                  label="Continue after max-turn stop"
+                  hint={help.maxTurnContinuationEnabled}
+                  checked={maxTurnContinuationEnabled}
+                  onChange={(v) => updateMaxTurnContinuation({ enabled: v })}
+                />
+                {maxTurnContinuationEnabled ? (
+                  <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                    <Field label="Continuation attempts" hint={help.maxTurnContinuationMaxAttempts}>
+                      <DraftNumberInput
+                        value={maxTurnContinuationMaxAttempts}
+                        onCommit={(v) =>
+                          updateMaxTurnContinuation({
+                            maxAttempts: clampInteger(v, 0, MAX_TURN_CONTINUATION_MAX_ATTEMPTS_CAP),
+                          })}
+                        immediate
+                        className={inputClass}
+                      />
+                    </Field>
+                    <Field label="Continuation delay (sec)" hint={help.maxTurnContinuationDelaySec}>
+                      <DraftNumberInput
+                        value={maxTurnContinuationDelaySec}
+                        onCommit={(v) =>
+                          updateMaxTurnContinuation({
+                            delayMs: clampDelayMsFromSeconds(v),
+                          })}
+                        immediate
+                        className={inputClass}
+                      />
+                    </Field>
+                  </div>
+                ) : null}
+              </div>
             </div>
           </CollapsibleSection>
           </div>

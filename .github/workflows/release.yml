@@ -51,6 +51,9 @@ jobs:
           corepack enable
           corepack prepare pnpm@9.15.4 --activate
 
+      - name: Validate release package manifest
+        run: node ./scripts/release-package-map.mjs check
+
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
@@ -91,6 +94,9 @@ jobs:
         run: |
           corepack enable
           corepack prepare pnpm@9.15.4 --activate
+
+      - name: Validate release package manifest
+        run: node ./scripts/release-package-map.mjs check
 
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
@@ -164,6 +170,9 @@ jobs:
           corepack enable
           corepack prepare pnpm@9.15.4 --activate
 
+      - name: Validate release package manifest
+        run: node ./scripts/release-package-map.mjs check
+
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
 
@@ -201,6 +210,9 @@ jobs:
         run: |
           corepack enable
           corepack prepare pnpm@9.15.4 --activate
+
+      - name: Validate release package manifest
+        run: node ./scripts/release-package-map.mjs check
 
       - name: Install dependencies
         run: pnpm install --no-frozen-lockfile
