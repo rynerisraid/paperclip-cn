@@ -7,7 +7,8 @@
   <a href="https://penclip.ing/docs"><strong>Docs</strong></a> &middot;
   <a href="https://github.com/penclipai/paperclip-cn"><strong>GitHub</strong></a> &middot;
   <a href="./README.zh-CN.md"><strong>中文 README</strong></a> &middot;
-  <a href="https://discord.gg/m4HZY7xNG3"><strong>Discord</strong></a>
+  <a href="https://discord.gg/m4HZY7xNG3"><strong>Discord</strong></a> &middot;
+  <a href="https://x.com/papercliping"><strong>Twitter</strong></a>
 </p>
 
 > **Paperclip CN** is the Chinese-enhanced MIT fork of [Paperclip](https://github.com/paperclipai/paperclip), maintained by `penclipai` for Chinese UX, Windows compatibility, and domestic model integrations. The public fork now lives at `penclipai/paperclip-cn`. See [README.zh-CN](./README.zh-CN.md) for the localized overview.
@@ -412,6 +413,7 @@ We welcome contributions. See the [contributing guide](CONTRIBUTING.md) for deta
 ## Community
 
 - [Discord](https://discord.gg/m4HZY7xNG3) — Join the community
+- [Twitter / X](https://x.com/papercliping) — Follow updates and announcements
 - [GitHub Issues](https://github.com/penclipai/paperclip-cn/issues) — bugs and feature requests
 - [GitHub Discussions](https://github.com/penclipai/paperclip-cn/discussions) — ideas and RFC
 

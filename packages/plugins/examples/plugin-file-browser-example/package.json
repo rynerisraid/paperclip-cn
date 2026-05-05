@@ -13,18 +13,18 @@
     "ui": "./dist/ui/"
   },
   "scripts": {
-    "prebuild": "node ../../../../scripts/ensure-plugin-build-deps.mjs",
+    "prebuild": "pnpm --filter @penclipai/plugin-sdk ensure-build-deps",
     "build": "tsc && node ./scripts/build-ui.mjs",
     "clean": "rm -rf dist",
-    "typecheck": "pnpm --filter @penclipai/plugin-sdk build && tsc --noEmit"
+    "typecheck": "pnpm --filter @penclipai/plugin-sdk ensure-build-deps && tsc --noEmit"
   },
   "dependencies": {
-    "@paperclipai/plugin-sdk": "workspace:@penclipai/plugin-sdk@*",
     "@codemirror/lang-javascript": "^6.2.2",
     "@codemirror/language": "^6.11.0",
     "@codemirror/state": "^6.4.0",
     "@codemirror/view": "^6.28.0",
     "@lezer/highlight": "^1.2.1",
+    "@paperclipai/plugin-sdk": "workspace:@penclipai/plugin-sdk@*",
     "codemirror": "^6.0.1"
   },
   "devDependencies": {

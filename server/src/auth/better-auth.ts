@@ -61,7 +61,7 @@ function headersFromExpressRequest(req: Request): Headers {
   return headersFromNodeHeaders(req.headers);
 }
 
-export function deriveAuthTrustedOrigins(config: Config): string[] {
+export function deriveAuthTrustedOrigins(config: Config, opts?: { listenPort?: number }): string[] {
   const baseUrl = config.authBaseUrlMode === "explicit" ? config.authPublicBaseUrl : undefined;
   const trustedOrigins = new Set<string>();
 
@@ -73,11 +73,17 @@ export function deriveAuthTrustedOrigins(config: Config): string[] {
     }
   }
   if (config.deploymentMode === "authenticated") {
+    const port = opts?.listenPort ?? config.port;
+    const needsPortVariants = port !== 80 && port !== 443;
     for (const hostname of config.allowedHostnames) {
       const trimmed = hostname.trim().toLowerCase();
       if (!trimmed) continue;
       trustedOrigins.add(`https://${trimmed}`);
       trustedOrigins.add(`http://${trimmed}`);
+      if (needsPortVariants) {
+        trustedOrigins.add(`https://${trimmed}:${port}`);
+        trustedOrigins.add(`http://${trimmed}:${port}`);
+      }
     }
   }
 
@@ -108,7 +114,7 @@ export function createBetterAuthInstance(db: Db, config: Config, trustedOrigins?
   const authConfig = {
     baseURL: baseUrl,
     secret,
-    trustedOrigins: effectiveTrustedOrigins,
+    trustedOrigins,
     database: drizzleAdapter(db, {
       provider: "pg",
       schema: {

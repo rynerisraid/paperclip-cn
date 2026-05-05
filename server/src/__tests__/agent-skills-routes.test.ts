@@ -238,11 +238,8 @@ describe.sequential("agent skill routes", () => {
     mockAdapter.syncSkills.mockReset();
     mockSyncInstructionsBundleConfigFromFilePath.mockImplementation((_agent, config) => config);
     mockGetTelemetryClient.mockReturnValue({ track: vi.fn() });
-    mockDetectAdapterModel.mockResolvedValue({
-      model: "openai/gpt-5.4",
-      provider: "openai",
-      source: "/tmp/hermes/config.json",
-    });
+    mockDetectAdapterModel.mockReset();
+    let persistedAgent: Record<string, unknown> | null = null;
     mockAgentService.resolveByReference.mockResolvedValue({
       ambiguous: false,
       agent: makeAgent("claude_local"),
@@ -281,18 +278,26 @@ describe.sequential("agent skill routes", () => {
       entries: [],
       warnings: [],
     });
-    mockAgentService.update.mockImplementation(async (_id: string, patch: Record<string, unknown>) => ({
-      ...makeAgent("claude_local"),
-      adapterConfig: patch.adapterConfig ?? {},
-    }));
-    mockAgentService.create.mockImplementation(async (_companyId: string, input: Record<string, unknown>) => ({
-      ...makeAgent(String(input.adapterType ?? "claude_local")),
-      ...input,
-      adapterConfig: input.adapterConfig ?? {},
-      runtimeConfig: input.runtimeConfig ?? {},
-      budgetMonthlyCents: Number(input.budgetMonthlyCents ?? 0),
-      permissions: null,
-    }));
+    mockAgentService.update.mockImplementation(async (_id: string, patch: Record<string, unknown>) => {
+      const previousAgent = persistedAgent ?? makeAgent("claude_local");
+      persistedAgent = {
+        ...previousAgent,
+        ...patch,
+        adapterConfig: patch.adapterConfig ?? previousAgent.adapterConfig ?? {},
+      };
+      return persistedAgent;
+    });
+    mockAgentService.create.mockImplementation(async (_companyId: string, input: Record<string, unknown>) => {
+      persistedAgent = {
+        ...makeAgent(String(input.adapterType ?? "claude_local")),
+        ...input,
+        adapterConfig: input.adapterConfig ?? {},
+        runtimeConfig: input.runtimeConfig ?? {},
+        budgetMonthlyCents: Number(input.budgetMonthlyCents ?? 0),
+        permissions: null,
+      };
+      return persistedAgent;
+    });
     mockApprovalService.create.mockImplementation(async (_companyId: string, input: Record<string, unknown>) => ({
       id: "approval-1",
       companyId: "company-1",
@@ -348,7 +353,7 @@ describe.sequential("agent skill routes", () => {
       adapterType: "codex_local",
       supported: true,
       mode: "ephemeral",
-      desiredSkills: ["paperclipai/paperclip/paperclip"],
+      desiredSkills: ["penclipai/paperclip-cn/paperclip"],
       entries: [],
       warnings: [],
     });
@@ -360,6 +365,99 @@ describe.sequential("agent skill routes", () => {
     );
 
     expect(res.status, JSON.stringify(res.body)).toBe(200);
+  });
+
+  it("passes ACPX Claude config through the agent skill listing route", async () => {
+    mockAgentService.getById.mockResolvedValue({
+      ...makeAgent("acpx_local"),
+      adapterConfig: { agent: "claude" },
+    });
+    mockSecretService.resolveAdapterConfigForRuntime.mockResolvedValueOnce({
+      config: { agent: "claude" },
+    });
+    mockAdapter.listSkills.mockResolvedValue({
+      adapterType: "acpx_local",
+      supported: true,
+      mode: "ephemeral",
+      desiredSkills: ["penclipai/paperclip-cn/paperclip"],
+      entries: [],
+      warnings: [],
+    });
+
+    const res = await requestApp(
+      await createApp(),
+      (baseUrl) => request(baseUrl)
+        .get("/api/agents/11111111-1111-4111-8111-111111111111/skills?companyId=company-1"),
+    );
+
+    expect(res.status, JSON.stringify(res.body)).toBe(200);
+    expect(mockCompanySkillService.listRuntimeSkillEntries).toHaveBeenCalledWith("company-1", {
+      materializeMissing: false,
+    });
+    expect(mockAdapter.listSkills).toHaveBeenCalledWith(
+      expect.objectContaining({
+        adapterType: "acpx_local",
+        config: expect.objectContaining({
+          agent: "claude",
+          paperclipRuntimeSkills: expect.any(Array),
+        }),
+      }),
+    );
+  });
+
+  it("persists ACPX Codex desired skills through the agent skill sync route", async () => {
+    mockAgentService.getById.mockResolvedValue({
+      ...makeAgent("acpx_local"),
+      adapterConfig: { agent: "codex" },
+    });
+    mockAgentService.update.mockImplementationOnce(async (_id: string, patch: Record<string, unknown>) => ({
+      ...makeAgent("acpx_local"),
+      adapterConfig: patch.adapterConfig ?? {},
+    }));
+    mockSecretService.resolveAdapterConfigForRuntime.mockResolvedValueOnce({
+      config: {
+        agent: "codex",
+        paperclipSkillSync: {
+          desiredSkills: ["penclipai/paperclip-cn/paperclip"],
+        },
+      },
+    });
+    mockAdapter.syncSkills.mockResolvedValue({
+      adapterType: "acpx_local",
+      supported: true,
+      mode: "ephemeral",
+      desiredSkills: ["penclipai/paperclip-cn/paperclip"],
+      entries: [],
+      warnings: [],
+    });
+
+    const res = await requestApp(await createApp(), (baseUrl) => request(baseUrl)
+      .post("/api/agents/11111111-1111-4111-8111-111111111111/skills/sync?companyId=company-1")
+      .send({ desiredSkills: ["paperclip"] }));
+
+    expect(res.status, JSON.stringify(res.body)).toBe(200);
+    expect(mockAgentService.update).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        adapterConfig: expect.objectContaining({
+          agent: "codex",
+          paperclipSkillSync: expect.objectContaining({
+            desiredSkills: ["penclipai/paperclip-cn/paperclip"],
+          }),
+        }),
+      }),
+      expect.any(Object),
+    );
+    expect(mockAdapter.syncSkills).toHaveBeenCalledWith(
+      expect.objectContaining({
+        adapterType: "acpx_local",
+        config: expect.objectContaining({
+          agent: "codex",
+          paperclipRuntimeSkills: expect.any(Array),
+        }),
+      }),
+      ["penclipai/paperclip-cn/paperclip"],
+    );
   });
 
   it("keeps runtime materialization for persistent skill adapters", async () => {
@@ -445,6 +543,35 @@ describe.sequential("agent skill routes", () => {
     );
   });
 
+  it("accepts the security role on direct agent creation and preserves it in telemetry", async () => {
+    const res = await requestApp(await createApp(), (baseUrl) => request(baseUrl)
+      .post("/api/companies/company-1/agents")
+      .send({
+        name: "Security Engineer",
+        role: "security",
+        adapterType: "claude_local",
+        adapterConfig: {},
+      }));
+
+    expect([200, 201], JSON.stringify(res.body)).toContain(res.status);
+    expect(res.body).toMatchObject({
+      role: "security",
+    });
+    expect(mockAgentService.create).toHaveBeenCalledWith(
+      "company-1",
+      expect.objectContaining({
+        role: "security",
+      }),
+    );
+    expect(mockTrackAgentCreated).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        agentId: "11111111-1111-4111-8111-111111111111",
+        agentRole: "security",
+      }),
+    );
+  });
+
   it("materializes a managed AGENTS.md for directly created local agents", async () => {
     const res = await requestApp(await createApp(), (baseUrl) => request(baseUrl)
       .post("/api/companies/company-1/agents")
@@ -452,8 +579,11 @@ describe.sequential("agent skill routes", () => {
         name: "QA Agent",
         role: "engineer",
         adapterType: "claude_local",
-        adapterConfig: {
-          promptTemplate: "You are QA.",
+        adapterConfig: {},
+        instructionsBundle: {
+          files: {
+            "AGENTS.md": "You are QA.",
+          },
         },
       }));
 
@@ -473,6 +603,26 @@ describe.sequential("agent skill routes", () => {
         promptTemplate: expect.anything(),
       }),
     });
+  });
+
+  it("rejects legacy prompt templates for directly created local agents", async () => {
+    const res = await requestApp(await createApp(), (baseUrl) => request(baseUrl)
+      .post("/api/companies/company-1/agents")
+      .send({
+        name: "QA Agent",
+        role: "engineer",
+        adapterType: "claude_local",
+        adapterConfig: {
+          instructionsFilePath: "/tmp/existing/AGENTS.md",
+          promptTemplate: "You are QA.",
+          bootstrapPromptTemplate: "Bootstrap QA.",
+        },
+      }));
+
+    expect(res.status, JSON.stringify(res.body)).toBe(422);
+    expect(res.body.error).toContain("New agents must use instructionsBundle/AGENTS.md");
+    expect(mockAgentService.create).not.toHaveBeenCalled();
+    expect(mockAgentInstructionsService.materializeManagedBundle).not.toHaveBeenCalled();
   });
 
   it("materializes the bundled CEO instruction set for default CEO agents", async () => {
@@ -623,8 +773,11 @@ describe.sequential("agent skill routes", () => {
         name: "QA Agent",
         role: "engineer",
         adapterType: "claude_local",
-        adapterConfig: {
-          promptTemplate: "You are QA.",
+        adapterConfig: {},
+        instructionsBundle: {
+          files: {
+            "AGENTS.md": "You are QA.",
+          },
         },
       });
 
@@ -647,31 +800,23 @@ describe.sequential("agent skill routes", () => {
     expect(approvalInput?.payload?.adapterConfig?.promptTemplate).toBeUndefined();
   });
 
-  it("requires configuration read permission before detecting Hermes models", async () => {
-    mockAccessService.canUser.mockResolvedValue(false);
+  it("rejects legacy prompt templates for hire approval payloads", async () => {
+    const res = await request(await createApp(createDb(true)))
+      .post("/api/companies/company-1/agent-hires")
+      .send({
+        name: "QA Agent",
+        role: "engineer",
+        adapterType: "claude_local",
+        adapterConfig: {
+          instructionsFilePath: "/tmp/existing/AGENTS.md",
+          promptTemplate: "You are QA.",
+          bootstrapPromptTemplate: "Bootstrap QA.",
+        },
+      });
 
-    const res = await request(await createApp(createDb(), {
-      type: "board",
-      userId: "remote-board",
-      companyIds: ["company-1"],
-      source: "api_key",
-      isInstanceAdmin: false,
-    }))
-      .get("/api/companies/company-1/adapters/hermes_local/detect-model");
-
-    expect(res.status, JSON.stringify(res.body)).toBe(403);
-    expect(mockDetectAdapterModel).not.toHaveBeenCalled();
-  });
-
-  it("returns detected Hermes model details for authorized board users", async () => {
-    const res = await request(await createApp())
-      .get("/api/companies/company-1/adapters/hermes_local/detect-model");
-
-    expect(res.status, JSON.stringify(res.body)).toBe(200);
-    expect(res.body).toEqual({
-      model: "openai/gpt-5.4",
-      provider: "openai",
-      source: "/tmp/hermes/config.json",
-    });
+    expect(res.status, JSON.stringify(res.body)).toBe(422);
+    expect(res.body.error).toContain("New agents must use instructionsBundle/AGENTS.md");
+    expect(mockAgentService.create).not.toHaveBeenCalled();
+    expect(mockAgentInstructionsService.materializeManagedBundle).not.toHaveBeenCalled();
   });
 });

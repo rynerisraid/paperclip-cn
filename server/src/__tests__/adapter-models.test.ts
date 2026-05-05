@@ -12,6 +12,13 @@ import { listAdapterModels, refreshAdapterModels } from "../adapters/index.js";
 import { resetCodexModelsCacheForTests } from "../adapters/codex-models.js";
 import { resetCursorModelsCacheForTests, setCursorModelsRunnerForTests } from "../adapters/cursor-models.js";
 
+vi.mock("acpx/runtime", () => ({
+  createAcpRuntime: vi.fn(),
+  createAgentRegistry: vi.fn(),
+  createRuntimeStore: vi.fn(),
+  isAcpRuntimeError: vi.fn(() => false),
+}));
+
 async function writeFakeCodeBuddyCommand(root: string, scriptBody: string): Promise<string> {
   if (process.platform === "win32") {
     const scriptPath = path.join(root, "codebuddy.js");

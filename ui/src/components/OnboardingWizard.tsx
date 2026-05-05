@@ -26,6 +26,7 @@ import {
 } from "../lib/model-utils";
 import { getUIAdapter } from "../adapters";
 import { listUIAdapters } from "../adapters";
+import { isVisualAdapterChoice } from "../adapters/metadata";
 import { useDisabledAdaptersSync } from "../adapters/use-disabled-adapters";
 import { useAdapterCapabilities } from "../adapters/use-adapter-capabilities";
 import { getAdapterDisplay } from "../adapters/adapter-display-registry";
@@ -44,10 +45,11 @@ import { DEFAULT_CODEBUDDY_LOCAL_MODEL } from "@penclipai/adapter-codebuddy-loca
 import { buildNewAgentRuntimeConfig } from "../lib/new-agent-runtime-config";
 import {
   DEFAULT_CODEX_LOCAL_BYPASS_APPROVALS_AND_SANDBOX,
-  DEFAULT_CODEX_LOCAL_MODEL
+  DEFAULT_CODEX_LOCAL_MODEL,
 } from "@penclipai/adapter-codex-local";
 import { DEFAULT_CURSOR_LOCAL_MODEL } from "@penclipai/adapter-cursor-local";
 import { DEFAULT_GEMINI_LOCAL_MODEL } from "@penclipai/adapter-gemini-local";
+import { DEFAULT_OPENCODE_LOCAL_MODEL, isValidOpenCodeModelId } from "@penclipai/adapter-opencode-local";
 import { DEFAULT_QWEN_LOCAL_MODEL } from "@penclipai/adapter-qwen-local";
 import { resolveRouteOnboardingOptions } from "../lib/onboarding-route";
 import { AsciiArtAnimation } from "./AsciiArtAnimation";
@@ -65,6 +67,36 @@ import {
 } from "lucide-react";
 type Step = 1 | 2 | 3 | 4;
 type AdapterType = string;
+type CompanyListCache =
+  | Company[]
+  | {
+      companies?: Company[];
+      unauthorized?: boolean;
+    };
+
+function mergeCreatedCompanyIntoCache(
+  current: CompanyListCache | undefined,
+  company: Company,
+): CompanyListCache {
+  if (Array.isArray(current)) {
+    return [
+      company,
+      ...current.filter((entry) => entry.id !== company.id),
+    ];
+  }
+
+  const currentCompanies = Array.isArray(current?.companies)
+    ? current.companies
+    : [];
+  return {
+    ...current,
+    companies: [
+      company,
+      ...currentCompanies.filter((entry) => entry.id !== company.id),
+    ],
+    unauthorized: current?.unauthorized ?? false,
+  };
+}
 
 export function OnboardingWizard() {
   const { t } = useTranslation();
@@ -217,10 +249,12 @@ export function OnboardingWizard() {
     isLoading: adapterModelsLoading,
     isFetching: adapterModelsFetching
   } = useQuery({
+    // The wizard doesn't expose an environment selector, so models always
+    // resolve against the local Paperclip host (environmentId = null).
     queryKey: createdCompanyId
-      ? queryKeys.agents.adapterModels(createdCompanyId, adapterType)
-      : ["agents", "none", "adapter-models", adapterType],
-    queryFn: () => agentsApi.adapterModels(createdCompanyId!, adapterType),
+      ? queryKeys.agents.adapterModels(createdCompanyId, adapterType, null)
+      : ["agents", "none", "adapter-models", adapterType, null],
+    queryFn: () => agentsApi.adapterModels(createdCompanyId!, adapterType, { environmentId: null }),
     enabled: Boolean(createdCompanyId) && effectiveOnboardingOpen && step === 2
   });
   const getCapabilities = useAdapterCapabilities();
@@ -232,7 +266,11 @@ export function OnboardingWizard() {
   const { recommendedAdapters, moreAdapters } = useMemo(() => {
     const SYSTEM_ADAPTER_TYPES = new Set(["process", "http"]);
     const all = listUIAdapters()
-      .filter((a) => !SYSTEM_ADAPTER_TYPES.has(a.type) && !disabledTypes.has(a.type))
+      .filter((a) =>
+        !SYSTEM_ADAPTER_TYPES.has(a.type) &&
+        !disabledTypes.has(a.type) &&
+        isVisualAdapterChoice(a.type)
+      )
       .map((a) => ({ ...getAdapterDisplay(a.type), type: a.type }));
 
     return {
@@ -361,8 +399,10 @@ export function OnboardingWizard() {
           : adapterType === "gemini_local"
             ? model || DEFAULT_GEMINI_LOCAL_MODEL
           : adapterType === "cursor"
-          ? model || DEFAULT_CURSOR_LOCAL_MODEL
-          : model,
+            ? model || DEFAULT_CURSOR_LOCAL_MODEL
+            : adapterType === "opencode_local"
+              ? model || DEFAULT_OPENCODE_LOCAL_MODEL
+              : model,
       command,
       args,
       url,
@@ -425,10 +465,10 @@ export function OnboardingWizard() {
     setError(null);
     try {
       const company = await companiesApi.create({ name: companyName.trim() });
-      queryClient.setQueryData<Company[]>(queryKeys.companies.all, (current = []) => [
-        company,
-        ...current.filter((entry) => entry.id !== company.id),
-      ]);
+      queryClient.setQueryData<CompanyListCache>(
+        queryKeys.companies.all,
+        (current) => mergeCreatedCompanyIntoCache(current, company),
+      );
       setCreatedCompanyId(company.id);
       setCreatedCompanyPrefix(company.issuePrefix);
       setSelectedCompanyId(company.id);
@@ -467,7 +507,7 @@ export function OnboardingWizard() {
     try {
       const selectedModelId = model.trim();
       if (adapterType === "opencode_local" || adapterType === "hermes_local") {
-        if (!selectedModelId) {
+        if (adapterType === "opencode_local" ? !isValidOpenCodeModelId(selectedModelId) : !selectedModelId) {
           setError(
             adapterType === "opencode_local"
               ? t("OpenCode requires an explicit model in provider/model format.")
@@ -835,13 +875,11 @@ export function OnboardingWizard() {
                               setModel(DEFAULT_QWEN_LOCAL_MODEL);
                               return;
                             }
-                            if (
-                              nextType !== "codex_local" &&
-                              nextType !== "codebuddy_local" &&
-                              nextType !== "qwen_local"
-                            ) {
-                              setModel("");
+                            if (nextType === "opencode_local") {
+                              setModel(DEFAULT_OPENCODE_LOCAL_MODEL);
+                              return;
                             }
+                            setModel("");
                           }}
                         >
                           {opt.recommended && (
@@ -900,9 +938,7 @@ export function OnboardingWizard() {
                                 return;
                               }
                               if (nextType === "opencode_local") {
-                                if (!model.includes("/")) {
-                                  setModel("");
-                                }
+                                setModel(DEFAULT_OPENCODE_LOCAL_MODEL);
                                 return;
                               }
                               setModel("");

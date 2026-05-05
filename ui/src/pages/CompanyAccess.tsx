@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import type { TFunction } from "i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import {
@@ -26,6 +27,7 @@ import { Badge } from "@/components/ui/badge";
 import { useBreadcrumbs } from "@/context/BreadcrumbContext";
 import { useCompany } from "@/context/CompanyContext";
 import { useToast } from "@/context/ToastContext";
+import { translateStatusLabel } from "@/lib/i18n-labels";
 import { queryKeys } from "@/lib/queryKeys";
 
 const permissionLabels: Record<PermissionKey, string> = {
@@ -39,9 +41,19 @@ const permissionLabels: Record<PermissionKey, string> = {
   "environments:manage": "Manage environments",
 };
 
-function formatGrantSummary(member: CompanyMember) {
-  if (member.grants.length === 0) return "No explicit grants";
-  return member.grants.map((grant) => permissionLabels[grant.permissionKey]).join(", ");
+function formatGrantSummary(member: CompanyMember, t: TFunction) {
+  if (member.grants.length === 0) {
+    return t("No explicit grants", { defaultValue: "No explicit grants" });
+  }
+  return member.grants
+    .map((grant) => t(permissionLabels[grant.permissionKey], { defaultValue: permissionLabels[grant.permissionKey] }))
+    .join(", ");
+}
+
+function formatMembershipRole(role: CompanyMember["membershipRole"], t: TFunction) {
+  if (!role) return t("Unset", { defaultValue: "Unset" });
+  const label = HUMAN_COMPANY_MEMBERSHIP_ROLE_LABELS[role];
+  return t(label, { defaultValue: label });
 }
 
 const implicitRoleGrantMap: Record<NonNullable<CompanyMember["membershipRole"]>, PermissionKey[]> = {
@@ -204,18 +216,29 @@ export function CompanyAccess() {
         await queryClient.invalidateQueries({ queryKey: queryKeys.issues.listTouchedByMe(selectedCompanyId) });
       }
       pushToast({
-        title: "Member removed",
+        title: t("Member removed", { defaultValue: "Member removed" }),
         body:
           result.reassignedIssueCount > 0
-            ? `${result.reassignedIssueCount} assigned issue${result.reassignedIssueCount === 1 ? "" : "s"} cleaned up.`
+            ? t(
+              result.reassignedIssueCount === 1
+                ? "{{count}} assigned issue cleaned up."
+                : "{{count}} assigned issues cleaned up.",
+              {
+                count: result.reassignedIssueCount,
+                defaultValue:
+                  result.reassignedIssueCount === 1
+                    ? "{{count}} assigned issue cleaned up."
+                    : "{{count}} assigned issues cleaned up.",
+              },
+            )
             : undefined,
         tone: "success",
       });
     },
     onError: (error) => {
       pushToast({
-        title: "Failed to remove member",
-        body: error instanceof Error ? error.message : "Unknown error",
+        title: t("Failed to remove member", { defaultValue: "Failed to remove member" }),
+        body: error instanceof Error ? error.message : t("Unknown error", { defaultValue: "Unknown error" }),
         tone: "error",
       });
     },
@@ -373,11 +396,11 @@ export function CompanyAccess() {
 
         <div className="overflow-hidden rounded-xl border border-border">
           <div className="grid grid-cols-[minmax(0,1.5fr)_120px_120px_minmax(0,1.2fr)_180px] gap-3 border-b border-border px-4 py-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            <div>User account</div>
-            <div>Role</div>
-            <div>Status</div>
-            <div>Grants</div>
-            <div className="text-right">Action</div>
+            <div>{t("User account", { defaultValue: "User account" })}</div>
+            <div>{t("Role", { defaultValue: "Role" })}</div>
+            <div>{t("Status", { defaultValue: "Status" })}</div>
+            <div>{t("Grants", { defaultValue: "Grants" })}</div>
+            <div className="text-right">{t("Action", { defaultValue: "Action" })}</div>
           </div>
           {members.length === 0 ? (
             <div className="px-4 py-8 text-sm text-muted-foreground">
@@ -399,34 +422,34 @@ export function CompanyAccess() {
                     <div className="truncate text-xs text-muted-foreground">{member.user?.email || member.principalId}</div>
                   </div>
                   <div className="text-sm">
-                    {member.membershipRole
-                      ? HUMAN_COMPANY_MEMBERSHIP_ROLE_LABELS[member.membershipRole]
-                      : "Unset"}
+                    {formatMembershipRole(member.membershipRole, t)}
                   </div>
                   <div>
                     <Badge variant={member.status === "active" ? "secondary" : member.status === "suspended" ? "destructive" : "outline"}>
-                      {member.status.replace("_", " ")}
+                      {translateStatusLabel(t, member.status)}
                     </Badge>
                   </div>
-                  <div className="min-w-0 text-sm text-muted-foreground">{formatGrantSummary(member)}</div>
+                  <div className="min-w-0 text-sm text-muted-foreground">{formatGrantSummary(member, t)}</div>
                   <div className="space-y-1 text-right">
                     <div className="flex justify-end gap-2">
                       <Button size="sm" variant="outline" onClick={() => setEditingMemberId(member.id)}>
-                        Edit
+                        {t("Edit", { defaultValue: "Edit" })}
                       </Button>
                       <Button
                         size="sm"
                         variant="outline"
                         onClick={() => setRemovingMemberId(member.id)}
                         disabled={!canArchive}
-                        title={removalReason ?? undefined}
+                        title={removalReason ? t(removalReason, { defaultValue: removalReason }) : undefined}
                       >
                         <Trash2 className="mr-1 h-3.5 w-3.5" />
-                        Remove
+                        {t("Remove", { defaultValue: "Remove" })}
                       </Button>
                     </div>
                     {removalReason ? (
-                      <div className="text-xs text-muted-foreground">{removalReason}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {t(removalReason, { defaultValue: removalReason })}
+                      </div>
                     ) : null}
                   </div>
                 </div>
@@ -462,7 +485,7 @@ export function CompanyAccess() {
                     <option value="">{t("Unset", { defaultValue: "Unset" })}</option>
                     {Object.entries(HUMAN_COMPANY_MEMBERSHIP_ROLE_LABELS).map(([value, label]) => (
                       <option key={value} value={value}>
-                        {label}
+                        {t(label, { defaultValue: label })}
                       </option>
                     ))}
                   </select>
@@ -499,7 +522,7 @@ export function CompanyAccess() {
                     {draftRole
                       ? t("{{role}} currently includes these permissions automatically.", {
                         defaultValue: "{{role}} currently includes these permissions automatically.",
-                        role: HUMAN_COMPANY_MEMBERSHIP_ROLE_LABELS[draftRole],
+                        role: formatMembershipRole(draftRole, t),
                       })
                       : t("No role is selected, so this member has no implicit grants right now.", {
                         defaultValue: "No role is selected, so this member has no implicit grants right now.",
@@ -542,7 +565,7 @@ export function CompanyAccess() {
                             {t("Included implicitly by the {{role}} role. Add an explicit grant only if it should stay after the role changes.", {
                               defaultValue:
                                 "Included implicitly by the {{role}} role. Add an explicit grant only if it should stay after the role changes.",
-                              role: draftRole ? HUMAN_COMPANY_MEMBERSHIP_ROLE_LABELS[draftRole] : t("selected", { defaultValue: "selected" }),
+                              role: draftRole ? formatMembershipRole(draftRole, t) : t("selected", { defaultValue: "selected" }),
                             })}
                           </span>
                         ) : null}
@@ -587,43 +610,57 @@ export function CompanyAccess() {
       <Dialog open={!!removingMember} onOpenChange={(open) => !open && setRemovingMemberId(null)}>
         <DialogContent className="max-w-xl">
           <DialogHeader>
-            <DialogTitle>Remove member</DialogTitle>
+            <DialogTitle>{t("Remove member", { defaultValue: "Remove member" })}</DialogTitle>
             <DialogDescription>
-              Archive {memberDisplayName(removingMember)} and move active assignments before hiding this user from assignment fields.
+              {t("Archive {{name}} and move active assignments before hiding this user from assignment fields.", {
+                defaultValue: "Archive {{name}} and move active assignments before hiding this user from assignment fields.",
+                name: memberDisplayName(removingMember, t),
+              })}
             </DialogDescription>
           </DialogHeader>
           {removingMember && (
             <div className="space-y-5">
               <div className="rounded-lg border border-border px-3 py-3">
-                <div className="text-sm font-medium">{memberDisplayName(removingMember)}</div>
+                <div className="text-sm font-medium">{memberDisplayName(removingMember, t)}</div>
                 <div className="text-sm text-muted-foreground">{removingMember.user?.email || removingMember.principalId}</div>
                 <div className="mt-2 text-sm text-muted-foreground">
                   {assignedIssuesQuery.isLoading
-                    ? "Checking assigned issues..."
-                    : `${assignedIssues.length} open assigned issue${assignedIssues.length === 1 ? "" : "s"}`}
+                    ? t("Checking assigned issues...", { defaultValue: "Checking assigned issues..." })
+                    : t(
+                      assignedIssues.length === 1
+                        ? "{{count}} open assigned issue"
+                        : "{{count}} open assigned issues",
+                      {
+                        count: assignedIssues.length,
+                        defaultValue:
+                          assignedIssues.length === 1
+                            ? "{{count}} open assigned issue"
+                            : "{{count}} open assigned issues",
+                      },
+                    )}
                 </div>
               </div>
 
               {assignedIssues.length > 0 ? (
                 <div className="space-y-2">
-                  <div className="text-sm font-medium">Issue reassignment</div>
+                  <div className="text-sm font-medium">{t("Issue reassignment", { defaultValue: "Issue reassignment" })}</div>
                   <select
                     className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
                     value={reassignmentTarget}
                     onChange={(event) => setReassignmentTarget(event.target.value)}
                   >
-                    <option value="__unassigned">Leave unassigned</option>
+                    <option value="__unassigned">{t("Leave unassigned", { defaultValue: "Leave unassigned" })}</option>
                     {activeReassignmentUsers.length > 0 ? (
-                      <optgroup label="Humans">
+                      <optgroup label={t("Humans", { defaultValue: "Humans" })}>
                         {activeReassignmentUsers.map((member) => (
                           <option key={member.id} value={`user:${member.principalId}`}>
-                            {memberDisplayName(member)}
+                            {memberDisplayName(member, t)}
                           </option>
                         ))}
                       </optgroup>
                     ) : null}
                     {activeReassignmentAgents.length > 0 ? (
-                      <optgroup label="Agents">
+                      <optgroup label={t("Agents", { defaultValue: "Agents" })}>
                         {activeReassignmentAgents.map((agent) => (
                           <option key={agent.id} value={`agent:${agent.id}`}>
                             {agent.name} ({agent.role})
@@ -641,7 +678,18 @@ export function CompanyAccess() {
                     ))}
                     {assignedIssues.length > 6 ? (
                       <div className="px-3 py-2 text-sm text-muted-foreground">
-                        {assignedIssues.length - 6} more issue{assignedIssues.length - 6 === 1 ? "" : "s"}
+                        {t(
+                          assignedIssues.length - 6 === 1
+                            ? "{{count}} more issue"
+                            : "{{count}} more issues",
+                          {
+                            count: assignedIssues.length - 6,
+                            defaultValue:
+                              assignedIssues.length - 6 === 1
+                                ? "{{count}} more issue"
+                                : "{{count}} more issues",
+                          },
+                        )}
                       </div>
                     ) : null}
                   </div>
@@ -651,7 +699,7 @@ export function CompanyAccess() {
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setRemovingMemberId(null)}>
-              Cancel
+              {t("Cancel", { defaultValue: "Cancel" })}
             </Button>
             <Button
               variant="destructive"
@@ -664,7 +712,9 @@ export function CompanyAccess() {
               }}
               disabled={archiveMemberMutation.isPending || assignedIssuesQuery.isLoading}
             >
-              {archiveMemberMutation.isPending ? "Removing..." : "Remove member"}
+              {archiveMemberMutation.isPending
+                ? t("Removing...", { defaultValue: "Removing..." })
+                : t("Remove member", { defaultValue: "Remove member" })}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -673,8 +723,8 @@ export function CompanyAccess() {
   );
 }
 
-function memberDisplayName(member: CompanyMember | null) {
-  if (!member) return "this member";
+function memberDisplayName(member: CompanyMember | null, t?: TFunction) {
+  if (!member) return t ? t("this member", { defaultValue: "this member" }) : "this member";
   return member.user?.name?.trim() || member.user?.email || member.principalId;
 }
 

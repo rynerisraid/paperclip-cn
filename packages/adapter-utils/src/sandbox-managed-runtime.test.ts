@@ -88,6 +88,13 @@ describe("sandbox managed runtime", () => {
         await writeFile(remotePath, Buffer.from(bytes));
       },
       readFile: async (remotePath) => await readFile(remotePath),
+      listFiles: async (remotePath) => {
+        const entries = await readdir(remotePath, { withFileTypes: true }).catch(() => []);
+        return entries
+          .filter((entry) => entry.isFile())
+          .map((entry) => entry.name)
+          .sort((left, right) => left.localeCompare(right));
+      },
       remove: async (remotePath) => {
         await rm(remotePath, { recursive: true, force: true });
       },

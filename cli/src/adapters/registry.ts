@@ -1,4 +1,5 @@
 import type { CLIAdapterModule } from "@penclipai/adapter-utils";
+import { printAcpxStreamEvent } from "@penclipai/adapter-acpx-local/cli";
 import { printClaudeStreamEvent } from "@penclipai/adapter-claude-local/cli";
 import { printCodeBuddyStreamEvent } from "@penclipai/adapter-codebuddy-local/cli";
 import { printCodexStreamEvent } from "@penclipai/adapter-codex-local/cli";
@@ -14,6 +15,11 @@ import { httpCLIAdapter } from "./http/index.js";
 const claudeLocalCLIAdapter: CLIAdapterModule = {
   type: "claude_local",
   formatStdoutEvent: printClaudeStreamEvent,
+};
+
+const acpxLocalCLIAdapter: CLIAdapterModule = {
+  type: "acpx_local",
+  formatStdoutEvent: printAcpxStreamEvent,
 };
 
 const codexLocalCLIAdapter: CLIAdapterModule = {
@@ -58,6 +64,7 @@ const openclawGatewayCLIAdapter: CLIAdapterModule = {
 
 const adaptersByType = new Map<string, CLIAdapterModule>(
   [
+    acpxLocalCLIAdapter,
     claudeLocalCLIAdapter,
     codexLocalCLIAdapter,
     codeBuddyLocalCLIAdapter,

@@ -1,0 +1,102 @@
+[
+  {
+    "dir": "packages/adapter-utils",
+    "name": "@penclipai/adapter-utils",
+    "publishFromCi": true
+  },
+  {
+    "dir": "packages/adapters/acpx-local",
+    "name": "@penclipai/adapter-acpx-local",
+    "publishFromCi": true
+  },
+  {
+    "dir": "packages/adapters/claude-local",
+    "name": "@penclipai/adapter-claude-local",
+    "publishFromCi": true
+  },
+  {
+    "dir": "packages/adapters/codebuddy-local",
+    "name": "@penclipai/adapter-codebuddy-local",
+    "publishFromCi": true
+  },
+  {
+    "dir": "packages/adapters/codex-local",
+    "name": "@penclipai/adapter-codex-local",
+    "publishFromCi": true
+  },
+  {
+    "dir": "packages/adapters/cursor-local",
+    "name": "@penclipai/adapter-cursor-local",
+    "publishFromCi": true
+  },
+  {
+    "dir": "packages/adapters/gemini-local",
+    "name": "@penclipai/adapter-gemini-local",
+    "publishFromCi": true
+  },
+  {
+    "dir": "packages/adapters/opencode-local",
+    "name": "@penclipai/adapter-opencode-local",
+    "publishFromCi": true
+  },
+  {
+    "dir": "packages/adapters/pi-local",
+    "name": "@penclipai/adapter-pi-local",
+    "publishFromCi": true
+  },
+  {
+    "dir": "packages/adapters/qwen-local",
+    "name": "@penclipai/adapter-qwen-local",
+    "publishFromCi": true
+  },
+  {
+    "dir": "packages/adapters/openclaw-gateway",
+    "name": "@penclipai/adapter-openclaw-gateway",
+    "publishFromCi": true
+  },
+  {
+    "dir": "packages/shared",
+    "name": "@penclipai/shared",
+    "publishFromCi": true
+  },
+  {
+    "dir": "packages/db",
+    "name": "@penclipai/db",
+    "publishFromCi": true
+  },
+  {
+    "dir": "packages/plugins/sdk",
+    "name": "@penclipai/plugin-sdk",
+    "publishFromCi": true
+  },
+  {
+    "dir": "server",
+    "name": "@penclipai/server",
+    "publishFromCi": true
+  },
+  {
+    "dir": "cli",
+    "name": "penclip",
+    "publishFromCi": true
+  },
+  {
+    "dir": "packages/mcp-server",
+    "name": "@penclipai/mcp-server",
+    "publishFromCi": true
+  },
+  {
+    "dir": "packages/plugins/create-paperclip-plugin",
+    "name": "@penclipai/create-paperclip-plugin",
+    "publishFromCi": true
+  },
+  {
+    "dir": "packages/plugins/sandbox-providers/e2b",
+    "name": "@penclipai/plugin-e2b",
+    "publishFromCi": true
+  },
+  {
+    "dir": "ui",
+    "name": "@penclipai/ui",
+    "publishFromCi": true
+  }
+]

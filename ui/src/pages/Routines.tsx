@@ -1,23 +1,26 @@
 import { startTransition, useEffect, useMemo, useRef, useState } from "react";
+import type { TFunction } from "i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import type { TFunction } from "i18next";
 import { Link, useNavigate, useSearchParams } from "@/lib/router";
-import { Check, ChevronDown, ChevronRight, Layers, MoreHorizontal, Plus, Repeat } from "lucide-react";
+import { ArrowUpDown, Check, ChevronDown, ChevronRight, Layers, MoreHorizontal, Plus, Repeat } from "lucide-react";
 import { routinesApi } from "../api/routines";
 import { agentsApi } from "../api/agents";
 import { projectsApi } from "../api/projects";
 import { issuesApi } from "../api/issues";
 import { heartbeatsApi } from "../api/heartbeats";
+import { accessApi } from "../api/access";
 import { useCompany } from "../context/CompanyContext";
 import { useBreadcrumbs } from "../context/BreadcrumbContext";
 import { useToastActions } from "../context/ToastContext";
+import { buildMarkdownMentionOptions } from "../lib/company-members";
 import { queryKeys } from "../lib/queryKeys";
 import { groupBy } from "../lib/groupBy";
 import { createIssueDetailLocationState } from "../lib/issueDetailBreadcrumb";
 import { collectLiveIssueIds } from "../lib/liveIssueIds";
 import { getRecentAssigneeIds, sortAgentsByRecency, trackRecentAssignee } from "../lib/recent-assignees";
 import { getRecentProjectIds, trackRecentProject } from "../lib/recent-projects";
+import { translateStatusLabel } from "../lib/i18n-labels";
 import { ToggleSwitch } from "@/components/ui/toggle-switch";
 import { EmptyState } from "../components/EmptyState";
 import { IssuesList } from "../components/IssuesList";
@@ -25,7 +28,7 @@ import { PageSkeleton } from "../components/PageSkeleton";
 import { PageTabBar } from "../components/PageTabBar";
 import { AgentIcon } from "../components/AgentIconPicker";
 import { InlineEntitySelector, type InlineEntityOption } from "../components/InlineEntitySelector";
-import { MarkdownEditor, type MarkdownEditorRef } from "../components/MarkdownEditor";
+import { MarkdownEditor, type MarkdownEditorRef, type MentionOption } from "../components/MarkdownEditor";
 import {
   RoutineRunVariablesDialog,
   type RoutineRunDialogSubmitData,
@@ -34,7 +37,7 @@ import { RoutineVariablesEditor, RoutineVariablesHint } from "../components/Rout
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -71,29 +74,9 @@ function autoResizeTextarea(element: HTMLTextAreaElement | null) {
   element.style.height = `${element.scrollHeight}px`;
 }
 
-function formatLastRunTimestamp(value: Date | string | null | undefined) {
-  if (!value) return "Never";
+function formatLastRunTimestamp(value: Date | string | null | undefined, t: TFunction) {
+  if (!value) return t("Never", { defaultValue: "Never" });
   return new Date(value).toLocaleString();
-}
-
-function formatRoutineRunStatus(value: string | null | undefined, t: TFunction) {
-  if (!value) return null;
-  switch (value) {
-    case "queued":
-      return t("Queued", { defaultValue: "Queued" });
-    case "running":
-      return t("Running", { defaultValue: "Running" });
-    case "succeeded":
-      return t("Succeeded", { defaultValue: "Succeeded" });
-    case "failed":
-      return t("Failed", { defaultValue: "Failed" });
-    case "cancelled":
-      return t("Cancelled", { defaultValue: "Cancelled" });
-    case "timed_out":
-      return t("status.timedOut", { defaultValue: "Timed out" });
-    default:
-      return value.replaceAll("_", " ");
-  }
 }
 
 function nextRoutineStatus(currentStatus: string, enabled: boolean) {
@@ -103,8 +86,12 @@ function nextRoutineStatus(currentStatus: string, enabled: boolean) {
 
 type RoutinesTab = "routines" | "runs";
 type RoutineGroupBy = "none" | "project" | "assignee";
+type RoutineSortField = "updated" | "created" | "title" | "lastRun";
+type RoutineSortDir = "asc" | "desc";
 
 type RoutineViewState = {
+  sortField: RoutineSortField;
+  sortDir: RoutineSortDir;
   groupBy: RoutineGroupBy;
   collapsedGroups: string[];
 };
@@ -116,6 +103,8 @@ type RoutineGroup = {
 };
 
 const defaultRoutineViewState: RoutineViewState = {
+  sortField: "updated",
+  sortDir: "desc",
   groupBy: "none",
   collapsedGroups: [],
 };
@@ -132,6 +121,21 @@ function getRoutineViewState(key: string): RoutineViewState {
 
 function saveRoutineViewState(key: string, state: RoutineViewState) {
   localStorage.setItem(key, JSON.stringify(state));
+}
+
+function timestampValue(value: Date | string | null | undefined) {
+  if (!value) return Number.NEGATIVE_INFINITY;
+  const timestamp = new Date(value).getTime();
+  return Number.isFinite(timestamp) ? timestamp : Number.NEGATIVE_INFINITY;
+}
+
+function compareNullableText(left: string | null | undefined, right: string | null | undefined) {
+  return (left ?? "").localeCompare(right ?? "", undefined, { sensitivity: "base" });
+}
+
+function formatRoutineRunStatus(value: string | null | undefined, t: TFunction) {
+  if (!value) return null;
+  return translateStatusLabel(t, value);
 }
 
 function buildRoutineMutationPayload(input: {
@@ -157,12 +161,7 @@ export function buildRoutineGroups(
   groupByValue: RoutineGroupBy,
   projectById: Map<string, { name: string }>,
   agentById: Map<string, { name: string }>,
-  t: TFunction,
 ): RoutineGroup[] {
-  const noProjectLabel = t("No project", { defaultValue: "No project" });
-  const unknownProjectLabel = t("Unknown project", { defaultValue: "Unknown project" });
-  const unassignedLabel = t("Unassigned", { defaultValue: "Unassigned" });
-  const unknownAgentLabel = t("Unknown agent", { defaultValue: "Unknown agent" });
   if (groupByValue === "none") {
     return [{ key: "__all", label: null, items: routines }];
   }
@@ -171,13 +170,13 @@ export function buildRoutineGroups(
     const groups = groupBy(routines, (routine) => routine.projectId ?? "__no_project");
     return Object.keys(groups)
       .sort((left, right) => {
-        const leftLabel = left === "__no_project" ? noProjectLabel : (projectById.get(left)?.name ?? unknownProjectLabel);
-        const rightLabel = right === "__no_project" ? noProjectLabel : (projectById.get(right)?.name ?? unknownProjectLabel);
+        const leftLabel = left === "__no_project" ? "No project" : (projectById.get(left)?.name ?? "Unknown project");
+        const rightLabel = right === "__no_project" ? "No project" : (projectById.get(right)?.name ?? "Unknown project");
         return leftLabel.localeCompare(rightLabel);
       })
       .map((key) => ({
         key,
-        label: key === "__no_project" ? noProjectLabel : (projectById.get(key)?.name ?? unknownProjectLabel),
+        label: key === "__no_project" ? "No project" : (projectById.get(key)?.name ?? "Unknown project"),
         items: groups[key]!,
       }));
   }
@@ -185,15 +184,40 @@ export function buildRoutineGroups(
   const groups = groupBy(routines, (routine) => routine.assigneeAgentId ?? "__unassigned");
   return Object.keys(groups)
     .sort((left, right) => {
-      const leftLabel = left === "__unassigned" ? unassignedLabel : (agentById.get(left)?.name ?? unknownAgentLabel);
-      const rightLabel = right === "__unassigned" ? unassignedLabel : (agentById.get(right)?.name ?? unknownAgentLabel);
+      const leftLabel = left === "__unassigned" ? "Unassigned" : (agentById.get(left)?.name ?? "Unknown agent");
+      const rightLabel = right === "__unassigned" ? "Unassigned" : (agentById.get(right)?.name ?? "Unknown agent");
       return leftLabel.localeCompare(rightLabel);
     })
     .map((key) => ({
       key,
-      label: key === "__unassigned" ? unassignedLabel : (agentById.get(key)?.name ?? unknownAgentLabel),
+      label: key === "__unassigned" ? "Unassigned" : (agentById.get(key)?.name ?? "Unknown agent"),
       items: groups[key]!,
     }));
+}
+
+export function sortRoutines(
+  routines: RoutineListItem[],
+  sortField: RoutineSortField,
+  sortDir: RoutineSortDir,
+): RoutineListItem[] {
+  const direction = sortDir === "asc" ? 1 : -1;
+  return [...routines].sort((left, right) => {
+    let result = 0;
+
+    if (sortField === "title") {
+      result = compareNullableText(left.title, right.title);
+    } else if (sortField === "created") {
+      result = timestampValue(left.createdAt) - timestampValue(right.createdAt);
+    } else if (sortField === "lastRun") {
+      result = timestampValue(left.lastRun?.triggeredAt ?? left.lastTriggeredAt) -
+        timestampValue(right.lastRun?.triggeredAt ?? right.lastTriggeredAt);
+    } else {
+      result = timestampValue(left.updatedAt) - timestampValue(right.updatedAt);
+    }
+
+    if (result !== 0) return result * direction;
+    return compareNullableText(left.title, right.title);
+  });
 }
 
 function buildRoutinesTabHref(tab: RoutinesTab) {
@@ -240,10 +264,10 @@ function RoutineListRow({
           {(isArchived || routine.status === "paused" || isDraft) ? (
             <span className="text-xs text-muted-foreground">
               {isArchived
-                ? t("Archived", { defaultValue: "Archived" })
+                ? translateStatusLabel(t, "archived").toLowerCase()
                 : isDraft
-                  ? t("Draft", { defaultValue: "Draft" })
-                  : t("Paused", { defaultValue: "Paused" })}
+                  ? t("draft", { defaultValue: "draft" })
+                  : translateStatusLabel(t, "paused").toLowerCase()}
             </span>
           ) : null}
         </div>
@@ -268,9 +292,7 @@ function RoutineListRow({
             </span>
           </span>
           <span>
-            {routine.lastRun?.triggeredAt
-              ? formatLastRunTimestamp(routine.lastRun.triggeredAt)
-              : t("Never", { defaultValue: "Never" })}
+            {formatLastRunTimestamp(routine.lastRun?.triggeredAt, t)}
             {routine.lastRun ? ` · ${formatRoutineRunStatus(routine.lastRun.status, t)}` : ""}
           </span>
         </div>
@@ -303,7 +325,10 @@ function RoutineListRow({
             <Button
               variant="ghost"
               size="icon-sm"
-              aria-label={t("More actions for {{name}}", { defaultValue: "More actions for {{name}}", name: routine.title })}
+              aria-label={t("More actions for {{name}}", {
+                defaultValue: "More actions for {{name}}",
+                name: routine.title,
+              })}
             >
               <MoreHorizontal className="h-4 w-4" />
             </Button>
@@ -325,7 +350,9 @@ function RoutineListRow({
               onClick={() => onToggleEnabled(routine, enabled)}
               disabled={isStatusPending || isArchived}
             >
-              {enabled ? t("Pause", { defaultValue: "Pause" }) : t("Enable", { defaultValue: "Enable" })}
+              {enabled
+                ? t("Pause", { defaultValue: "Pause" })
+                : t("Enable", { defaultValue: "Enable" })}
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => onToggleArchived(routine)}
@@ -407,6 +434,11 @@ export function Routines() {
     queryFn: () => projectsApi.list(selectedCompanyId!),
     enabled: !!selectedCompanyId,
   });
+  const { data: companyMembers } = useQuery({
+    queryKey: queryKeys.access.companyUserDirectory(selectedCompanyId!),
+    queryFn: () => accessApi.listUserDirectory(selectedCompanyId!),
+    enabled: !!selectedCompanyId,
+  });
   const { data: routineExecutionIssues, isLoading: recentRunsLoading, error: recentRunsError } = useQuery({
     queryKey: [...queryKeys.issues.list(selectedCompanyId!), "routine-executions"],
     queryFn: () => issuesApi.list(selectedCompanyId!, { originKind: "routine_execution" }),
@@ -422,6 +454,14 @@ export function Routines() {
   useEffect(() => {
     autoResizeTextarea(titleInputRef.current);
   }, [draft.title, composerOpen]);
+
+  const mentionOptions = useMemo<MentionOption[]>(() => {
+    return buildMarkdownMentionOptions({
+      agents,
+      projects,
+      members: companyMembers?.users,
+    });
+  }, [agents, companyMembers?.users, projects]);
 
   const createRoutine = useMutation({
     mutationFn: () =>
@@ -444,11 +484,11 @@ export function Routines() {
         title: t("Routine created", { defaultValue: "Routine created" }),
         body: routine.assigneeAgentId
           ? t("Add the first trigger to turn it into a live workflow.", {
-              defaultValue: "Add the first trigger to turn it into a live workflow.",
-            })
+            defaultValue: "Add the first trigger to turn it into a live workflow.",
+          })
           : t("Draft saved. Add a default agent before enabling automation.", {
-              defaultValue: "Draft saved. Add a default agent before enabling automation.",
-            }),
+            defaultValue: "Draft saved. Add a default agent before enabling automation.",
+          }),
         tone: "success",
       });
       navigate(`/routines/${routine.id}?tab=triggers`);
@@ -481,7 +521,9 @@ export function Routines() {
         title: t("Failed to update routine", { defaultValue: "Failed to update routine" }),
         body: mutationError instanceof Error
           ? mutationError.message
-          : t("Paperclip CN could not update the routine.", { defaultValue: "Paperclip CN could not update the routine." }),
+          : t("Paperclip CN could not update the routine.", {
+            defaultValue: "Paperclip CN could not update the routine.",
+          }),
         tone: "error",
       });
     },
@@ -518,7 +560,9 @@ export function Routines() {
         title: t("Routine run failed", { defaultValue: "Routine run failed" }),
         body: mutationError instanceof Error
           ? mutationError.message
-          : t("Paperclip CN could not start the routine run.", { defaultValue: "Paperclip CN could not start the routine run." }),
+          : t("Paperclip CN could not start the routine run.", {
+            defaultValue: "Paperclip CN could not start the routine run.",
+          }),
         tone: "error",
       });
     },
@@ -556,18 +600,22 @@ export function Routines() {
     [projects],
   );
   const liveIssueIds = useMemo(() => collectLiveIssueIds(liveRuns), [liveRuns]);
+  const sortedRoutines = useMemo(
+    () => sortRoutines(routines ?? [], routineViewState.sortField, routineViewState.sortDir),
+    [routineViewState.sortDir, routineViewState.sortField, routines],
+  );
   const routineGroups = useMemo(
-    () => buildRoutineGroups(routines ?? [], routineViewState.groupBy, projectById, agentById, t),
-    [agentById, projectById, routineViewState.groupBy, routines, t],
+    () => buildRoutineGroups(sortedRoutines, routineViewState.groupBy, projectById, agentById),
+    [agentById, projectById, routineViewState.groupBy, sortedRoutines],
   );
   const recentRunsIssueLinkState = useMemo(
     () =>
       createIssueDetailLocationState(
-        "Recent Runs",
+        t("Recent Runs", { defaultValue: "Recent Runs" }),
         buildRoutinesTabHref("runs"),
         "issues",
       ),
-    [],
+    [t],
   );
   const currentAssignee = draft.assigneeAgentId ? agentById.get(draft.assigneeAgentId) ?? null : null;
   const currentProject = draft.projectId ? projectById.get(draft.projectId) ?? null : null;
@@ -616,7 +664,12 @@ export function Routines() {
   }
 
   if (!selectedCompanyId) {
-    return <EmptyState icon={Repeat} message={t("Select a company to view routines.", { defaultValue: "Select a company to view routines." })} />;
+    return (
+      <EmptyState
+        icon={Repeat}
+        message={t("Select a company to view routines.", { defaultValue: "Select a company to view routines." })}
+      />
+    );
   }
 
   if (isLoading) {
@@ -627,11 +680,8 @@ export function Routines() {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div className="space-y-1">
-          <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
+          <h1 className="text-2xl font-semibold tracking-tight">
             {t("Routines", { defaultValue: "Routines" })}
-            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800 dark:bg-amber-900/30 dark:text-amber-400">
-              {t("Beta", { defaultValue: "Beta" })}
-            </span>
           </h1>
           <p className="text-sm text-muted-foreground">
             {t("Recurring work definitions that materialize into auditable execution issues.", {
@@ -658,44 +708,96 @@ export function Routines() {
         <TabsContent value="routines" className="space-y-4">
           <div className="flex items-center justify-between gap-3">
             <p className="text-sm text-muted-foreground">
-              {t(
-                (routines ?? []).length === 1 ? "routines.count_one" : "routines.count_other",
-                {
-                  count: (routines ?? []).length,
-                  defaultValue: (routines ?? []).length === 1 ? "{{count}} routine" : "{{count}} routines",
-                },
-              )}
+              {t((routines ?? []).length === 1 ? "{{count}} routine" : "{{count}} routines", {
+                count: (routines ?? []).length,
+                defaultValue: (routines ?? []).length === 1 ? "{{count}} routine" : "{{count}} routines",
+              })}
             </p>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="ghost" size="sm" className="text-xs">
-                  <Layers className="h-3.5 w-3.5 sm:h-3 sm:w-3 sm:mr-1" />
-                  <span className="hidden sm:inline">{t("Group", { defaultValue: "Group" })}</span>
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent align="end" className="w-44 p-0">
-                <div className="p-2 space-y-0.5">
-                  {([
-                    ["project", t("Project", { defaultValue: "Project" })],
-                    ["assignee", t("Agent", { defaultValue: "Agent" })],
-                    ["none", t("None", { defaultValue: "None" })],
-                  ] as const).map(([value, label]) => (
-                    <button
-                      key={value}
-                      className={`flex w-full items-center justify-between rounded-sm px-2 py-1.5 text-sm ${
-                        routineViewState.groupBy === value
-                          ? "bg-accent/50 text-foreground"
-                          : "text-muted-foreground hover:bg-accent/50"
-                      }`}
-                      onClick={() => updateRoutineView({ groupBy: value, collapsedGroups: [] })}
-                    >
-                      <span>{label}</span>
-                      {routineViewState.groupBy === value ? <Check className="h-3.5 w-3.5" /> : null}
-                    </button>
-                  ))}
-                </div>
-              </PopoverContent>
-            </Popover>
+            <div className="flex items-center gap-1">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs"
+                    title={t("Sort", { defaultValue: "Sort" })}
+                  >
+                    <ArrowUpDown className="h-3.5 w-3.5 sm:h-3 sm:w-3 sm:mr-1" />
+                    <span className="hidden sm:inline">{t("Sort", { defaultValue: "Sort" })}</span>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent align="end" className="w-44 p-0">
+                  <div className="p-2 space-y-0.5">
+                    {([
+                      ["updated", "Updated"],
+                      ["created", "Created"],
+                      ["lastRun", "Last run"],
+                      ["title", "Title"],
+                    ] as const).map(([field, label]) => (
+                      <button
+                        key={field}
+                        className={`flex w-full items-center justify-between rounded-sm px-2 py-1.5 text-sm ${
+                          routineViewState.sortField === field
+                            ? "bg-accent/50 text-foreground"
+                            : "text-muted-foreground hover:bg-accent/50"
+                        }`}
+                        onClick={() => {
+                          updateRoutineView(
+                            routineViewState.sortField === field
+                              ? { sortDir: routineViewState.sortDir === "asc" ? "desc" : "asc" }
+                              : { sortField: field, sortDir: field === "title" ? "asc" : "desc" },
+                          );
+                        }}
+                      >
+                        <span>{t(label, { defaultValue: label })}</span>
+                        {routineViewState.sortField === field ? (
+                          <span className="text-xs text-muted-foreground">
+                            {routineViewState.sortDir === "asc"
+                              ? t("Asc", { defaultValue: "Asc" })
+                              : t("Desc", { defaultValue: "Desc" })}
+                          </span>
+                        ) : null}
+                      </button>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs"
+                    title={t("Group", { defaultValue: "Group" })}
+                  >
+                    <Layers className="h-3.5 w-3.5 sm:h-3 sm:w-3 sm:mr-1" />
+                    <span className="hidden sm:inline">{t("Group", { defaultValue: "Group" })}</span>
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent align="end" className="w-44 p-0">
+                  <div className="p-2 space-y-0.5">
+                    {([
+                      ["project", "Project"],
+                      ["assignee", "Agent"],
+                      ["none", "None"],
+                    ] as const).map(([value, label]) => (
+                      <button
+                        key={value}
+                        className={`flex w-full items-center justify-between rounded-sm px-2 py-1.5 text-sm ${
+                          routineViewState.groupBy === value
+                            ? "bg-accent/50 text-foreground"
+                            : "text-muted-foreground hover:bg-accent/50"
+                        }`}
+                        onClick={() => updateRoutineView({ groupBy: value, collapsedGroups: [] })}
+                      >
+                        <span>{t(label, { defaultValue: label })}</span>
+                        {routineViewState.groupBy === value ? <Check className="h-3.5 w-3.5" /> : null}
+                      </button>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
           </div>
         </TabsContent>
         <TabsContent value="runs">
@@ -723,15 +825,19 @@ export function Routines() {
       >
         <DialogContent
           showCloseButton={false}
+          aria-describedby={undefined}
           className="flex max-h-[calc(100dvh-2rem)] max-w-3xl flex-col gap-0 overflow-hidden p-0"
         >
+          <DialogTitle className="sr-only">
+            {t("New routine", { defaultValue: "New routine" })}
+          </DialogTitle>
           <div className="shrink-0 flex flex-wrap items-center justify-between gap-3 border-b border-border/60 px-5 py-3">
             <div>
               <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
                 {t("New routine", { defaultValue: "New routine" })}
               </p>
               <p className="text-sm text-muted-foreground">
-                {t("routines.defineRecurringWorkFirst", {
+                {t("Define the recurring work first. Default project and agent are optional for draft routines.", {
                   defaultValue: "Define the recurring work first. Default project and agent are optional for draft routines.",
                 })}
               </p>
@@ -787,16 +893,16 @@ export function Routines() {
             <div className="px-5 pb-3">
               <div className="overflow-x-auto overscroll-x-contain">
                 <div className="inline-flex min-w-full flex-wrap items-center gap-2 text-sm text-muted-foreground sm:min-w-max sm:flex-nowrap">
-                  <span>{t("newIssue.forLabel", { defaultValue: "For" })}</span>
+                  <span>{t("routineComposer.forAssignee", { defaultValue: "For" })}</span>
                   <InlineEntitySelector
                     ref={assigneeSelectorRef}
                     value={draft.assigneeAgentId}
                     options={assigneeOptions}
                     recentOptionIds={recentAssigneeIds}
-                    placeholder="Assignee"
-                    noneLabel="No assignee"
-                    searchPlaceholder="Search assignees..."
-                    emptyMessage="No assignees found."
+                    placeholder={t("Assignee", { defaultValue: "Assignee" })}
+                    noneLabel={t("No assignee", { defaultValue: "No assignee" })}
+                    searchPlaceholder={t("Search assignees...", { defaultValue: "Search assignees..." })}
+                    emptyMessage={t("No assignees found.", { defaultValue: "No assignees found." })}
                     onChange={(assigneeAgentId) => {
                       if (assigneeAgentId) trackRecentAssignee(assigneeAgentId);
                       setDraft((current) => ({ ...current, assigneeAgentId }));
@@ -833,16 +939,16 @@ export function Routines() {
                       );
                     }}
                   />
-                  <span>{t("newIssue.inLabel", { defaultValue: "in" })}</span>
+                  <span>{t("routineComposer.inProject", { defaultValue: "in" })}</span>
                   <InlineEntitySelector
                     ref={projectSelectorRef}
                     value={draft.projectId}
                     options={projectOptions}
                     recentOptionIds={recentProjectIds}
-                    placeholder="Project"
-                    noneLabel="No project"
-                    searchPlaceholder="Search projects..."
-                    emptyMessage="No projects found."
+                    placeholder={t("Project", { defaultValue: "Project" })}
+                    noneLabel={t("No project", { defaultValue: "No project" })}
+                    searchPlaceholder={t("Search projects...", { defaultValue: "Search projects..." })}
+                    emptyMessage={t("No projects found.", { defaultValue: "No projects found." })}
                     onChange={(projectId) => {
                       if (projectId) trackRecentProject(projectId);
                       setDraft((current) => ({ ...current, projectId }));
@@ -887,6 +993,7 @@ export function Routines() {
                 placeholder={t("Add instructions...", { defaultValue: "Add instructions..." })}
                 bordered={false}
                 contentClassName="min-h-[160px] text-sm text-muted-foreground"
+                mentions={mentionOptions}
                 onSubmit={() => {
                   if (!createRoutine.isPending && draft.title.trim() && draft.projectId && draft.assigneeAgentId) {
                     createRoutine.mutate();
@@ -926,14 +1033,14 @@ export function Routines() {
                         <SelectContent>
                           {concurrencyPolicies.map((value) => (
                             <SelectItem key={value} value={value}>
-                              {t(concurrencyPolicyDescriptions[value]!, { defaultValue: concurrencyPolicyDescriptions[value]! })}
+                              {t(value.replaceAll("_", " "), { defaultValue: value.replaceAll("_", " ") })}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                       <p className="text-xs text-muted-foreground">
-                        {t(concurrencyPolicyDescriptions[draft.concurrencyPolicy]!, {
-                          defaultValue: concurrencyPolicyDescriptions[draft.concurrencyPolicy]!,
+                        {t(concurrencyPolicyDescriptions[draft.concurrencyPolicy], {
+                          defaultValue: concurrencyPolicyDescriptions[draft.concurrencyPolicy],
                         })}
                       </p>
                     </div>
@@ -951,14 +1058,14 @@ export function Routines() {
                         <SelectContent>
                           {catchUpPolicies.map((value) => (
                             <SelectItem key={value} value={value}>
-                              {t(catchUpPolicyDescriptions[value]!, { defaultValue: catchUpPolicyDescriptions[value]! })}
+                              {t(value.replaceAll("_", " "), { defaultValue: value.replaceAll("_", " ") })}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                       <p className="text-xs text-muted-foreground">
-                        {t(catchUpPolicyDescriptions[draft.catchUpPolicy]!, {
-                          defaultValue: catchUpPolicyDescriptions[draft.catchUpPolicy]!,
+                        {t(catchUpPolicyDescriptions[draft.catchUpPolicy], {
+                          defaultValue: catchUpPolicyDescriptions[draft.catchUpPolicy],
                         })}
                       </p>
                     </div>
@@ -970,7 +1077,7 @@ export function Routines() {
 
           <div className="shrink-0 flex flex-col gap-3 border-t border-border/60 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="text-sm text-muted-foreground">
-              {t("routines.afterCreateHint", {
+              {t("After creation, Paperclip takes you straight to trigger setup. Draft routines stay paused until you add a default agent.", {
                 defaultValue: "After creation, Paperclip takes you straight to trigger setup. Draft routines stay paused until you add a default agent.",
               })}
             </div>
@@ -1039,7 +1146,7 @@ export function Routines() {
                       <CollapsibleTrigger className="flex items-center gap-1.5">
                         <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform [[data-state=open]>&]:rotate-90" />
                         <span className="text-sm font-semibold uppercase tracking-wide">
-                          {group.label}
+                          {group.label ? t(group.label, { defaultValue: group.label }) : null}
                         </span>
                       </CollapsibleTrigger>
                       <span className="text-xs text-muted-foreground">

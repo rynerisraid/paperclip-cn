@@ -18,6 +18,7 @@ import {
   type CompanySelectionSource,
 } from "../lib/company-selection";
 type CompanySelectionOptions = { source?: CompanySelectionSource };
+type CompanyListResult = { companies: Company[]; unauthorized: boolean };
 
 interface CompanyContextValue {
   companies: Company[];
@@ -39,25 +40,55 @@ const STORAGE_KEY = "paperclip.selectedCompanyId";
 
 const CompanyContext = createContext<CompanyContextValue | null>(null);
 
+export function resolveBootstrapCompanySelection(input: {
+  companies: Array<Pick<Company, "id">>;
+  sidebarCompanies: Array<Pick<Company, "id">>;
+  selectedCompanyId: string | null;
+  storedCompanyId: string | null;
+}) {
+  if (input.companies.length === 0) return null;
+
+  const selectableCompanies = input.sidebarCompanies.length > 0
+    ? input.sidebarCompanies
+    : input.companies;
+  if (input.selectedCompanyId && selectableCompanies.some((company) => company.id === input.selectedCompanyId)) {
+    return input.selectedCompanyId;
+  }
+  if (input.storedCompanyId && selectableCompanies.some((company) => company.id === input.storedCompanyId)) {
+    return input.storedCompanyId;
+  }
+  return selectableCompanies[0]?.id ?? null;
+}
+
+export function shouldClearStoredCompanySelection(input: {
+  companies: Array<Pick<Company, "id">>;
+  isLoading: boolean;
+  unauthorized: boolean;
+}) {
+  return !input.isLoading && !input.unauthorized && input.companies.length === 0;
+}
+
 export function CompanyProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const [selectionSource, setSelectionSource] = useState<CompanySelectionSource>("bootstrap");
-  const [selectedCompanyId, setSelectedCompanyIdState] = useState<string | null>(() => localStorage.getItem(STORAGE_KEY));
+  const [selectedCompanyId, setSelectedCompanyIdState] = useState<string | null>(null);
 
-  const { data: companies = [], isLoading, isFetching, error } = useQuery({
+  const { data: companiesResult = { companies: [], unauthorized: false }, isLoading, isFetching, error } = useQuery<CompanyListResult>({
     queryKey: queryKeys.companies.all,
     queryFn: async () => {
       try {
-        return await companiesApi.list();
+        return { companies: await companiesApi.list(), unauthorized: false };
       } catch (err) {
         if (err instanceof ApiError && err.status === 401) {
-          return [];
+          return { companies: [], unauthorized: true };
         }
         throw err;
       }
     },
     retry: false,
   });
+  const companies = companiesResult.companies;
+  const companyListUnauthorized = companiesResult.unauthorized;
   const sidebarCompanies = useMemo(
     () => companies.filter((company) => company.status !== "archived"),
     [companies],
@@ -65,26 +96,28 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
 
   // Auto-select first company when list loads
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    const selectionParams = {
-      companies,
-      selectedCompanyId,
-      storedCompanyId: stored,
-      isFetching,
-    };
-    if (shouldClearSelectedCompanyId(selectionParams)) {
-      setSelectedCompanyIdState(null);
-      setSelectionSource("bootstrap");
-      localStorage.removeItem(STORAGE_KEY);
+    if (isLoading) return;
+    if (companies.length === 0) {
+      if (shouldClearStoredCompanySelection({ companies, isLoading: false, unauthorized: companyListUnauthorized })) {
+        if (selectedCompanyId !== null) {
+          setSelectedCompanyIdState(null);
+        }
+        localStorage.removeItem(STORAGE_KEY);
+      }
       return;
     }
-    const next = resolveAutoSelectedCompanyId(selectionParams);
-    if (!next) return;
 
+    const next = resolveBootstrapCompanySelection({
+      companies,
+      sidebarCompanies,
+      selectedCompanyId,
+      storedCompanyId: localStorage.getItem(STORAGE_KEY),
+    });
+    if (next === null || next === selectedCompanyId) return;
     setSelectedCompanyIdState(next);
     setSelectionSource("bootstrap");
     localStorage.setItem(STORAGE_KEY, next);
-  }, [companies, isFetching, selectedCompanyId]);
+  }, [companies, companyListUnauthorized, isLoading, selectedCompanyId, sidebarCompanies]);
 
   const setSelectedCompanyId = useCallback((companyId: string, options?: CompanySelectionOptions) => {
     setSelectedCompanyIdState(companyId);

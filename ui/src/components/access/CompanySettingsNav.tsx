@@ -4,14 +4,19 @@ import { Tabs } from "@/components/ui/tabs";
 import { useLocation, useNavigate } from "@/lib/router";
 
 const items = [
-  { value: "general", labelKey: "General", href: "/company/settings" },
-  { value: "access", labelKey: "Access", href: "/company/settings/access" },
-  { value: "invites", labelKey: "Invites", href: "/company/settings/invites" },
+  { value: "general", label: "General", href: "/company/settings" },
+  { value: "environments", label: "Environments", href: "/company/settings/environments" },
+  { value: "access", label: "Access", href: "/company/settings/access" },
+  { value: "invites", label: "Invites", href: "/company/settings/invites" },
 ] as const;
 
 type CompanySettingsTab = (typeof items)[number]["value"];
 
 export function getCompanySettingsTab(pathname: string): CompanySettingsTab {
+  if (pathname.includes("/company/settings/environments")) {
+    return "environments";
+  }
+
   if (pathname.includes("/company/settings/access")) {
     return "access";
   }
@@ -38,9 +43,9 @@ export function CompanySettingsNav() {
   return (
     <Tabs value={activeTab} onValueChange={handleTabChange}>
       <PageTabBar
-        items={items.map(({ value, labelKey }) => ({
+        items={items.map(({ value, label }) => ({
           value,
-          label: t(labelKey, { defaultValue: labelKey }),
+          label: t(label, { defaultValue: label }),
         }))}
         value={activeTab}
         onValueChange={handleTabChange}

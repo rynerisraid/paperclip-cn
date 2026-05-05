@@ -10,6 +10,7 @@ export default defineConfig({
       "packages/shared",
       "packages/db",
       "packages/adapter-utils",
+      "packages/adapters/acpx-local",
       "packages/adapters/claude-local",
       "packages/adapters/codex-local",
       "packages/adapters/cursor-local",

@@ -9,7 +9,7 @@
 
 ## 2. 本地规划检查
 
-1. 阅读 `./memory/YYYY-MM-DD.md` 中 `## Today's Plan` 下的今日计划。
+1. 阅读 `$AGENT_HOME/memory/YYYY-MM-DD.md` 中 `## Today's Plan` 下的今日计划。
 2. 逐项查看计划内容：哪些已经完成、哪些被阻塞、接下来该做什么。
 3. 遇到阻塞时，优先自己解决；无法解决再升级给 board。
 4. 如果进度领先，就开始处理下一个最高优先级事项。
@@ -40,7 +40,7 @@
 
 - `todo`：可以开始执行，但尚未 checkout。
 - `in_progress`：正在积极处理。Agent 应通过 checkout 进入该状态，不要手动硬改。
-- `in_review`：等待审核或审批，通常是在把工作交回给 board 用户或 reviewer 之后。
+- `in_review`：等待审核、审批、board/user 确认，或 issue-thread interaction 回复。当你创建了待确认的问题、选项或提案且需要回复后才能继续时，使用这个状态。
 - `blocked`：在某个明确条件变化前无法推进。请写清楚阻塞原因；如果是被别的 issue 卡住，用 `blockedByIssueIds`。
 - `done`：已完成。
 - `cancelled`：有意放弃。
@@ -49,7 +49,7 @@
 
 - Create subtasks with `POST /api/companies/{companyId}/issues`. Always set `parentId` and `goalId`. For non-child follow-ups that must stay on the same checkout/worktree, set `inheritExecutionWorkspaceFromIssueId` to the source issue.
 - When you know the needed work and owner, create those subtasks directly. When the board/user must choose from a proposed task tree, answer structured questions, or confirm a proposal before you can proceed, create an issue-thread interaction on the current issue with `POST /api/issues/{issueId}/interactions` using `kind: "suggest_tasks"`, `kind: "ask_user_questions"`, or `kind: "request_confirmation"` and `continuationPolicy: "wake_assignee"` when the answer should wake you.
-- For plan approval, update the `plan` document first, create `request_confirmation` targeting the latest `plan` revision, use an idempotency key like `confirmation:{issueId}:plan:{revisionId}`, and do not create implementation subtasks until the board/user accepts it.
+- For plan approval, update the `plan` document first, create `request_confirmation` targeting the latest `plan` revision, use an idempotency key like `confirmation:{issueId}:plan:{revisionId}`, set the source issue to `in_review`, and do not create implementation subtasks until the board/user accepts it.
 - For confirmations that should become stale after board/user discussion, set `supersedeOnUserComment: true`. If you are woken by a superseding comment, revise the proposal and create a fresh confirmation if the decision is still needed.
 - Use `paperclip-create-agent` skill when hiring new agents.
 - Assign work to the right agent for the job.
@@ -57,8 +57,8 @@
 ## 7. 事实提取
 
 1. 检查自上次提取以来是否出现了新的对话。
-2. 将可长期保留的事实提取到 `./life/`（PARA）中对应的实体。
-3. 在 `./memory/YYYY-MM-DD.md` 中补充时间线记录。
+2. 将可长期保留的事实提取到 `$AGENT_HOME/life/`（PARA）中对应的实体。
+3. 在 `$AGENT_HOME/memory/YYYY-MM-DD.md` 中补充时间线记录。
 4. 为所有引用到的事实更新访问元数据（timestamp、access_count）。
 
 ## 8. 退出

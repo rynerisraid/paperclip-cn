@@ -18,7 +18,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { useTranslation } from "react-i18next";
 import { useCompany } from "../context/CompanyContext";
-import { useDialog } from "../context/DialogContext";
+import { useDialogActions } from "../context/DialogContext";
 import { cn } from "../lib/utils";
 import { queryKeys } from "../lib/queryKeys";
 import { sidebarBadgesApi } from "../api/sidebarBadges";
@@ -127,7 +127,7 @@ function SortableCompanyItem({
 export function CompanyRail() {
   const { t } = useTranslation();
   const { companies, selectedCompanyId, setSelectedCompanyId } = useCompany();
-  const { openOnboarding } = useDialog();
+  const { openOnboarding } = useDialogActions();
   const navigate = useNavigate();
   const location = useLocation();
   const isInstanceRoute = location.pathname.startsWith("/instance/");

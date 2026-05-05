@@ -67,6 +67,10 @@ vi.mock("./SidebarNavItem", () => ({
   },
 }));
 
+vi.mock("./SidebarCompanyMenu", () => ({
+  SidebarCompanyMenu: () => <div>Workspace switcher</div>,
+}));
+
 vi.mock("@/api/sidebarBadges", () => ({
   sidebarBadgesApi: mockSidebarBadgesApi,
 }));
@@ -119,12 +123,20 @@ describe("CompanySettingsSidebar", () => {
     expect(container.textContent).toContain("Paperclip");
     expect(container.textContent).toContain("Company Settings");
     expect(container.textContent).toContain("General");
+    expect(container.textContent).toContain("Environments");
     expect(container.textContent).toContain("Access");
     expect(container.textContent).toContain("Invites");
     expect(sidebarNavItemMock).toHaveBeenCalledWith(
       expect.objectContaining({
         to: "/company/settings",
         label: "General",
+        end: true,
+      }),
+    );
+    expect(sidebarNavItemMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: "/company/settings/environments",
+        label: "Environments",
         end: true,
       }),
     );
