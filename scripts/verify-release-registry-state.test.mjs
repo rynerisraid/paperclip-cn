@@ -35,6 +35,49 @@ test("collectInternalDependencyProblems flags missing internal versions", () => 
   ]);
 });
 
+test("collectInternalDependencyProblems accepts npm aliases to published internal packages", () => {
+  const manifest = {
+    dependencies: {
+      "@paperclipai/plugin-sdk": "npm:@penclipai/plugin-sdk@2026.505.0",
+      e2b: "^2.19.0",
+    },
+  };
+  const packageDocsByName = new Map([
+    [
+      "@penclipai/plugin-sdk",
+      {
+        versions: {
+          "2026.505.0": {},
+        },
+      },
+    ],
+  ]);
+
+  assert.deepEqual(collectInternalDependencyProblems(manifest, packageDocsByName), []);
+});
+
+test("collectInternalDependencyProblems flags missing npm alias targets", () => {
+  const manifest = {
+    dependencies: {
+      "@paperclipai/plugin-sdk": "npm:@penclipai/plugin-sdk@2026.505.1",
+    },
+  };
+  const packageDocsByName = new Map([
+    [
+      "@penclipai/plugin-sdk",
+      {
+        versions: {
+          "2026.505.0": {},
+        },
+      },
+    ],
+  ]);
+
+  assert.deepEqual(collectInternalDependencyProblems(manifest, packageDocsByName), [
+    "dependencies requires @paperclipai/plugin-sdk@npm:@penclipai/plugin-sdk@2026.505.1 (alias target @penclipai/plugin-sdk@2026.505.1), but npm does not expose @penclipai/plugin-sdk@2026.505.1",
+  ]);
+});
+
 test("verifyPackageRegistryState fails when canary latest is left in place by default", () => {
   const packageDocsByName = new Map([
     [

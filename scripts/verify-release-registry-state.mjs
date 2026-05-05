@@ -3,9 +3,42 @@
 import { pathToFileURL } from "node:url";
 
 const CANARY_VERSION_RE = /-canary\.\d+$/;
+const NPM_ALIAS_RE = /^npm:(@[^/]+\/[^@]+|[^@/][^@]*)@(.+)$/;
+const INTERNAL_PACKAGE_PREFIXES = ["@paperclipai/", "@penclipai/"];
 
 export function isCanaryVersion(version) {
   return CANARY_VERSION_RE.test(version);
+}
+
+function isInternalPackageName(packageName) {
+  return INTERNAL_PACKAGE_PREFIXES.some((prefix) => packageName.startsWith(prefix));
+}
+
+export function resolveDependencyReference(dependencyName, dependencyVersion) {
+  const aliasMatch = typeof dependencyVersion === "string" ? dependencyVersion.match(NPM_ALIAS_RE) : null;
+  if (!aliasMatch) {
+    return {
+      dependencyName,
+      dependencyVersion,
+      packageName: dependencyName,
+      version: dependencyVersion,
+      isAlias: false,
+    };
+  }
+
+  return {
+    dependencyName,
+    dependencyVersion,
+    packageName: aliasMatch[1],
+    version: aliasMatch[2],
+    isAlias: true,
+  };
+}
+
+function formatDependencyReference(reference) {
+  const requested = `${reference.dependencyName}@${reference.dependencyVersion}`;
+  if (!reference.isAlias) return requested;
+  return `${requested} (alias target ${reference.packageName}@${reference.version})`;
 }
 
 function usage() {
@@ -116,7 +149,8 @@ export function collectInternalDependencyProblems(manifest, packageDocsByName) {
 
   for (const [sectionName, deps] of sections) {
     for (const [dependencyName, dependencyVersion] of Object.entries(deps)) {
-      if (!dependencyName.startsWith("@paperclipai/")) {
+      const dependencyReference = resolveDependencyReference(dependencyName, dependencyVersion);
+      if (!isInternalPackageName(dependencyName) && !isInternalPackageName(dependencyReference.packageName)) {
         continue;
       }
 
@@ -127,15 +161,19 @@ export function collectInternalDependencyProblems(manifest, packageDocsByName) {
         continue;
       }
 
-      const dependencyDoc = packageDocsByName.get(dependencyName);
+      const dependencyDoc = packageDocsByName.get(dependencyReference.packageName);
+      const formattedDependency = formatDependencyReference(dependencyReference);
       if (!dependencyDoc) {
-        problems.push(`${sectionName} requires ${dependencyName}@${dependencyVersion}, but that package is not published`);
+        problems.push(`${sectionName} requires ${formattedDependency}, but that package is not published`);
         continue;
       }
 
-      if (!(dependencyVersion in (dependencyDoc.versions ?? {}))) {
+      if (!(dependencyReference.version in (dependencyDoc.versions ?? {}))) {
+        const missingVersionMessage = dependencyReference.isAlias
+          ? `npm does not expose ${dependencyReference.packageName}@${dependencyReference.version}`
+          : "npm does not expose that version";
         problems.push(
-          `${sectionName} requires ${dependencyName}@${dependencyVersion}, but npm does not expose that version`,
+          `${sectionName} requires ${formattedDependency}, but ${missingVersionMessage}`,
         );
       }
     }
@@ -233,9 +271,10 @@ async function main() {
         manifest.optionalDependencies ?? {},
         manifest.peerDependencies ?? {},
       ]) {
-        for (const dependencyName of Object.keys(deps)) {
-          if (dependencyName.startsWith("@paperclipai/")) {
-            additionalInternalDeps.add(dependencyName);
+        for (const [dependencyName, dependencyVersion] of Object.entries(deps)) {
+          const dependencyReference = resolveDependencyReference(dependencyName, dependencyVersion);
+          if (isInternalPackageName(dependencyName) || isInternalPackageName(dependencyReference.packageName)) {
+            additionalInternalDeps.add(dependencyReference.packageName);
           }
         }
       }
