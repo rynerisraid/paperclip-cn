@@ -77,6 +77,8 @@ describeEmbeddedPostgres("heartbeat local environment lifecycle", () => {
     await db.delete(environments);
     await db.delete(activityLog);
     await db.delete(heartbeatRunEvents);
+    // Heartbeat finalization can append run-scoped activity after lease release.
+    await db.delete(activityLog);
     await db.delete(heartbeatRuns);
     await db.delete(agentWakeupRequests);
     await db.delete(agentRuntimeState);
