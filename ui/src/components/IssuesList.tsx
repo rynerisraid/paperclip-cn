@@ -1141,8 +1141,12 @@ export function IssuesList({
     return defaults;
   }, [baseCreateIssueDefaults, currentUserId, issueById, projectId, viewState.groupBy]);
 
-  const createActionLabel = createIssueLabel ? `Create ${createIssueLabel}` : "Create Issue";
-  const createButtonLabel = createIssueLabel ? `New ${createIssueLabel}` : "New Issue";
+  const createActionLabel = createIssueLabel
+    ? t("Create {{label}}", { label: createIssueLabel, defaultValue: `Create ${createIssueLabel}` })
+    : t("Create Issue", { defaultValue: "Create Issue" });
+  const createButtonLabel = createIssueLabel
+    ? t("New {{label}}", { label: createIssueLabel, defaultValue: `New ${createIssueLabel}` })
+    : t("New Issue", { defaultValue: "New Issue" });
   const openCreateIssueDialog = useCallback((groupKey?: string) => {
     openNewIssue(newIssueDefaults(groupKey));
   }, [newIssueDefaults, openNewIssue]);

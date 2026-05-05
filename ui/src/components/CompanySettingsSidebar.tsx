@@ -67,7 +67,7 @@ export function CompanySettingsSidebar() {
           />
           <SidebarNavItem
             to="/company/settings/environments"
-            label="Environments"
+            label={t("companySettings.environments", { defaultValue: "Environments" })}
             icon={MonitorCog}
             end
           />
