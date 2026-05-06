@@ -101,7 +101,11 @@ async function ensureWorkspaceLinksCurrent(workspaceDir: string) {
     const linkPath = path.join(repoRoot, mismatch.workspaceDir, "node_modules", ...mismatch.packageName.split("/"));
     await fs.mkdir(path.dirname(linkPath), { recursive: true });
     await fs.rm(linkPath, { recursive: true, force: true });
-    await fs.symlink(mismatch.expectedPath, linkPath);
+    await fs.symlink(
+      path.resolve(mismatch.expectedPath),
+      linkPath,
+      process.platform === "win32" ? "junction" : "dir",
+    );
   }
 
   const remainingMismatches = findWorkspaceLinkMismatches(workspaceDir);

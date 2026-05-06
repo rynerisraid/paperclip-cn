@@ -42,6 +42,7 @@ import {
 import type { AdapterPluginRecord } from "../services/adapter-plugin-store.js";
 import type { ServerAdapterModule, AdapterConfigSchema } from "../adapters/types.js";
 import { loadExternalAdapterPackage, getUiParserSource, getOrExtractUiParserSource, reloadExternalAdapter } from "../adapters/plugin-loader.js";
+import { resolveHomeAwarePath } from "../home-paths.js";
 import { logger } from "../middleware/logger.js";
 import { assertBoardOrgAccess, assertInstanceAdmin } from "./authz.js";
 import { BUILTIN_ADAPTER_TYPES } from "../adapters/builtin-adapter-types.js";
@@ -167,26 +168,26 @@ async function normalizeLocalPath(rawPath: string): Promise<string> {
   const trimmedPath = rawPath.trim();
 
   if (process.platform === "win32") {
-    return wslMountToWindowsPath(trimmedPath) ?? trimmedPath;
+    return resolveHomeAwarePath(wslMountToWindowsPath(trimmedPath) ?? trimmedPath);
   }
 
   // Already a POSIX path (WSL or native Linux)
   if (trimmedPath.startsWith("/")) {
-    return trimmedPath;
+    return resolveHomeAwarePath(trimmedPath);
   }
 
   // Windows path detection: C:\ or C:/ pattern
   if (/^[A-Za-z]:[\\/]/.test(trimmedPath)) {
     try {
       const { stdout } = await execFileAsync("wslpath", ["-u", trimmedPath]);
-      return stdout.trim();
+      return resolveHomeAwarePath(stdout.trim());
     } catch (err) {
       logger.warn({ err, rawPath: trimmedPath }, "wslpath conversion failed; using path as-is");
-      return trimmedPath;
+      return resolveHomeAwarePath(trimmedPath);
     }
   }
 
-  return trimmedPath;
+  return resolveHomeAwarePath(trimmedPath);
 }
 
 /**
@@ -301,7 +302,7 @@ export function adapterRoutes() {
         }
       } else {
         // Local path — normalize (e.g., Windows → WSL) and use the resolved path
-        moduleLocalPath = path.resolve(await normalizeLocalPath(packageName));
+        moduleLocalPath = await normalizeLocalPath(packageName);
         try {
           const pkgRaw = await readFile(path.join(moduleLocalPath, "package.json"), "utf-8");
           const v = JSON.parse(pkgRaw).version;

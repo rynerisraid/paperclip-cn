@@ -681,7 +681,7 @@ function copyDirectoryContents(sourceDir: string, targetDir: string): boolean {
 
     if (entry.isSymbolicLink()) {
       rmSync(targetPath, { recursive: true, force: true });
-      symlinkSync(readlinkSync(sourcePath), targetPath);
+      copySymlinkEntry(sourcePath, targetPath);
       copied = true;
       continue;
     }
@@ -696,6 +696,41 @@ function copyDirectoryContents(sourceDir: string, targetDir: string): boolean {
   }
 
   return copied;
+}
+
+function copySymlinkEntry(sourcePath: string, targetPath: string): void {
+  const linkTarget = readlinkSync(sourcePath);
+  if (process.platform !== "win32") {
+    symlinkSync(linkTarget, targetPath);
+    return;
+  }
+
+  const resolvedLinkTarget = path.resolve(path.dirname(sourcePath), linkTarget);
+  const targetStats = (() => {
+    try {
+      return statSync(resolvedLinkTarget);
+    } catch {
+      return null;
+    }
+  })();
+  if (!targetStats) return;
+
+  if (targetStats.isDirectory()) {
+    symlinkSync(resolvedLinkTarget, targetPath, "junction");
+    return;
+  }
+
+  if (targetStats.isFile()) {
+    copyFileSync(resolvedLinkTarget, targetPath);
+    try {
+      chmodSync(targetPath, targetStats.mode & 0o777);
+    } catch {
+      // best effort
+    }
+    return;
+  }
+
+  // Other Windows reparse targets cannot be represented as junctions.
 }
 
 export function copyGitHooksToWorktreeGitDir(cwd: string): CopiedGitHooksResult | null {

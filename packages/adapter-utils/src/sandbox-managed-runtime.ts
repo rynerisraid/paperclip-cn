@@ -205,8 +205,7 @@ export async function mirrorDirectory(
     await fs.mkdir(path.dirname(targetPath), { recursive: true });
     await fs.rm(targetPath, { recursive: true, force: true }).catch(() => undefined);
     if (stats.isSymbolicLink()) {
-      const linkTarget = await fs.readlink(sourcePath);
-      await fs.symlink(linkTarget, targetPath);
+      await mirrorSymlink(sourcePath, targetPath);
       return;
     }
 
@@ -220,6 +219,33 @@ export async function mirrorDirectory(
   for (const relative of entries) {
     await copyEntry(relative);
   }
+}
+
+async function mirrorSymlink(sourcePath: string, targetPath: string): Promise<void> {
+  const linkTarget = await fs.readlink(sourcePath);
+  if (process.platform !== "win32") {
+    await fs.symlink(linkTarget, targetPath);
+    return;
+  }
+
+  const resolvedLinkTarget = path.resolve(path.dirname(sourcePath), linkTarget);
+  const targetStats = await fs.stat(resolvedLinkTarget).catch(() => null);
+  if (!targetStats) return;
+
+  if (targetStats.isDirectory()) {
+    await fs.symlink(resolvedLinkTarget, targetPath, "junction");
+    return;
+  }
+
+  if (targetStats.isFile()) {
+    await fs.copyFile(resolvedLinkTarget, targetPath, fsConstants.COPYFILE_FICLONE).catch(async () => {
+      await fs.copyFile(resolvedLinkTarget, targetPath);
+    });
+    await fs.chmod(targetPath, targetStats.mode);
+    return;
+  }
+
+  // Other Windows reparse targets cannot be represented as junctions.
 }
 
 function toArrayBuffer(bytes: Buffer): ArrayBuffer {

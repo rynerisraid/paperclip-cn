@@ -15,7 +15,7 @@
   "scripts": {
     "prebuild": "pnpm --filter @penclipai/plugin-sdk ensure-build-deps",
     "build": "tsc && node ./scripts/build-ui.mjs",
-    "clean": "rm -rf dist",
+    "clean": "node ../../../../scripts/fs-ops.mjs rm dist",
     "typecheck": "pnpm --filter @penclipai/plugin-sdk ensure-build-deps && tsc --noEmit"
   },
   "dependencies": {

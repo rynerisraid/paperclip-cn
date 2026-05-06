@@ -95,11 +95,10 @@ export async function ensureCodeBuddySkillsInjected(
     );
   }
 
-  const linkSkill = options.linkSkill ?? ((source: string, target: string) => fs.symlink(source, target));
   for (const entry of selectedEntries) {
     const target = path.join(skillsHome, entry.runtimeName);
     try {
-      const result = await ensurePaperclipSkillSymlink(entry.source, target, linkSkill);
+      const result = await ensurePaperclipSkillSymlink(entry.source, target, options.linkSkill);
       if (result === "skipped") continue;
       await onLog(
         "stderr",

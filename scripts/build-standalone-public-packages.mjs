@@ -11,6 +11,25 @@ const repoRoot = path.resolve(scriptDir, "..");
 const workspacePath = path.join(repoRoot, "pnpm-workspace.yaml");
 const releasePackageMapPath = path.join(repoRoot, "scripts", "release-package-map.mjs");
 
+function quoteCmdArg(value) {
+  if (/^[A-Za-z0-9_/:=.,@+-]+$/.test(value)) return value;
+  return `"${value.replace(/"/g, '""')}"`;
+}
+
+function resolvePnpmInvocation(args) {
+  const npmExecPath = process.env.npm_execpath;
+  if (npmExecPath && /pnpm/i.test(npmExecPath)) {
+    return { command: process.execPath, args: [npmExecPath, ...args] };
+  }
+  if (process.platform === "win32") {
+    return {
+      command: process.env.ComSpec || "cmd.exe",
+      args: ["/d", "/s", "/c", ["pnpm", ...args].map(quoteCmdArg).join(" ")],
+    };
+  }
+  return { command: "pnpm", args };
+}
+
 function parseWorkspaceEntries(workspaceText) {
   // Keep this aligned with the repo's block-sequence `packages:` format in
   // pnpm-workspace.yaml. If that file moves to a more complex YAML shape,
@@ -91,7 +110,8 @@ function readPackageJson(pkgDir) {
 }
 
 function run(command, args, cwd) {
-  execFileSync(command, args, {
+  const invocation = command === "pnpm" ? resolvePnpmInvocation(args) : { command, args };
+  execFileSync(invocation.command, invocation.args, {
     cwd,
     env: {
       ...process.env,
