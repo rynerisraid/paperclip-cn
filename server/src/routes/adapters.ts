@@ -45,15 +45,9 @@ import { loadExternalAdapterPackage, getUiParserSource, getOrExtractUiParserSour
 import { logger } from "../middleware/logger.js";
 import { assertBoardOrgAccess, assertInstanceAdmin } from "./authz.js";
 import { BUILTIN_ADAPTER_TYPES } from "../adapters/builtin-adapter-types.js";
+import { execNpmCommand } from "../services/npm-command.js";
 
 const execFileAsync = promisify(execFile);
-const npmCommand = process.platform === "win32" ? "cmd.exe" : "npm";
-
-function npmArgs(args: string[]): string[] {
-  return process.platform === "win32"
-    ? ["/d", "/s", "/c", "npm", ...args]
-    : args;
-}
 
 // ---------------------------------------------------------------------------
 // Request / Response types
@@ -150,30 +144,49 @@ function buildAdapterInfo(adapter: ServerAdapterModule, externalRecord: AdapterP
   };
 }
 
+function wslMountToWindowsPath(rawPath: string): string | null {
+  const normalized = rawPath.replace(/\\/g, "/");
+  const match = normalized.match(/^\/mnt\/([a-zA-Z])(?:\/(.*))?$/);
+  if (!match) return null;
+
+  const drive = match[1]!.toUpperCase();
+  const rest = (match[2] ?? "")
+    .split("/")
+    .filter(Boolean)
+    .join("\\");
+  return rest ? `${drive}:\\${rest}` : `${drive}:\\`;
+}
+
 /**
- * Normalize a local path that may be a Windows path into a WSL-compatible path.
+ * Normalize a local adapter package path for the current server platform.
  *
- * - Windows paths (e.g., "C:\\Users\\...") are converted via `wslpath -u`.
- * - Paths already starting with `/mnt/` or `/` are returned as-is.
+ * - Windows/Electron accepts native Windows paths and converts WSL `/mnt/c/...`.
+ * - WSL/Linux accepts POSIX paths and converts native Windows paths via `wslpath`.
  */
 async function normalizeLocalPath(rawPath: string): Promise<string> {
+  const trimmedPath = rawPath.trim();
+
+  if (process.platform === "win32") {
+    return wslMountToWindowsPath(trimmedPath) ?? trimmedPath;
+  }
+
   // Already a POSIX path (WSL or native Linux)
-  if (rawPath.startsWith("/")) {
-    return rawPath;
+  if (trimmedPath.startsWith("/")) {
+    return trimmedPath;
   }
 
   // Windows path detection: C:\ or C:/ pattern
-  if (/^[A-Za-z]:[\\/]/.test(rawPath)) {
+  if (/^[A-Za-z]:[\\/]/.test(trimmedPath)) {
     try {
-      const { stdout } = await execFileAsync("wslpath", ["-u", rawPath]);
+      const { stdout } = await execFileAsync("wslpath", ["-u", trimmedPath]);
       return stdout.trim();
     } catch (err) {
-      logger.warn({ err, rawPath }, "wslpath conversion failed; using path as-is");
-      return rawPath;
+      logger.warn({ err, rawPath: trimmedPath }, "wslpath conversion failed; using path as-is");
+      return trimmedPath;
     }
   }
 
-  return rawPath;
+  return trimmedPath;
 }
 
 /**
@@ -269,7 +282,7 @@ export function adapterRoutes() {
 
         logger.info({ spec, pluginsDir }, "Installing adapter package via npm");
 
-        await execFileAsync(npmCommand, npmArgs(["install", "--no-save", spec]), {
+        await execNpmCommand(["install", "--no-save", spec], {
           cwd: pluginsDir,
           timeout: 120_000,
         });
@@ -468,7 +481,7 @@ export function adapterRoutes() {
     if (externalRecord.packageName && !externalRecord.localPath) {
       try {
         const pluginsDir = getAdapterPluginsDir();
-        await execFileAsync(npmCommand, npmArgs(["uninstall", externalRecord.packageName]), {
+        await execNpmCommand(["uninstall", externalRecord.packageName], {
           cwd: pluginsDir,
           timeout: 60_000,
         });
@@ -581,7 +594,7 @@ export function adapterRoutes() {
 
       logger.info({ type, packageName: record.packageName }, "Reinstalling adapter package via npm");
 
-      await execFileAsync(npmCommand, npmArgs(["install", "--no-save", record.packageName]), {
+      await execNpmCommand(["install", "--no-save", record.packageName], {
         cwd: pluginsDir,
         timeout: 120_000,
       });

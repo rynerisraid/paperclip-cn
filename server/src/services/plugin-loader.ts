@@ -26,11 +26,9 @@
  */
 import { existsSync } from "node:fs";
 import { readdir, readFile, rm, stat } from "node:fs/promises";
-import { execFile } from "node:child_process";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { promisify } from "node:util";
 import type { Db } from "@penclipai/db";
 import type {
   PaperclipPluginManifestV1,
@@ -49,28 +47,9 @@ import type { PluginJobStore } from "./plugin-job-store.js";
 import type { PluginToolDispatcher } from "./plugin-tool-dispatcher.js";
 import type { PluginLifecycleManager } from "./plugin-lifecycle.js";
 import { pluginDatabaseService } from "./plugin-database.js";
+import { execNpmCommand } from "./npm-command.js";
 
-const execFileAsync = promisify(execFile);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const NPM_COMMAND = process.platform === "win32" ? "npm.cmd" : "npm";
-
-async function execNpmCommand(
-  args: string[],
-  options?: {
-    cwd?: string;
-    timeout?: number;
-  },
-) {
-  return await execFileAsync(
-    NPM_COMMAND,
-    args,
-    {
-      cwd: options?.cwd,
-      timeout: options?.timeout,
-      windowsHide: true,
-    },
-  );
-}
 
 // ---------------------------------------------------------------------------
 // Constants
