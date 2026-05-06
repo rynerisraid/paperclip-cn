@@ -17,7 +17,7 @@ interface PageTabBarProps {
 
 export function PageTabBar({ items, value, onValueChange, align = "center" }: PageTabBarProps) {
   const { isMobile } = useSidebar();
-  const { t } = useTranslation();
+  const { t } = useTranslation(undefined, { useSuspense: false });
 
   if (isMobile && value !== undefined && onValueChange) {
     return (

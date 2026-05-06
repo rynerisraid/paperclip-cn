@@ -1003,11 +1003,23 @@ export function Inbox() {
   }, [executionWorkspaces]);
   const inboxWorkspaceGrouping = useMemo<InboxWorkspaceGroupingOptions>(
     () => ({
+      agentById,
       executionWorkspaceById,
       projectWorkspaceById,
       defaultProjectWorkspaceIdByProjectId,
+      projectById,
+      userLabelById: companyUserLabelMap,
+      currentUserId,
     }),
-    [defaultProjectWorkspaceIdByProjectId, executionWorkspaceById, projectWorkspaceById],
+    [
+      agentById,
+      companyUserLabelMap,
+      currentUserId,
+      defaultProjectWorkspaceIdByProjectId,
+      executionWorkspaceById,
+      projectById,
+      projectWorkspaceById,
+    ],
   );
   const visibleIssueColumnSet = useMemo(() => new Set(visibleIssueColumns), [visibleIssueColumns]);
   const availableIssueColumns = useMemo(
@@ -2013,6 +2025,8 @@ export function Inbox() {
                 {([
                   ["none", t("None", { defaultValue: "None" })],
                   ["type", t("Type", { defaultValue: "Type" })],
+                  ["assignee", t("Assignee", { defaultValue: "Assignee" })],
+                  ["project", t("Project", { defaultValue: "Project" })],
                   ...(isolatedWorkspacesEnabled ? ([["workspace", t("Workspace", { defaultValue: "Workspace" })]] as const) : []),
                 ] as const).map(([value, label]) => (
                   <button

@@ -63,6 +63,13 @@ vi.mock("@/context/CompanyContext", () => ({
         brandColor: "#36a269",
         status: "active",
       },
+      {
+        id: "company-3",
+        issuePrefix: "ANA",
+        name: "Anachronist Wiki",
+        brandColor: "#a36a21",
+        status: "active",
+      },
     ],
     selectedCompany: {
       id: "company-1",
@@ -158,6 +165,7 @@ describe("SidebarCompanyMenu", () => {
     expect(document.body.textContent).toContain("Switch workspace");
     expect(document.body.textContent).toContain("Strata");
     expect(document.body.textContent).toContain("Add Company");
+    expect(document.body.textContent).toContain("ANA");
     expect(document.body.textContent).toContain("Invite people to Acme Labs");
     expect(document.body.textContent).toContain("Company settings");
     expect(document.body.textContent).toContain("Sign out");

@@ -717,7 +717,7 @@ export function OnboardingWizard() {
             RemoveScroll which blocks wheel events on our custom (non-DialogContent)
             scroll container. A plain div preserves the background without scroll-locking. */}
         <div className="fixed inset-0 z-50 bg-background" />
-        <div className="fixed inset-0 z-50 flex" onKeyDown={handleKeyDown}>
+        <div className="pointer-events-auto fixed inset-0 z-50 flex" onKeyDown={handleKeyDown}>
           {/* Close button */}
                   <button
                     onClick={handleClose}

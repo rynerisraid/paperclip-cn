@@ -97,26 +97,26 @@ describe("agent heartbeat locale routes", () => {
     mockHeartbeatService.wakeup.mockResolvedValue({ id: "run-2" });
   });
 
-  it("threads explicit request locale into manual heartbeat invoke runs", async () => {
+  it("threads explicit request locale into legacy manual heartbeat wakeups", async () => {
     const res = await request(createApp())
       .post(`/api/agents/${agentId}/heartbeat/invoke`)
       .set("Accept-Language", "zh-CN,zh;q=0.9")
       .send({});
 
     expect(res.status).toBe(202);
-    expect(mockHeartbeatService.invoke).toHaveBeenCalledWith(
+    expect(mockHeartbeatService.wakeup).toHaveBeenCalledWith(
       agentId,
-      "on_demand",
       expect.objectContaining({
-        triggeredBy: "board",
-        actorId: "local-board",
-        requestedUiLocale: "zh-CN",
+        source: "on_demand",
+        triggerDetail: "manual",
+        requestedByActorType: "user",
+        requestedByActorId: "local-board",
+        contextSnapshot: expect.objectContaining({
+          triggeredBy: "board",
+          actorId: "local-board",
+          requestedUiLocale: "zh-CN",
+        }),
       }),
-      "manual",
-      {
-        actorType: "user",
-        actorId: "local-board",
-      },
     );
   });
 

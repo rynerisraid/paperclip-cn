@@ -6,7 +6,7 @@ import { I18nextProvider } from "react-i18next";
 import { BrowserRouter } from "@/lib/router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { App } from "./App";
-import { CompanyProvider } from "./context/CompanyContext";
+import { CompanyProvider, useCompany } from "./context/CompanyContext";
 import { LiveUpdatesProvider } from "./context/LiveUpdatesProvider";
 import { BreadcrumbProvider } from "./context/BreadcrumbContext";
 import { PanelProvider } from "./context/PanelContext";
@@ -39,6 +39,11 @@ const queryClient = new QueryClient({
   },
 });
 
+function CompanyAwareBreadcrumbProvider({ children }: { children: React.ReactNode }) {
+  const { selectedCompany } = useCompany();
+  return <BreadcrumbProvider companyName={selectedCompany?.name ?? null}>{children}</BreadcrumbProvider>;
+}
+
 function AppProviders() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -49,7 +54,7 @@ function AppProviders() {
               <ToastProvider>
                 <LiveUpdatesProvider>
                   <TooltipProvider>
-                    <BreadcrumbProvider>
+                    <CompanyAwareBreadcrumbProvider>
                       <SidebarProvider>
                         <PanelProvider>
                           <PluginLauncherProvider>
@@ -59,7 +64,7 @@ function AppProviders() {
                           </PluginLauncherProvider>
                         </PanelProvider>
                       </SidebarProvider>
-                    </BreadcrumbProvider>
+                    </CompanyAwareBreadcrumbProvider>
                   </TooltipProvider>
                 </LiveUpdatesProvider>
               </ToastProvider>

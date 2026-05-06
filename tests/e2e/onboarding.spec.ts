@@ -29,6 +29,49 @@ test.use({
 });
 
 test.describe("Onboarding wizard", () => {
+  test("keeps the company name field interactive after a modal pointer lock", async ({
+    page,
+  }) => {
+    await page.goto("/onboarding");
+
+    const html = page.locator("html");
+    const languageSwitcher = page.locator(LANGUAGE_SWITCHER_SELECTOR).first();
+    await expect(languageSwitcher).toBeVisible({ timeout: 15_000 });
+
+    if ((await html.getAttribute("lang")) !== "en") {
+      await languageSwitcher.click();
+      await page.getByRole("button", { name: "English" }).click();
+      await expect(html).toHaveAttribute("lang", "en");
+    }
+
+    const wizardHeading = page.locator("h3", { hasText: "Name your company" });
+    const startOnboardingBtn = page.getByRole("button", {
+      name: "Start Onboarding",
+    });
+    const newCompanyBtn = page.getByRole("button", { name: "New Company" });
+
+    if (!(await wizardHeading.isVisible())) {
+      if (await startOnboardingBtn.isVisible()) {
+        await startOnboardingBtn.click();
+      } else if (await newCompanyBtn.isVisible()) {
+        await newCompanyBtn.click();
+      }
+    }
+
+    await expect(wizardHeading).toBeVisible({ timeout: 15_000 });
+
+    const companyNameInput = page.locator('input[placeholder="Acme Corp"]');
+    const typedName = `Pointer-Lock-${Date.now()}`;
+
+    await page.evaluate(() => {
+      document.body.style.pointerEvents = "none";
+    });
+
+    await companyNameInput.click();
+    await page.keyboard.type(typedName);
+    await expect(companyNameInput).toHaveValue(typedName);
+  });
+
   test("completes full wizard flow", async ({ page }) => {
     test.setTimeout(120_000);
 
