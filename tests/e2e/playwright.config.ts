@@ -14,16 +14,33 @@ const PAPERCLIP_CONFIG = path.join(PAPERCLIP_HOME, "instances", PAPERCLIP_INSTAN
 function bootstrapE2EInstanceConfig(): void {
   const instanceRoot = path.join(PAPERCLIP_HOME, "instances", PAPERCLIP_INSTANCE_ID);
   fs.mkdirSync(instanceRoot, { recursive: true });
+  const dataRoot = path.join(instanceRoot, "data");
   fs.writeFileSync(
     PAPERCLIP_CONFIG,
     `${JSON.stringify({
       $meta: { version: 1, updatedAt: "2026-01-01T00:00:00.000Z", source: "onboard" },
-      database: { mode: "embedded-postgres" },
-      logging: { mode: "file" },
+      database: {
+        mode: "embedded-postgres",
+        embeddedPostgresDataDir: path.join(instanceRoot, "db"),
+        backup: {
+          enabled: false,
+          intervalMinutes: 60,
+          retentionDays: 7,
+          dir: path.join(dataRoot, "backups"),
+        },
+      },
+      logging: { mode: "file", logDir: path.join(instanceRoot, "logs") },
       server: { deploymentMode: "local_trusted", host: "127.0.0.1", port: PORT },
       auth: { baseUrlMode: "auto" },
-      storage: { provider: "local_disk" },
-      secrets: { provider: "local_encrypted", strictMode: false },
+      storage: {
+        provider: "local_disk",
+        localDisk: { baseDir: path.join(dataRoot, "storage") },
+      },
+      secrets: {
+        provider: "local_encrypted",
+        strictMode: false,
+        localEncrypted: { keyFilePath: path.join(instanceRoot, "secrets", "master.key") },
+      },
     }, null, 2)}\n`,
     "utf8",
   );

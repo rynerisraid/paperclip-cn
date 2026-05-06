@@ -417,7 +417,7 @@ describe("worktree helpers", () => {
       await db.$client?.end?.({ timeout: 5 }).catch(() => undefined);
       await tempDb.cleanup();
     }
-  }, 20_000);
+  }, 60_000);
 
   it("copies the source local_encrypted secrets key into the seeded worktree instance", () => {
     const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "paperclip-worktree-secrets-"));

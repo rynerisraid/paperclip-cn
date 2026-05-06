@@ -1,5 +1,7 @@
-import type { IssueBlockerAttention, IssueRelationIssueSummary } from "@penclipai/shared";
+import type { IssueBlockerAttention, IssueRelationIssueSummary, SuccessfulRunHandoffState } from "@penclipai/shared";
 import { AlertTriangle } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { Link } from "@/lib/router";
 import { createIssueDetailPath } from "../lib/issueDetailBreadcrumb";
 import { IssueLinkQuicklook } from "./IssueLinkQuicklook";
 
@@ -7,14 +9,24 @@ export function IssueBlockedNotice({
   issueStatus,
   blockers,
   blockerAttention,
+  successfulRunHandoff,
+  agentName,
 }: {
   issueStatus?: string;
   blockers: IssueRelationIssueSummary[];
   blockerAttention?: IssueBlockerAttention | null;
+  successfulRunHandoff?: SuccessfulRunHandoffState | null;
+  agentName?: string | null;
 }) {
-  if (blockers.length === 0 && issueStatus !== "blocked") return null;
+  const { t } = useTranslation(undefined, { useSuspense: false });
+  if (issueStatus === "done" || issueStatus === "cancelled") return null;
+  const showSuccessfulRunHandoff = successfulRunHandoff?.required === true;
+  if (!showSuccessfulRunHandoff && blockers.length === 0 && issueStatus !== "blocked") return null;
 
-  const blockerLabel = blockers.length === 1 ? "the linked issue" : "the linked issues";
+  const blockerLabel = blockers.length === 1
+    ? t("issueBlocked.linkedIssue", { defaultValue: "the linked issue" })
+    : t("issueBlocked.linkedIssues", { defaultValue: "the linked issues" });
+  const assigneeLabel = agentName ?? t("issueBlocked.assignee", { defaultValue: "the assignee" });
   const terminalBlockers = blockers
     .flatMap((blocker) => blocker.terminalBlockers ?? [])
     .filter((blocker, index, all) => all.findIndex((candidate) => candidate.id === blocker.id) === index);
@@ -61,39 +73,123 @@ export function IssueBlockedNotice({
   return (
     <div
       data-blocker-attention-state={blockerAttention?.state}
+      data-successful-run-handoff={showSuccessfulRunHandoff ? "required" : undefined}
       className="mb-3 rounded-md border border-amber-300/70 bg-amber-50/90 px-3 py-2.5 text-sm text-amber-950 shadow-sm dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-100"
     >
       <div className="flex items-start gap-2">
         <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600 dark:text-amber-300" />
         <div className="min-w-0 space-y-1.5">
-          <p className="leading-5">
-            {blockers.length > 0
-              ? isStalled
-                ? stalledLeafBlockers.length > 1
-                  ? <>Work on this issue is blocked by {blockerLabel}, but the chain is stalled in review without a clear next step. Resolve the stalled reviews below or remove them as blockers.</>
-                  : <>Work on this issue is blocked by {blockerLabel}, but the chain is stalled in review without a clear next step. Resolve the stalled review below or remove it as a blocker.</>
-                : <>Work on this issue is blocked by {blockerLabel} until {blockers.length === 1 ? "it is" : "they are"} complete. Comments still wake the assignee for questions or triage.</>
-              : <>Work on this issue is blocked until it is moved back to todo. Comments still wake the assignee for questions or triage.</>}
-          </p>
-          {blockers.length > 0 ? (
-            <div className="flex flex-wrap gap-1.5">
-              {blockers.map(renderBlockerChip)}
-            </div>
+          {showSuccessfulRunHandoff ? (
+            <>
+              <p className="font-medium leading-5">
+                {t("issueBlocked.success.title", {
+                  defaultValue: "This issue still needs a next step.",
+                })}
+              </p>
+              <p className="leading-5">
+                {t("issueBlocked.success.bodyPrefix", {
+                  defaultValue: "A run finished successfully, but this issue is still open in",
+                })}{" "}
+                <code className="rounded bg-amber-100 px-1 py-0.5 text-[12px] dark:bg-amber-400/15">
+                  in_progress
+                </code>{" "}
+                {t("issueBlocked.success.bodySuffix", {
+                  defaultValue: "with no clear owner for the next action.",
+                })}
+              </p>
+              <ul className="list-disc space-y-1 pl-5 text-xs leading-5 text-amber-900 dark:text-amber-100">
+                <li>{t("issueBlocked.success.action.done", { defaultValue: "Mark it done or cancelled." })}</li>
+                <li>{t("issueBlocked.success.action.review", { defaultValue: "Send it for review or ask for input." })}</li>
+                <li>{t("issueBlocked.success.action.blocked", { defaultValue: "Mark it blocked with a blocker owner." })}</li>
+                <li>{t("issueBlocked.success.action.delegate", { defaultValue: "Delegate follow-up work or queue a continuation." })}</li>
+              </ul>
+              <div className="flex flex-wrap gap-1.5 text-xs">
+                {successfulRunHandoff.sourceRunId && successfulRunHandoff.assigneeAgentId ? (
+                  <Link
+                    to={`/agents/${successfulRunHandoff.assigneeAgentId}/runs/${successfulRunHandoff.sourceRunId}`}
+                    className="rounded-md border border-amber-300/70 bg-background/80 px-2 py-1 font-mono text-amber-950 hover:border-amber-500 hover:bg-amber-100 hover:underline dark:border-amber-500/40 dark:bg-background/40 dark:text-amber-100 dark:hover:bg-amber-500/15"
+                  >
+                    {t("issueBlocked.runShort", {
+                      id: successfulRunHandoff.sourceRunId.slice(0, 8),
+                      defaultValue: "run {{id}}",
+                    })}
+                  </Link>
+                ) : successfulRunHandoff.sourceRunId ? (
+                  <span className="rounded-md border border-amber-300/70 bg-background/80 px-2 py-1 font-mono text-amber-950 dark:border-amber-500/40 dark:bg-background/40 dark:text-amber-100">
+                    {t("issueBlocked.runShort", {
+                      id: successfulRunHandoff.sourceRunId.slice(0, 8),
+                      defaultValue: "run {{id}}",
+                    })}
+                  </span>
+                ) : null}
+                <span className="rounded-md border border-amber-300/70 bg-background/80 px-2 py-1 text-amber-900 dark:border-amber-500/40 dark:bg-background/40 dark:text-amber-100">
+                  {t("issueBlocked.correctiveWakeQueued", {
+                    agentName: assigneeLabel,
+                    defaultValue: "Corrective wake queued for {{agentName}}",
+                  })}
+                </span>
+              </div>
+              {successfulRunHandoff.detectedProgressSummary ? (
+                <p className="text-xs leading-5 text-amber-800 dark:text-amber-200">
+                  {t("issueBlocked.detectedProgress", {
+                    summary: successfulRunHandoff.detectedProgressSummary,
+                    defaultValue: "Detected progress: {{summary}}",
+                  })}
+                </p>
+              ) : null}
+            </>
           ) : null}
-          {showStalledRow ? (
-            <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-              <span className="text-xs font-medium text-amber-800 dark:text-amber-200">
-                Stalled in review
-              </span>
-              {stalledLeafBlockers.map(renderBlockerChip)}
-            </div>
-          ) : terminalBlockers.length > 0 ? (
-            <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-              <span className="text-xs font-medium text-amber-800 dark:text-amber-200">
-                Ultimately waiting on
-              </span>
-              {terminalBlockers.map(renderBlockerChip)}
-            </div>
+          {showSuccessfulRunHandoff && (blockers.length > 0 || issueStatus === "blocked") ? (
+            <div className="border-t border-amber-300/60 pt-1.5 dark:border-amber-500/30" />
+          ) : null}
+          {blockers.length > 0 || issueStatus === "blocked" ? (
+            <>
+              <p className="leading-5">
+                {blockers.length > 0
+                  ? isStalled
+                    ? stalledLeafBlockers.length > 1
+                      ? t("issueBlocked.stalledMany", {
+                        blockerLabel,
+                        defaultValue: "Work on this issue is blocked by {{blockerLabel}}, but the chain is stalled in review without a clear next step. Resolve the stalled reviews below or remove them as blockers.",
+                      })
+                      : t("issueBlocked.stalledOne", {
+                        blockerLabel,
+                        defaultValue: "Work on this issue is blocked by {{blockerLabel}}, but the chain is stalled in review without a clear next step. Resolve the stalled review below or remove it as a blocker.",
+                      })
+                    : blockers.length === 1
+                      ? t("issueBlocked.blockedByOne", {
+                        blockerLabel,
+                        defaultValue: "Work on this issue is blocked by {{blockerLabel}} until it is complete. Comments still wake the assignee for questions or triage.",
+                      })
+                      : t("issueBlocked.blockedByMany", {
+                        blockerLabel,
+                        defaultValue: "Work on this issue is blocked by {{blockerLabel}} until they are complete. Comments still wake the assignee for questions or triage.",
+                      })
+                  : t("issueBlocked.blockedNoLinks", {
+                    defaultValue: "Work on this issue is blocked until it is moved back to todo. Comments still wake the assignee for questions or triage.",
+                  })}
+              </p>
+              {blockers.length > 0 ? (
+                <div className="flex flex-wrap gap-1.5">
+                  {blockers.map(renderBlockerChip)}
+                </div>
+              ) : null}
+              {showStalledRow ? (
+                <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                  <span className="text-xs font-medium text-amber-800 dark:text-amber-200">
+                    {t("issueBlocked.stalledInReview", { defaultValue: "Stalled in review" })}
+                  </span>
+                  {stalledLeafBlockers.map(renderBlockerChip)}
+                </div>
+              ) : terminalBlockers.length > 0 ? (
+                <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                  <span className="text-xs font-medium text-amber-800 dark:text-amber-200">
+                    {t("issueBlocked.ultimatelyWaitingOn", { defaultValue: "Ultimately waiting on" })}
+                  </span>
+                  {terminalBlockers.map(renderBlockerChip)}
+                </div>
+              ) : null}
+            </>
           ) : null}
         </div>
       </div>

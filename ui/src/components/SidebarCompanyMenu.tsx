@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, ChevronsUpDown, LogOut, Plus, Settings, UserPlus } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -48,7 +48,10 @@ export function SidebarCompanyMenu({ open: controlledOpen, onOpenChange }: Sideb
   const navigate = useNavigate();
   const open = controlledOpen ?? internalOpen;
   const setOpen = onOpenChange ?? setInternalOpen;
-  const sidebarCompanies = companies.filter((company) => company.status !== "archived");
+  const sidebarCompanies = useMemo(
+    () => companies.filter((company) => company.status !== "archived"),
+    [companies],
+  );
   const { data: session } = useQuery({
     queryKey: queryKeys.auth.session,
     queryFn: () => authApi.getSession(),
@@ -117,7 +120,7 @@ export function SidebarCompanyMenu({ open: controlledOpen, onOpenChange }: Sideb
         <DropdownMenuLabel className="px-2 py-1.5 text-[11px] font-semibold uppercase text-muted-foreground">
           {t("Switch workspace", { defaultValue: "Switch workspace" })}
         </DropdownMenuLabel>
-        <div className="max-h-72 overflow-y-auto">
+        <div className="max-h-96 overflow-y-auto">
           {sidebarCompanies.map((company) => {
             const isSelected = company.id === selectedCompany?.id;
             return (
@@ -131,6 +134,9 @@ export function SidebarCompanyMenu({ open: controlledOpen, onOpenChange }: Sideb
               >
                 <WorkspaceIcon company={company} />
                 <span className="min-w-0 flex-1 truncate">{company.name}</span>
+                <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
+                  {company.issuePrefix}
+                </span>
                 {isSelected ? <Check className="size-4 text-muted-foreground" /> : null}
               </DropdownMenuItem>
             );
