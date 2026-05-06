@@ -6,7 +6,6 @@ import { pluginsApi } from "@/api/plugins";
 import { queryKeys } from "@/lib/queryKeys";
 import { SIDEBAR_SCROLL_RESET_STATE } from "@/lib/navigation-scroll";
 import { SidebarNavItem } from "./SidebarNavItem";
-import { SidebarCompanyMenu } from "./SidebarCompanyMenu";
 
 export function InstanceSidebar() {
   const { t } = useTranslation();
@@ -16,13 +15,10 @@ export function InstanceSidebar() {
   });
 
   return (
-    <aside className="w-60 h-full min-h-0 border-r border-border bg-background flex flex-col">
-      <div className="flex items-center gap-1 px-3 h-12 shrink-0">
-        <SidebarCompanyMenu />
-      </div>
-      <div className="flex items-center gap-2 px-5 pb-3 shrink-0">
-        <Settings className="h-4 w-4 text-muted-foreground shrink-0" />
-        <span className="flex-1 truncate text-sm font-bold text-foreground">
+    <aside className="w-full h-full min-h-0 border-r border-border bg-background flex flex-col">
+      <div className="flex items-center gap-2 px-3 h-12 shrink-0">
+        <Settings className="h-4 w-4 text-muted-foreground shrink-0 ml-1" />
+        <span className="flex-1 text-sm font-bold text-foreground truncate">
           {t("Instance Settings", { defaultValue: "Instance Settings" })}
         </span>
       </div>
