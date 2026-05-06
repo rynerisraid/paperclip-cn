@@ -112,6 +112,8 @@ type ExecFileResult = {
   stdout: string;
 };
 
+type PortAvailabilityProbe = (port: number) => Promise<boolean>;
+
 type ManagerOps = {
   execFile: (command: string, args: string[]) => Promise<ExecFileResult>;
   forceKillProcessTree: (pid: number) => Promise<void>;
@@ -325,21 +327,36 @@ export async function getAvailablePort(): Promise<number> {
   );
 }
 
-async function isPortInUse(port: number): Promise<boolean> {
+async function canBindPort(port: number): Promise<boolean> {
   return await new Promise((resolve) => {
     const server = net.createServer();
+    let resolved = false;
+    const resolveOnce = (value: boolean) => {
+      if (resolved) return;
+      resolved = true;
+      resolve(value);
+    };
+
     server.unref();
-    server.once("error", (error: NodeJS.ErrnoException) => {
-      resolve(error.code === "EADDRINUSE");
+    server.once("error", () => {
+      resolveOnce(false);
     });
-    server.listen(port, "127.0.0.1", () => {
-      server.close();
-      resolve(false);
-    });
+    try {
+      server.listen(port, "127.0.0.1", () => {
+        server.close((error) => {
+          resolveOnce(!error);
+        });
+      });
+    } catch {
+      resolveOnce(false);
+    }
   });
 }
 
-export async function findAvailablePort(startPort: number): Promise<number> {
+export async function findAvailablePort(
+  startPort: number,
+  probePortAvailability: PortAvailabilityProbe = canBindPort,
+): Promise<number> {
   if (startPort <= 0) {
     return await getAvailablePort();
   }
@@ -347,11 +364,11 @@ export async function findAvailablePort(startPort: number): Promise<number> {
   const maxLookahead = 20;
   let port = startPort;
   for (let index = 0; index < maxLookahead; index += 1, port += 1) {
-    if (!(await isPortInUse(port))) return port;
+    if (await probePortAvailability(port)) return port;
   }
 
   throw new Error(
-    `Embedded PostgreSQL could not find a free port from ${startPort} to ${startPort + maxLookahead - 1}`,
+    `Embedded PostgreSQL could not find a bindable port from ${startPort} to ${startPort + maxLookahead - 1}`,
   );
 }
 
