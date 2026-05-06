@@ -157,7 +157,7 @@ describe("SidebarCompanyMenu", () => {
 
     expect(document.body.textContent).toContain("Switch workspace");
     expect(document.body.textContent).toContain("Strata");
-    expect(document.body.textContent).toContain("Add company...");
+    expect(document.body.textContent).toContain("Add Company");
     expect(document.body.textContent).toContain("Invite people to Acme Labs");
     expect(document.body.textContent).toContain("Company settings");
     expect(document.body.textContent).toContain("Sign out");

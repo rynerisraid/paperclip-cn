@@ -144,7 +144,7 @@ export function SidebarCompanyMenu({ open: controlledOpen, onOpenChange }: Sideb
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={addCompany} className="gap-2 py-2 text-muted-foreground">
           <Plus className="size-4" />
-          <span>{t("Add company...", { defaultValue: "Add company..." })}</span>
+          <span>{t("app.addCompany", { defaultValue: "Add Company" })}</span>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
