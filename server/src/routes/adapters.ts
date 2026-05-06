@@ -47,6 +47,13 @@ import { assertBoardOrgAccess, assertInstanceAdmin } from "./authz.js";
 import { BUILTIN_ADAPTER_TYPES } from "../adapters/builtin-adapter-types.js";
 
 const execFileAsync = promisify(execFile);
+const npmCommand = process.platform === "win32" ? "cmd.exe" : "npm";
+
+function npmArgs(args: string[]): string[] {
+  return process.platform === "win32"
+    ? ["/d", "/s", "/c", "npm", ...args]
+    : args;
+}
 
 // ---------------------------------------------------------------------------
 // Request / Response types
@@ -262,7 +269,7 @@ export function adapterRoutes() {
 
         logger.info({ spec, pluginsDir }, "Installing adapter package via npm");
 
-        await execFileAsync("npm", ["install", "--no-save", spec], {
+        await execFileAsync(npmCommand, npmArgs(["install", "--no-save", spec]), {
           cwd: pluginsDir,
           timeout: 120_000,
         });
@@ -461,7 +468,7 @@ export function adapterRoutes() {
     if (externalRecord.packageName && !externalRecord.localPath) {
       try {
         const pluginsDir = getAdapterPluginsDir();
-        await execFileAsync("npm", ["uninstall", externalRecord.packageName], {
+        await execFileAsync(npmCommand, npmArgs(["uninstall", externalRecord.packageName]), {
           cwd: pluginsDir,
           timeout: 60_000,
         });
@@ -574,7 +581,7 @@ export function adapterRoutes() {
 
       logger.info({ type, packageName: record.packageName }, "Reinstalling adapter package via npm");
 
-      await execFileAsync("npm", ["install", "--no-save", record.packageName], {
+      await execFileAsync(npmCommand, npmArgs(["install", "--no-save", record.packageName]), {
         cwd: pluginsDir,
         timeout: 120_000,
       });
