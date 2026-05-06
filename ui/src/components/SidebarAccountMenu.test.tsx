@@ -141,6 +141,8 @@ describe("SidebarAccountMenu", () => {
     expect(document.body.textContent).toContain("Choose the interface language for this browser.");
     expect(document.body.textContent).toContain("中文");
     expect(document.body.textContent).toContain("English");
+    expect(document.body.querySelector('[data-slot="popover-content"]')?.className)
+      .toContain("w-[var(--radix-popover-trigger-width)]");
 
     await act(async () => {
       root.unmount();

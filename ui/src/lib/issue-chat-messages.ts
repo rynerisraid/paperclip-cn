@@ -476,6 +476,11 @@ function createTimelineEventMessage(args: {
       : (formatAssigneeUserLabel(event.assigneeChange.to.userId, currentUserId, userLabelMap) ?? translateInstant("Unassigned"));
     lines.push(`${translateInstant("Assignee")}: ${from} -> ${to}`);
   }
+  if (event.workspaceChange) {
+    lines.push(
+      `Workspace: ${event.workspaceChange.from.label ?? "none"} -> ${event.workspaceChange.to.label ?? "none"}`,
+    );
+  }
 
   const message: ThreadSystemMessage = {
     id: `activity:${event.id}`,
@@ -492,6 +497,7 @@ function createTimelineEventMessage(args: {
         actorId: event.actorId,
         statusChange: event.statusChange ?? null,
         assigneeChange: event.assigneeChange ?? null,
+        workspaceChange: event.workspaceChange ?? null,
         followUpRequested: event.followUpRequested === true,
       },
     },
