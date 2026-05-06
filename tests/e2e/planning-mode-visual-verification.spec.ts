@@ -4,6 +4,14 @@ const SKIP_LLM = process.env.PAPERCLIP_E2E_SKIP_LLM !== "false";
 
 const AGENT_NAME = "CEO";
 const TASK_TITLE = "PAP-3413 planning mode evidence";
+const LANGUAGE_SWITCHER_SELECTOR =
+  'button[aria-label="Switch language"], button[aria-label="切换语言"]';
+
+test.use({
+  // This visual smoke captures the English baseline. Locale switching itself
+  // is covered separately in language-switcher.spec.ts.
+  locale: "en-US",
+});
 
 test("captures planning mode UI for desktop and mobile", async ({ page }) => {
   const timestamp = Date.now();
@@ -11,6 +19,16 @@ test("captures planning mode UI for desktop and mobile", async ({ page }) => {
   const screenshotDir = "test-results/planning-mode";
 
   await page.goto("/onboarding");
+
+  const html = page.locator("html");
+  const languageSwitcher = page.locator(LANGUAGE_SWITCHER_SELECTOR).first();
+  await expect(languageSwitcher).toBeVisible({ timeout: 15_000 });
+  if ((await html.getAttribute("lang")) !== "en") {
+    await languageSwitcher.click();
+    await page.getByRole("button", { name: "English" }).click();
+    await expect(html).toHaveAttribute("lang", "en");
+  }
+
   await expect(page.locator("h3", { hasText: "Name your company" })).toBeVisible({ timeout: 5_000 });
 
   await page.locator('input[placeholder="Acme Corp"]').fill(companyName);
