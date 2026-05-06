@@ -1,7 +1,7 @@
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { resolvePaperclipHomeDir } from "../home-paths.js";
+import { resolveHomeAwarePath, resolvePaperclipHomeDir } from "../home-paths.js";
 
 const ORIGINAL_ENV = { ...process.env };
 
@@ -13,6 +13,14 @@ afterEach(() => {
     if (value === undefined) delete process.env[key];
     else process.env[key] = value;
   }
+});
+
+describe("resolveHomeAwarePath", () => {
+  it("expands Windows-style home prefixes", () => {
+    expect(resolveHomeAwarePath("~\\adapter\\package")).toBe(
+      path.resolve(os.homedir(), "adapter", "package"),
+    );
+  });
 });
 
 describe("resolvePaperclipHomeDir", () => {
@@ -32,5 +40,11 @@ describe("resolvePaperclipHomeDir", () => {
     process.env.PAPERCLIP_HOME = staleRuntimeDir;
 
     expect(resolvePaperclipHomeDir()).toBe(path.resolve(os.homedir(), ".paperclip"));
+  });
+
+  it("expands PAPERCLIP_HOME with Windows-style home prefixes", () => {
+    process.env.PAPERCLIP_HOME = "~\\paperclip-home";
+
+    expect(resolvePaperclipHomeDir()).toBe(path.resolve(os.homedir(), "paperclip-home"));
   });
 });

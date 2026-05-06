@@ -42,9 +42,11 @@ import {
 import type { AdapterPluginRecord } from "../services/adapter-plugin-store.js";
 import type { ServerAdapterModule, AdapterConfigSchema } from "../adapters/types.js";
 import { loadExternalAdapterPackage, getUiParserSource, getOrExtractUiParserSource, reloadExternalAdapter } from "../adapters/plugin-loader.js";
+import { resolveHomeAwarePath } from "../home-paths.js";
 import { logger } from "../middleware/logger.js";
 import { assertBoardOrgAccess, assertInstanceAdmin } from "./authz.js";
 import { BUILTIN_ADAPTER_TYPES } from "../adapters/builtin-adapter-types.js";
+import { execNpmCommand } from "../services/npm-command.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -143,30 +145,49 @@ function buildAdapterInfo(adapter: ServerAdapterModule, externalRecord: AdapterP
   };
 }
 
+function wslMountToWindowsPath(rawPath: string): string | null {
+  const normalized = rawPath.replace(/\\/g, "/");
+  const match = normalized.match(/^\/mnt\/([a-zA-Z])(?:\/(.*))?$/);
+  if (!match) return null;
+
+  const drive = match[1]!.toUpperCase();
+  const rest = (match[2] ?? "")
+    .split("/")
+    .filter(Boolean)
+    .join("\\");
+  return rest ? `${drive}:\\${rest}` : `${drive}:\\`;
+}
+
 /**
- * Normalize a local path that may be a Windows path into a WSL-compatible path.
+ * Normalize a local adapter package path for the current server platform.
  *
- * - Windows paths (e.g., "C:\\Users\\...") are converted via `wslpath -u`.
- * - Paths already starting with `/mnt/` or `/` are returned as-is.
+ * - Windows/Electron accepts native Windows paths and converts WSL `/mnt/c/...`.
+ * - WSL/Linux accepts POSIX paths and converts native Windows paths via `wslpath`.
  */
 async function normalizeLocalPath(rawPath: string): Promise<string> {
+  const trimmedPath = rawPath.trim();
+
+  if (process.platform === "win32") {
+    return resolveHomeAwarePath(wslMountToWindowsPath(trimmedPath) ?? trimmedPath);
+  }
+
   // Already a POSIX path (WSL or native Linux)
-  if (rawPath.startsWith("/")) {
-    return rawPath;
+  if (trimmedPath.startsWith("/")) {
+    return resolveHomeAwarePath(trimmedPath);
   }
 
   // Windows path detection: C:\ or C:/ pattern
-  if (/^[A-Za-z]:[\\/]/.test(rawPath)) {
+  if (/^[A-Za-z]:[\\/]/.test(trimmedPath)) {
     try {
-      const { stdout } = await execFileAsync("wslpath", ["-u", rawPath]);
-      return stdout.trim();
+      const { stdout } = await execFileAsync("wslpath", ["-u", trimmedPath]);
+      return resolveHomeAwarePath(stdout.trim());
     } catch (err) {
-      logger.warn({ err, rawPath }, "wslpath conversion failed; using path as-is");
-      return rawPath;
+      logger.warn({ err, rawPath: trimmedPath }, "wslpath conversion failed; using path as-is");
+      return resolveHomeAwarePath(trimmedPath);
     }
   }
 
-  return rawPath;
+  return resolveHomeAwarePath(trimmedPath);
 }
 
 /**
@@ -262,7 +283,7 @@ export function adapterRoutes() {
 
         logger.info({ spec, pluginsDir }, "Installing adapter package via npm");
 
-        await execFileAsync("npm", ["install", "--no-save", spec], {
+        await execNpmCommand(["install", "--no-save", spec], {
           cwd: pluginsDir,
           timeout: 120_000,
         });
@@ -281,7 +302,7 @@ export function adapterRoutes() {
         }
       } else {
         // Local path — normalize (e.g., Windows → WSL) and use the resolved path
-        moduleLocalPath = path.resolve(await normalizeLocalPath(packageName));
+        moduleLocalPath = await normalizeLocalPath(packageName);
         try {
           const pkgRaw = await readFile(path.join(moduleLocalPath, "package.json"), "utf-8");
           const v = JSON.parse(pkgRaw).version;
@@ -461,7 +482,7 @@ export function adapterRoutes() {
     if (externalRecord.packageName && !externalRecord.localPath) {
       try {
         const pluginsDir = getAdapterPluginsDir();
-        await execFileAsync("npm", ["uninstall", externalRecord.packageName], {
+        await execNpmCommand(["uninstall", externalRecord.packageName], {
           cwd: pluginsDir,
           timeout: 60_000,
         });
@@ -574,7 +595,7 @@ export function adapterRoutes() {
 
       logger.info({ type, packageName: record.packageName }, "Reinstalling adapter package via npm");
 
-      await execFileAsync("npm", ["install", "--no-save", record.packageName], {
+      await execNpmCommand(["install", "--no-save", record.packageName], {
         cwd: pluginsDir,
         timeout: 120_000,
       });

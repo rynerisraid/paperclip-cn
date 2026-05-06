@@ -1,7 +1,7 @@
 #!/usr/bin/env -S node --import tsx
 import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { existsSync, mkdirSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { createInterface } from "node:readline/promises";
 import { setTimeout as delay } from "node:timers/promises";
@@ -13,7 +13,6 @@ import {
   getDevServiceControlFilePath,
   repoRoot,
 } from "./dev-service-profile.ts";
-import { bootstrapDevRunnerWorktreeEnv } from "../server/src/dev-runner-worktree.ts";
 import { bootstrapDevRunnerWorktreeEnv } from "../server/src/dev-runner-worktree.ts";
 import {
   findAdoptableLocalService,
@@ -187,7 +186,31 @@ if (tailscaleAuth || bindMode) {
   console.log("[paperclip] dev mode: local_trusted (default)");
 }
 
-const serverPort = Number.parseInt(env.PORT ?? process.env.PORT ?? "3100", 10) || 3100;
+function parsePositivePort(value: unknown): number | null {
+  const port =
+    typeof value === "number"
+      ? value
+      : typeof value === "string"
+        ? Number.parseInt(value, 10)
+        : Number.NaN;
+  return Number.isInteger(port) && port > 0 && port <= 65535 ? port : null;
+}
+
+function readConfiguredServerPort(): number | null {
+  const configPath = path.resolve(
+    env.PAPERCLIP_CONFIG ?? process.env.PAPERCLIP_CONFIG ?? path.join(repoRoot, ".paperclip", "config.json"),
+  );
+  if (!existsSync(configPath)) return null;
+
+  try {
+    const parsed = JSON.parse(readFileSync(configPath, "utf8")) as { server?: { port?: unknown } };
+    return parsePositivePort(parsed.server?.port);
+  } catch {
+    return null;
+  }
+}
+
+const serverPort = parsePositivePort(env.PORT ?? process.env.PORT) ?? readConfiguredServerPort() ?? 3100;
 const devService = createDevServiceIdentity({
   mode,
   forwardedArgs,

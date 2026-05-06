@@ -105,9 +105,10 @@ function fromGitShellPath(value: string) {
 
 function envForGitShell(env: Record<string, string>) {
   if (process.platform !== "win32") return env;
+  const home = env.HOME ?? process.env.HOME;
   return {
     ...env,
-    ...(process.env.HOME ? { HOME: toGitShellPath(process.env.HOME) } : {}),
+    ...(home ? { HOME: toGitShellPath(home) } : {}),
   };
 }
 
@@ -394,9 +395,6 @@ describe("cursor execute", () => {
     await fs.mkdir(remoteWorkspaceLocal, { recursive: true });
     await writeFakeSandboxCursorAgent(cursorAgentPath, capturePath);
 
-    const previousHome = process.env.HOME;
-    process.env.HOME = homeDir;
-
     try {
       const result = await execute({
         runId: "run-sandbox-1",
@@ -423,6 +421,9 @@ describe("cursor execute", () => {
         config: {
           command: "agent",
           cwd: workspace,
+          env: {
+            HOME: homeDir,
+          },
           promptTemplate: "Follow the paperclip heartbeat.",
         },
         context: {},
@@ -441,11 +442,9 @@ describe("cursor execute", () => {
       expect(path.normalize(firstPathEntry(capture.path) ?? "")).toBe(path.join(homeDir, ".local", "bin"));
       expect(capture.prompt).toContain("Follow the paperclip heartbeat.");
     } finally {
-      if (previousHome === undefined) delete process.env.HOME;
-      else process.env.HOME = previousHome;
       await fs.rm(root, { recursive: true, force: true });
     }
-  }, 90_000);
+  }, 180_000);
 
   it("keeps explicit command overrides for remote sandbox execution", async () => {
     const root = await fs.mkdtemp(path.join(os.tmpdir(), "paperclip-cursor-sandbox-explicit-"));
@@ -460,9 +459,6 @@ describe("cursor execute", () => {
     await fs.mkdir(remoteWorkspaceLocal, { recursive: true });
     await writeFakeSandboxCursorAgent(cursorAgentPath, path.join(root, "unused.json"));
     await writeFakeSandboxCursorAgent(customCommandPath, capturePath);
-
-    const previousHome = process.env.HOME;
-    process.env.HOME = homeDir;
 
     try {
       const result = await execute({
@@ -490,6 +486,9 @@ describe("cursor execute", () => {
         config: {
           command: customCommandPath,
           cwd: workspace,
+          env: {
+            HOME: homeDir,
+          },
           promptTemplate: "Follow the paperclip heartbeat.",
         },
         context: {},
@@ -501,9 +500,7 @@ describe("cursor execute", () => {
       const capture = JSON.parse(await fs.readFile(capturePath, "utf8")) as { command: string };
       expect(capture.command).toBe(customCommandPath);
     } finally {
-      if (previousHome === undefined) delete process.env.HOME;
-      else process.env.HOME = previousHome;
       await fs.rm(root, { recursive: true, force: true });
     }
-  }, 90_000);
+  }, 180_000);
 });

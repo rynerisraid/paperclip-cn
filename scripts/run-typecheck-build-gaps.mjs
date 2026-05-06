@@ -5,19 +5,39 @@ import { spawnSync } from "node:child_process";
 
 const repoRoot = process.cwd();
 
+function quoteCmdArg(value) {
+  if (/^[A-Za-z0-9_/:=.,@+-]+$/.test(value)) return value;
+  return `"${value.replace(/"/g, '""')}"`;
+}
+
+function resolvePnpmInvocation(args) {
+  const npmExecPath = process.env.npm_execpath;
+  if (npmExecPath && /pnpm/i.test(npmExecPath)) {
+    return { command: process.execPath, args: [npmExecPath, ...args] };
+  }
+  if (process.platform === "win32") {
+    return {
+      command: process.env.ComSpec || "cmd.exe",
+      args: ["/d", "/s", "/c", ["pnpm", ...args].map(quoteCmdArg).join(" ")],
+    };
+  }
+  return { command: "pnpm", args };
+}
+
 function fail(message) {
   console.error(`[typecheck:build-gaps] ${message}`);
   process.exit(1);
 }
 
 function run(command, args) {
-  const result = spawnSync(command, args, {
+  const invocation = command === "pnpm" ? resolvePnpmInvocation(args) : { command, args };
+  const result = spawnSync(invocation.command, invocation.args, {
     cwd: repoRoot,
     stdio: "inherit",
   });
 
   if (result.error) {
-    console.error(`[typecheck:build-gaps] Failed to spawn ${command}: ${result.error.message}`);
+    console.error(`[typecheck:build-gaps] Failed to spawn ${invocation.command}: ${result.error.message}`);
     process.exit(1);
   }
 
@@ -31,7 +51,8 @@ function readJson(filePath) {
 }
 
 function listWorkspacePackages() {
-  const result = spawnSync("pnpm", ["ls", "-r", "--depth", "-1", "--json"], {
+  const invocation = resolvePnpmInvocation(["ls", "-r", "--depth", "-1", "--json"]);
+  const result = spawnSync(invocation.command, invocation.args, {
     cwd: repoRoot,
     encoding: "utf8",
   });

@@ -4,6 +4,7 @@ import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   cleanupStaleEmbeddedPostgresTestRegistrations,
+  findAvailablePort,
   getAvailablePort,
   removeDataDirWithRetries,
   shutdownManagedEmbeddedPostgres,
@@ -42,6 +43,19 @@ describe("removeDataDirWithRetries", () => {
 
     expect(rm).toHaveBeenCalledTimes(3);
     expect(sleep).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("findAvailablePort", () => {
+  it("skips ports that the OS refuses to bind", async () => {
+    const attempts: number[] = [];
+    const port = await findAvailablePort(54334, async (candidate) => {
+      attempts.push(candidate);
+      return candidate === 54336;
+    });
+
+    expect(port).toBe(54336);
+    expect(attempts).toEqual([54334, 54335, 54336]);
   });
 });
 

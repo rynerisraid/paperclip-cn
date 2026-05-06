@@ -14,8 +14,9 @@ import {
 import { getDevServiceControlFilePath, repoRoot } from "./dev-service-profile.ts";
 
 const execFileAsync = promisify(execFile);
+type DevServiceRecord = Awaited<ReturnType<typeof listLocalServiceRegistryRecords>>[number];
 
-function toDisplayLines(records: Awaited<ReturnType<typeof listLocalServiceRegistryRecords>>) {
+function toDisplayLines(records: DevServiceRecord[]) {
   return records.map((record) => {
     const childPid = typeof record.metadata?.childPid === "number" ? ` child=${record.metadata.childPid}` : "";
     const url = typeof record.metadata?.url === "string" ? ` url=${record.metadata.url}` : "";
@@ -24,15 +25,37 @@ function toDisplayLines(records: Awaited<ReturnType<typeof listLocalServiceRegis
 }
 
 const command = process.argv[2] ?? "list";
-const records = await listLocalServiceRegistryRecords({
-  profileKind: "paperclip-dev",
-  metadata: { repoRoot },
-});
+const records = await pruneDeadDevServiceRecords(
+  await listLocalServiceRegistryRecords({
+    profileKind: "paperclip-dev",
+    metadata: { repoRoot },
+  }),
+);
 
-function getRecordChildPid(record: (typeof records)[number]) {
+function getRecordChildPid(record: DevServiceRecord) {
   return typeof record.metadata?.childPid === "number" && record.metadata.childPid > 0
     ? record.metadata.childPid
     : null;
+}
+
+async function pruneDeadDevServiceRecords(recordsToCheck: DevServiceRecord[]) {
+  const liveRecords: DevServiceRecord[] = [];
+
+  for (const record of recordsToCheck) {
+    const childPid = getRecordChildPid(record);
+    const wrapperAlive = isPidAlive(record.pid);
+    const childAlive = childPid ? isPidAlive(childPid) : false;
+    const serviceHealthy = await isDevServiceHealthy(record.port);
+
+    if (wrapperAlive || childAlive || serviceHealthy) {
+      liveRecords.push(record);
+      continue;
+    }
+
+    await removeLocalServiceRegistryRecord(record.serviceKey);
+  }
+
+  return liveRecords;
 }
 
 async function isDevServiceHealthy(port: number | null) {
@@ -77,7 +100,7 @@ async function findListeningPid(port: number | null) {
   }
 }
 
-async function stopRecordGracefullyOnWindows(record: (typeof records)[number]) {
+async function stopRecordGracefullyOnWindows(record: DevServiceRecord) {
   const controlFilePath = getDevServiceControlFilePath(record.serviceKey);
   const childPid = getRecordChildPid(record);
 

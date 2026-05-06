@@ -6,6 +6,18 @@ import path from "node:path";
 import { runChildProcess } from "@penclipai/adapter-utils/server-utils";
 import { execute } from "@penclipai/adapter-codex-local/server";
 
+async function expectSharedCodexAuthMaterialized(target: string, source: string): Promise<void> {
+  const targetStat = await fs.lstat(target);
+  if (process.platform === "win32") {
+    expect(targetStat.isFile()).toBe(true);
+    expect(await fs.readFile(target, "utf8")).toBe(await fs.readFile(source, "utf8"));
+    return;
+  }
+
+  expect(targetStat.isSymbolicLink()).toBe(true);
+  expect(await fs.realpath(target)).toBe(await fs.realpath(source));
+}
+
 async function writeFakeCodexCommand(commandPath: string): Promise<void> {
   const script = `#!/usr/bin/env node
 const fs = require("node:fs");
@@ -211,8 +223,7 @@ describe("codex execute", () => {
 
       const managedAuth = path.join(managedCodexHome, "auth.json");
       const managedConfig = path.join(managedCodexHome, "config.toml");
-      expect((await fs.lstat(managedAuth)).isSymbolicLink()).toBe(true);
-      expect(await fs.realpath(managedAuth)).toBe(await fs.realpath(path.join(sharedCodexHome, "auth.json")));
+      await expectSharedCodexAuthMaterialized(managedAuth, path.join(sharedCodexHome, "auth.json"));
       expect((await fs.lstat(managedConfig)).isFile()).toBe(true);
       expect(await fs.readFile(managedConfig, "utf8")).toBe('model = "codex-mini-latest"\n');
       await expect(fs.lstat(path.join(sharedCodexHome, "companies", "company-1"))).rejects.toThrow();
@@ -1183,8 +1194,7 @@ describe("codex execute", () => {
       const isolatedAuth = path.join(isolatedCodexHome, "auth.json");
       const isolatedConfig = path.join(isolatedCodexHome, "config.toml");
 
-      expect((await fs.lstat(isolatedAuth)).isSymbolicLink()).toBe(true);
-      expect(await fs.realpath(isolatedAuth)).toBe(await fs.realpath(path.join(sharedCodexHome, "auth.json")));
+      await expectSharedCodexAuthMaterialized(isolatedAuth, path.join(sharedCodexHome, "auth.json"));
       expect((await fs.lstat(isolatedConfig)).isFile()).toBe(true);
       expect(await fs.readFile(isolatedConfig, "utf8")).toBe('model = "codex-mini-latest"\n');
       expect((await fs.lstat(homeSkill)).isSymbolicLink()).toBe(true);

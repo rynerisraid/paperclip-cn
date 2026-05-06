@@ -20,7 +20,9 @@ export function normalizeLegacyDesktopStoragePath(value: string): string {
 
 function expandHomePrefix(value: string): string {
   if (value === "~") return os.homedir();
-  if (value.startsWith("~/")) return path.resolve(os.homedir(), value.slice(2));
+  if (value.startsWith("~/") || value.startsWith("~\\")) {
+    return path.resolve(os.homedir(), value.slice(2).replace(/[\\/]+/g, path.sep));
+  }
   return normalizeLegacyDesktopStoragePath(value);
 }
 

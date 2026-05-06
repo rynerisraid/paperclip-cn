@@ -1648,6 +1648,11 @@ async function materializePaperclipSkillTarget(
       return "linked";
     }
 
+    if (process.platform === "win32") {
+      await fs.copyFile(source, target);
+      return "copied";
+    }
+
     await fs.symlink(source, target);
     return "linked";
   } catch (error) {

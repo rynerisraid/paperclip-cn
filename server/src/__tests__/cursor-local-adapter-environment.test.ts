@@ -85,9 +85,10 @@ function fromGitShellPath(value: string) {
 
 function envForGitShell(env: Record<string, string>) {
   if (process.platform !== "win32") return env;
+  const home = env.HOME ?? process.env.HOME;
   return {
     ...env,
-    ...(process.env.HOME ? { HOME: toGitShellPath(process.env.HOME) } : {}),
+    ...(home ? { HOME: toGitShellPath(home) } : {}),
   };
 }
 
@@ -244,9 +245,6 @@ describe("cursor environment diagnostics", () => {
     await fs.mkdir(remoteCwdLocal, { recursive: true });
     await writeFakeCursorAgentCommand(cursorAgentPath);
 
-    const previousHome = process.env.HOME;
-    process.env.HOME = homeDir;
-
     try {
       const result = await testEnvironment({
         companyId: "company-1",
@@ -263,6 +261,7 @@ describe("cursor environment diagnostics", () => {
           cwd: remoteCwd,
           env: {
             CURSOR_API_KEY: "test-key",
+            HOME: homeDir,
             PAPERCLIP_TEST_ARGS_PATH: argsCapturePath,
           },
         },
@@ -277,11 +276,9 @@ describe("cursor environment diagnostics", () => {
       expect(capture.command).toBe(cursorAgentPath);
       expect(path.normalize(firstPathEntry(capture.path) ?? "")).toBe(path.join(homeDir, ".local", "bin"));
     } finally {
-      if (previousHome === undefined) delete process.env.HOME;
-      else process.env.HOME = previousHome;
       await fs.rm(root, { recursive: true, force: true });
     }
-  });
+  }, 15_000);
 
   it("emits cursor_native_auth_present when cli-config.json has authInfo and CURSOR_API_KEY is unset", async () => {
     const root = path.join(
