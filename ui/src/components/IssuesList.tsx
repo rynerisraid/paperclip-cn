@@ -453,6 +453,7 @@ function SubIssueProgressSummaryStrip({
   issueLinkState?: unknown;
   parentIssueIdForCostSummary?: string;
 }) {
+  const { t } = useTranslation();
   const target = summary.target;
   const targetIssue = target?.issue ?? null;
   const targetPathId = targetIssue?.identifier ?? targetIssue?.id ?? "";
@@ -482,35 +483,53 @@ function SubIssueProgressSummaryStrip({
         <div className="min-w-0 flex-1 space-y-2">
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
             <span className="font-medium text-foreground">
-              {summary.doneCount}/{summary.totalCount} done
+              {t("issuesList.subIssueDoneCount", {
+                done: summary.doneCount,
+                total: summary.totalCount,
+                defaultValue: "{{done}}/{{total}} done",
+              })}
             </span>
             <span className="text-muted-foreground">
-              {summary.inProgressCount} in progress
+              {t("issuesList.subIssueInProgressCount", {
+                count: summary.inProgressCount,
+                defaultValue: "{{count}} in progress",
+              })}
             </span>
             <span className="text-muted-foreground">
-              {summary.blockedCount} blocked
+              {t("issuesList.subIssueBlockedCount", {
+                count: summary.blockedCount,
+                defaultValue: "{{count}} blocked",
+              })}
             </span>
             {showCostSummary && (
               <>
                 <span
                   className="text-muted-foreground tabular-nums"
-                  title={`${costSummary.runCount.toLocaleString()} run${
-                    costSummary.runCount === 1 ? "" : "s"
-                  } across ${costSummary.issueCount} sub-issue${
-                    costSummary.issueCount === 1 ? "" : "s"
-                  }`}
+                  title={t("issuesList.subIssueRunSummary", {
+                    runCount: costSummary.runCount.toLocaleString(),
+                    issueCount: costSummary.issueCount,
+                    defaultValue: "{{runCount}} runs across {{issueCount}} sub-issues",
+                  })}
                 >
-                  {formatTokens(totalTokens)} tokens
+                  {t("issuesList.tokenCount", {
+                    tokens: formatTokens(totalTokens),
+                    defaultValue: "{{tokens}} tokens",
+                  })}
                 </span>
                 <span className="text-muted-foreground tabular-nums">
-                  {formatDurationMs(costSummary.runtimeMs)} runtime
+                  {t("issuesList.runtimeDuration", {
+                    duration: formatDurationMs(costSummary.runtimeMs),
+                    defaultValue: "{{duration}} runtime",
+                  })}
                 </span>
               </>
             )}
           </div>
           <div
             role="progressbar"
-            aria-label="Sub-issues completion progress"
+            aria-label={t("issuesList.subIssuesCompletionProgress", {
+              defaultValue: "Sub-issues completion progress",
+            })}
             aria-valuemin={0}
             aria-valuenow={summary.doneCount}
             aria-valuemax={summary.totalCount}
@@ -532,7 +551,9 @@ function SubIssueProgressSummaryStrip({
           {target && targetIssue ? (
             <>
               <div className="text-xs font-medium text-muted-foreground">
-                {target.kind === "next" ? "Next up" : "Waiting on blockers"}
+                {target.kind === "next"
+                  ? t("issuesList.nextUp", { defaultValue: "Next up" })
+                  : t("issuesList.waitingOnBlockers", { defaultValue: "Waiting on blockers" })}
               </div>
               <Link
                 to={createIssueDetailPath(targetPathId)}
@@ -547,11 +568,17 @@ function SubIssueProgressSummaryStrip({
               </Link>
             </>
           ) : summary.totalCount === 0 ? (
-            <div className="text-sm font-medium text-foreground">No active sub-issues</div>
+            <div className="text-sm font-medium text-foreground">
+              {t("issuesList.noActiveSubIssues", { defaultValue: "No active sub-issues" })}
+            </div>
           ) : summary.doneCount === summary.totalCount ? (
-            <div className="text-sm font-medium text-foreground">All sub-issues done</div>
+            <div className="text-sm font-medium text-foreground">
+              {t("issuesList.allSubIssuesDone", { defaultValue: "All sub-issues done" })}
+            </div>
           ) : (
-            <div className="text-sm font-medium text-foreground">No actionable sub-issues</div>
+            <div className="text-sm font-medium text-foreground">
+              {t("issuesList.noActionableSubIssues", { defaultValue: "No actionable sub-issues" })}
+            </div>
           )}
         </div>
       </div>
@@ -1589,18 +1616,26 @@ export function IssuesList({
                           <>
                             {hasChildren && !isExpanded ? (
                               <span className="ml-1.5 text-xs text-muted-foreground">
-                                ({totalDescendants} sub-task{totalDescendants !== 1 ? "s" : ""})
+                                {totalDescendants === 1
+                                  ? t("({{count}} sub-task)", {
+                                    defaultValue: "({{count}} sub-task)",
+                                    count: totalDescendants,
+                                  })
+                                  : t("({{count}} sub-tasks)", {
+                                    defaultValue: "({{count}} sub-tasks)",
+                                    count: totalDescendants,
+                                  })}
                               </span>
                             ) : null}
                             {issueBadge ? (
                               issueBadge === "Paused" ? (
                                 <span
                                   className={cn("ml-1.5 inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium", statusBadge.paused)}
-                                  aria-label="Paused"
-                                  title="Paused"
+                                  aria-label={t("Paused", { defaultValue: "Paused" })}
+                                  title={t("Paused", { defaultValue: "Paused" })}
                                 >
                                   <CircleSlash2 className="h-3 w-3" />
-                                  Paused
+                                  {t("Paused", { defaultValue: "Paused" })}
                                 </span>
                               ) : (
                                 <span className="ml-1.5 inline-flex items-center rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-300">
@@ -1611,11 +1646,11 @@ export function IssuesList({
                             {isSuccessfulRunHandoffRequired(issue) ? (
                               <span
                                 className="ml-1.5 inline-flex items-center gap-1 rounded-full border border-amber-400/45 bg-amber-50/60 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:border-amber-300/35 dark:bg-amber-400/10 dark:text-amber-300"
-                                aria-label="Needs next step"
-                                title="This issue needs a next step"
+                                aria-label={t("Needs next step", { defaultValue: "Needs next step" })}
+                                title={t("This issue needs a next step", { defaultValue: "This issue needs a next step" })}
                               >
                                 <CircleDot className="h-3 w-3" />
-                                Needs next step
+                                {t("Needs next step", { defaultValue: "Needs next step" })}
                               </span>
                             ) : null}
                           </>

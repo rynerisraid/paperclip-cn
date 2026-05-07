@@ -630,15 +630,21 @@ export function IssueProperties({
   };
   const currentMonitorLabel = (() => {
     if (issue.executionPolicy?.monitor?.nextCheckAt) {
-      return `Next check ${formatDate(new Date(issue.executionPolicy.monitor.nextCheckAt))}`;
+      return t("issueProperties.nextCheckAt", {
+        date: formatDate(new Date(issue.executionPolicy.monitor.nextCheckAt)),
+        defaultValue: "Next check {{date}}",
+      });
     }
     if (issue.executionState?.monitor?.status === "cleared") {
-      return "Cleared";
+      return t("issueProperties.monitorCleared", { defaultValue: "Cleared" });
     }
     if (issue.monitorLastTriggeredAt) {
-      return `Last triggered ${timeAgo(issue.monitorLastTriggeredAt)}`;
+      return t("issueProperties.lastTriggered", {
+        time: timeAgo(issue.monitorLastTriggeredAt),
+        defaultValue: "Last triggered {{time}}",
+      });
     }
-    return "Not scheduled";
+    return t("Not scheduled", { defaultValue: "Not scheduled" });
   })();
   const monitorNextCheckAt = issue.executionPolicy?.monitor?.nextCheckAt ?? null;
   const monitorTrigger = (
@@ -653,7 +659,12 @@ export function IssueProperties({
         )}
         title={monitorNextCheckAt ? currentMonitorLabel : undefined}
       >
-        {monitorNextCheckAt ? `Next check ${formatMonitorOffset(monitorNextCheckAt)}` : currentMonitorLabel}
+        {monitorNextCheckAt
+          ? t("issueProperties.nextCheckOffset", {
+              offset: formatMonitorOffset(monitorNextCheckAt),
+              defaultValue: "Next check {{offset}}",
+            })
+          : currentMonitorLabel}
       </span>
       {monitorNextCheckAt ? (
         <span className="text-xs text-muted-foreground" title={currentMonitorLabel}>
@@ -664,7 +675,10 @@ export function IssueProperties({
   );
   const monitorAttemptBadge = issue.monitorAttemptCount && issue.monitorAttemptCount > 0 ? (
     <span className="text-xs text-muted-foreground">
-      Attempt {issue.monitorAttemptCount}
+      {t("issueProperties.attemptCount", {
+        count: issue.monitorAttemptCount,
+        defaultValue: "Attempt {{count}}",
+      })}
     </span>
   ) : null;
   const monitorContent = (
@@ -679,7 +693,7 @@ export function IssueProperties({
         <input
           type="text"
           className="min-w-0 flex-1 rounded-md border border-border bg-transparent px-2 py-1 text-xs"
-          placeholder="What should the agent re-check?"
+          placeholder={t("issueProperties.monitorNotesPlaceholder", { defaultValue: "What should the agent re-check?" })}
           value={monitorNotesInput}
           onChange={(e) => setMonitorNotesInput(e.target.value)}
         />
@@ -688,7 +702,7 @@ export function IssueProperties({
         <input
           type="text"
           className="min-w-0 flex-1 rounded-md border border-border bg-transparent px-2 py-1 text-xs"
-          placeholder="External service"
+          placeholder={t("issueProperties.externalServicePlaceholder", { defaultValue: "External service" })}
           value={monitorServiceInput}
           onChange={(e) => setMonitorServiceInput(e.target.value)}
         />
@@ -699,7 +713,7 @@ export function IssueProperties({
             disabled={!monitorAtInput}
             onClick={saveMonitor}
           >
-            Schedule
+            {t("Schedule", { defaultValue: "Schedule" })}
           </button>
           {issue.executionPolicy?.monitor ? (
             <button
@@ -707,7 +721,7 @@ export function IssueProperties({
               className="inline-flex items-center rounded-full border border-border px-2 py-0.5 text-xs text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
               onClick={clearMonitor}
             >
-              Clear
+              {t("Clear", { defaultValue: "Clear" })}
             </button>
           ) : null}
         </div>
@@ -1297,7 +1311,7 @@ export function IssueProperties({
       onClick={onClick}
     >
       <Plus className="h-3 w-3" />
-      Add blocker
+      {t("Add blocker", { defaultValue: "Add blocker" })}
     </button>
   );
 
@@ -1393,7 +1407,7 @@ export function IssueProperties({
 
         {inline ? (
           <div>
-            <PropertyRow label="Blocked by">
+            <PropertyRow label={t("Blocked by", { defaultValue: "Blocked by" })}>
               {(issue.blockedBy ?? []).map((relation) => (
                 <RemovableIssueReferencePill key={relation.id} issue={relation} onRemove={removeBlockedBy} />
               ))}
@@ -1406,7 +1420,7 @@ export function IssueProperties({
             )}
           </div>
         ) : (
-          <PropertyRow label="Blocked by">
+          <PropertyRow label={t("Blocked by", { defaultValue: "Blocked by" })}>
             {(issue.blockedBy ?? []).map((relation) => (
               <RemovableIssueReferencePill key={relation.id} issue={relation} onRemove={removeBlockedBy} />
             ))}
@@ -1451,14 +1465,14 @@ export function IssueProperties({
                 onClick={onAddSubIssue}
               >
                 <Plus className="h-3 w-3" />
-              Add sub-issue
+                {t("Add sub-issue", { defaultValue: "Add sub-issue" })}
               </button>
             ) : null}
           </div>
         </PropertyRow>
 
         {relatedTasks.length > 0 ? (
-          <PropertyRow label="Related Tasks">
+          <PropertyRow label={t("Related Tasks", { defaultValue: "Related Tasks" })}>
             <div className="flex flex-wrap gap-1">
               {relatedTasks.map((related) => (
                 <IssueReferencePill key={related.id} issue={related} />
@@ -1513,7 +1527,7 @@ export function IssueProperties({
 
         <PropertyPicker
           inline={inline}
-          label="Monitor"
+          label={t("Monitor", { defaultValue: "Monitor" })}
           open={monitorOpen}
           onOpenChange={setMonitorOpen}
           triggerContent={monitorTrigger}
@@ -1536,7 +1550,7 @@ export function IssueProperties({
           <Separator />
           <div className="space-y-1">
             {liveWorkspaceService?.url && (
-              <PropertyRow label="Service">
+              <PropertyRow label={t("Service", { defaultValue: "Service" })}>
                 <a
                   href={liveWorkspaceService.url}
                   target="_blank"
@@ -1549,7 +1563,7 @@ export function IssueProperties({
               </PropertyRow>
             )}
             {showWorkspaceDetailLink && issue.executionWorkspaceId && (
-              <PropertyRow label="Workspace">
+              <PropertyRow label={t("Workspace", { defaultValue: "Workspace" })}>
                 <Link
                   to={`/execution-workspaces/${issue.executionWorkspaceId}`}
                   className="text-sm text-primary hover:underline inline-flex items-center gap-1"
