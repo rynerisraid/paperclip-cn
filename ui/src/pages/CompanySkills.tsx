@@ -1217,44 +1217,58 @@ export function CompanySkills() {
       <Dialog open={deleteOpen} onOpenChange={closeDeleteDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Remove skill</DialogTitle>
+            <DialogTitle>{t("companySkills.removeSkillTitle", { defaultValue: "Remove skill" })}</DialogTitle>
             <DialogDescription>
-              Remove this skill from the company library. If any agents still use it, removal will be blocked until it is detached.
+              {t("companySkills.removeSkillDescription", {
+                defaultValue: "Remove this skill from the company library. If any agents still use it, removal will be blocked until it is detached.",
+              })}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 text-sm">
             <p>
               {deleteTargetDetail
-                ? `You are about to remove ${deleteTargetDetail.name}.`
-                : "You are about to remove this skill."}
+                ? t("companySkills.removeSkillTarget", {
+                  defaultValue: "You are about to remove {{name}}.",
+                  name: deleteTargetDetail.name,
+                })
+                : t("companySkills.removeThisSkillTarget", {
+                  defaultValue: "You are about to remove this skill.",
+                })}
             </p>
             {deleteTargetDetail?.usedByAgents?.length ? (
               <div className="rounded-md border border-border px-3 py-3 text-muted-foreground">
-                Currently used by {deleteTargetDetail.usedByAgents.map((agent) => agent.name).join(", ")}.
+                {t("companySkills.currentlyUsedBy", {
+                  defaultValue: "Currently used by {{agents}}.",
+                  agents: deleteTargetDetail.usedByAgents.map((agent) => agent.name).join(", "),
+                })}
               </div>
             ) : null}
             {(deleteTargetDetail?.usedByAgents.length ?? 0) > 0 ? (
               <p className="text-muted-foreground">
-                Detach this skill from all agents to enable removal.
+                {t("companySkills.detachToRemove", {
+                  defaultValue: "Detach this skill from all agents to enable removal.",
+                })}
               </p>
             ) : null}
           </div>
           <DialogFooter>
             {(deleteTargetDetail?.usedByAgents.length ?? 0) > 0 ? (
               <Button variant="ghost" onClick={() => closeDeleteDialog(false)}>
-                Close
+                {t("Close", { defaultValue: "Close" })}
               </Button>
             ) : (
               <>
                 <Button variant="ghost" onClick={() => closeDeleteDialog(false)} disabled={deleteSkill.isPending}>
-                  Cancel
+                  {t("Cancel", { defaultValue: "Cancel" })}
                 </Button>
                 <Button
                   variant="destructive"
                   onClick={() => deleteSkill.mutate()}
                   disabled={deleteSkill.isPending || !deleteTargetSkillId}
                 >
-                  {deleteSkill.isPending ? "Removing..." : "Remove skill"}
+                  {deleteSkill.isPending
+                    ? t("Removing...", { defaultValue: "Removing..." })
+                    : t("companySkills.removeSkillAction", { defaultValue: "Remove skill" })}
                 </Button>
               </>
             )}

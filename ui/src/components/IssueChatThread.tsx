@@ -1663,6 +1663,7 @@ function IssueChatFeedbackButtons({
   termsUrl: string | null;
   onVote: (vote: FeedbackVoteValue, options?: { allowSharing?: boolean; reason?: string }) => Promise<void>;
 }) {
+  const { t } = useTranslation(undefined, { useSuspense: false });
   const [isSaving, setIsSaving] = useState(false);
   const [optimisticVote, setOptimisticVote] = useState<FeedbackVoteValue | null>(null);
   const [reasonOpen, setReasonOpen] = useState(false);
@@ -1759,19 +1760,21 @@ function IssueChatFeedbackButtons({
                 ? "text-amber-600 dark:text-amber-400"
                 : "text-muted-foreground hover:bg-accent hover:text-foreground",
             )}
-            title="Needs work"
-            aria-label="Needs work"
+            title={t("issueFeedback.needsWork", { defaultValue: "Needs work" })}
+            aria-label={t("issueFeedback.needsWork", { defaultValue: "Needs work" })}
             onClick={handleThumbsDown}
           >
             <ThumbsDown className="h-3.5 w-3.5" />
           </button>
         </PopoverTrigger>
         <PopoverContent side="top" align="start" className="w-80 p-3">
-          <div className="mb-2 text-sm font-medium">What could have been better?</div>
+          <div className="mb-2 text-sm font-medium">
+            {t("issueFeedback.reasonPrompt", { defaultValue: "What could have been better?" })}
+          </div>
           <Textarea
             value={downvoteReason}
             onChange={(event) => setDownvoteReason(event.target.value)}
-            placeholder="Add a short note"
+            placeholder={t("issueFeedback.reasonPlaceholder", { defaultValue: "Add a short note" })}
             className="min-h-20 resize-y bg-background text-sm"
             disabled={isSaving}
           />
@@ -1786,7 +1789,7 @@ function IssueChatFeedbackButtons({
                 setDownvoteReason("");
               }}
             >
-              Dismiss
+              {t("Dismiss", { defaultValue: "Dismiss" })}
             </Button>
             <Button
               type="button"
@@ -1794,7 +1797,7 @@ function IssueChatFeedbackButtons({
               disabled={isSaving || !downvoteReason.trim()}
               onClick={handleSubmitReason}
             >
-              {isSaving ? "Saving..." : "Save note"}
+              {isSaving ? t("Saving...", { defaultValue: "Saving..." }) : t("issueFeedback.saveNote", { defaultValue: "Save note" })}
             </Button>
           </div>
         </PopoverContent>
@@ -1811,21 +1814,23 @@ function IssueChatFeedbackButtons({
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Save your feedback sharing preference</DialogTitle>
+            <DialogTitle>{t("issueFeedback.sharingPreferenceTitle", { defaultValue: "Save your feedback sharing preference" })}</DialogTitle>
             <DialogDescription>
-              Choose whether voted AI outputs can be shared with Paperclip Labs. This
-              answer becomes the default for future thumbs up and thumbs down votes.
+              {t("issueFeedback.sharingPreferenceDescription", {
+                defaultValue: "Choose whether voted AI outputs can be shared with Paperclip Labs. This answer becomes the default for future thumbs up and thumbs down votes.",
+              })}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 text-sm text-muted-foreground">
-            <p>This vote is always saved locally.</p>
+            <p>{t("issueFeedback.localVoteNote", { defaultValue: "This vote is always saved locally." })}</p>
             <p>
-              Choose <span className="font-medium text-foreground">Always allow</span> to share
-              this vote and future voted AI outputs. Choose{" "}
-              <span className="font-medium text-foreground">Don't allow</span> to keep this vote
-              and future votes local.
+              {t("issueFeedback.allowSharingPrefix", { defaultValue: "Choose" })}{" "}
+              <span className="font-medium text-foreground">{t("issueFeedback.alwaysAllow", { defaultValue: "Always allow" })}</span>{" "}
+              {t("issueFeedback.allowSharingMiddle", { defaultValue: "to share this vote and future voted AI outputs. Choose" })}{" "}
+              <span className="font-medium text-foreground">{t("issueFeedback.dontAllow", { defaultValue: "Don't allow" })}</span>{" "}
+              {t("issueFeedback.allowSharingSuffix", { defaultValue: "to keep this vote and future votes local." })}
             </p>
-            <p>You can change this later in Instance Settings &gt; General.</p>
+            <p>{t("issueFeedback.changeLater", { defaultValue: "You can change this later in Instance Settings > General." })}</p>
             {termsUrl ? (
               <a
                 href={termsUrl}
@@ -1833,7 +1838,7 @@ function IssueChatFeedbackButtons({
                 rel="noreferrer"
                 className="inline-flex text-sm text-foreground underline underline-offset-4"
               >
-                Read our terms of service
+                {t("issueFeedback.readTerms", { defaultValue: "Read our terms of service" })}
               </a>
             ) : null}
           </div>
@@ -1850,7 +1855,7 @@ function IssueChatFeedbackButtons({
                 ).then(() => setPendingSharingDialog(null));
               }}
             >
-              {isSaving ? "Saving..." : "Don't allow"}
+              {isSaving ? t("Saving...", { defaultValue: "Saving..." }) : t("issueFeedback.dontAllow", { defaultValue: "Don't allow" })}
             </Button>
             <Button
               type="button"
@@ -1863,7 +1868,7 @@ function IssueChatFeedbackButtons({
                 }).then(() => setPendingSharingDialog(null));
               }}
             >
-              {isSaving ? "Saving..." : "Always allow"}
+              {isSaving ? t("Saving...", { defaultValue: "Saving..." }) : t("issueFeedback.alwaysAllow", { defaultValue: "Always allow" })}
             </Button>
           </DialogFooter>
         </DialogContent>

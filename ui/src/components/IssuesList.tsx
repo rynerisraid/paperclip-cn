@@ -388,6 +388,7 @@ function IssueSearchInput({
   value: string;
   onDebouncedChange?: (search: string) => void;
 }) {
+  const { t } = useTranslation();
   const [draftValue, setDraftValue] = useState(value);
   const lastCommittedValueRef = useRef(value);
 
@@ -434,9 +435,9 @@ function IssueSearchInput({
             e.currentTarget.blur();
           }
         }}
-        placeholder="Search issues..."
+        placeholder={t("Search issues...", { defaultValue: "Search issues..." })}
         className="pl-7 text-xs sm:text-sm"
-        aria-label="Search issues"
+        aria-label={t("Search issues", { defaultValue: "Search issues" })}
         data-page-search-target="true"
       />
     </div>
@@ -1269,14 +1270,14 @@ export function IssuesList({
             <button
               className={`p-1.5 transition-colors ${viewState.viewMode === "list" ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground"}`}
               onClick={() => updateView({ viewMode: "list" })}
-              title="List view"
+              title={t("List view", { defaultValue: "List view" })}
             >
               <List className="h-3.5 w-3.5" />
             </button>
             <button
               className={`p-1.5 transition-colors ${viewState.viewMode === "board" ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground"}`}
               onClick={() => updateView({ viewMode: "board" })}
-              title="Board view"
+              title={t("Board view", { defaultValue: "Board view" })}
             >
               <Columns3 className="h-3.5 w-3.5" />
             </button>
@@ -1289,7 +1290,9 @@ export function IssuesList({
               size="icon"
               className={cn("hidden h-8 w-8 shrink-0 sm:inline-flex", viewState.nestingEnabled && "bg-accent")}
               onClick={() => updateView({ nestingEnabled: !viewState.nestingEnabled })}
-              title={viewState.nestingEnabled ? "Disable parent-child nesting" : "Enable parent-child nesting"}
+              title={viewState.nestingEnabled
+                ? t("Disable parent-child nesting", { defaultValue: "Disable parent-child nesting" })
+                : t("Enable parent-child nesting", { defaultValue: "Enable parent-child nesting" })}
             >
               <ListTree className="h-3.5 w-3.5" />
             </Button>
@@ -1300,7 +1303,7 @@ export function IssuesList({
             visibleColumnSet={visibleIssueColumnSet}
             onToggleColumn={toggleIssueColumn}
             onResetColumns={() => setIssueColumns(DEFAULT_INBOX_ISSUE_COLUMNS)}
-            title="Choose which issue columns stay visible"
+            title={t("Choose which issue columns stay visible", { defaultValue: "Choose which issue columns stay visible" })}
             iconOnly
           />
 
@@ -1322,19 +1325,19 @@ export function IssuesList({
           {viewState.viewMode === "list" && (
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" size="icon" className="h-8 w-8 shrink-0" title="Sort">
+                <Button variant="outline" size="icon" className="h-8 w-8 shrink-0" title={t("Sort", { defaultValue: "Sort" })}>
                   <ArrowUpDown className="h-3.5 w-3.5" />
                 </Button>
               </PopoverTrigger>
               <PopoverContent align="end" className="w-48 p-0">
                 <div className="p-2 space-y-0.5">
                   {([
-                    ["workflow", "Workflow"],
-                    ["status", "Status"],
-                    ["priority", "Priority"],
-                    ["title", "Title"],
-                    ["created", "Created"],
-                    ["updated", "Updated"],
+                    ["workflow", t("Workflow", { defaultValue: "Workflow" })],
+                    ["status", t("Status", { defaultValue: "Status" })],
+                    ["priority", t("Priority", { defaultValue: "Priority" })],
+                    ["title", t("Title", { defaultValue: "Title" })],
+                    ["created", t("Created", { defaultValue: "Created" })],
+                    ["updated", t("Updated", { defaultValue: "Updated" })],
                   ] as const).map(([field, label]) => (
                     <button
                       key={field}
@@ -1366,20 +1369,20 @@ export function IssuesList({
           {viewState.viewMode === "list" && (
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" size="icon" className="h-8 w-8 shrink-0" title="Group">
+                <Button variant="outline" size="icon" className="h-8 w-8 shrink-0" title={t("Group", { defaultValue: "Group" })}>
                   <Layers className="h-3.5 w-3.5" />
                 </Button>
               </PopoverTrigger>
               <PopoverContent align="end" className="w-44 p-0">
                 <div className="p-2 space-y-0.5">
                   {([
-                    ["status", "Status"],
-                    ["priority", "Priority"],
-                    ["assignee", "Assignee"],
-                    ["project", "Project"],
-                    ["workspace", "Workspace"],
-                    ["parent", "Parent Issue"],
-                    ["none", "None"],
+                    ["status", t("Status", { defaultValue: "Status" })],
+                    ["priority", t("Priority", { defaultValue: "Priority" })],
+                    ["assignee", t("Assignee", { defaultValue: "Assignee" })],
+                    ["project", t("Project", { defaultValue: "Project" })],
+                    ["workspace", t("Workspace", { defaultValue: "Workspace" })],
+                    ["parent", t("Parent Issue", { defaultValue: "Parent Issue" })],
+                    ["none", t("None", { defaultValue: "None" })],
                   ] as const).map(([value, label]) => (
                     <button
                       key={value}

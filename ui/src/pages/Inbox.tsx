@@ -170,7 +170,9 @@ function firstNonEmptyLine(value: string | null | undefined): string | null {
 }
 
 function runFailureMessage(run: HeartbeatRun): string {
-  return firstNonEmptyLine(run.error) ?? firstNonEmptyLine(run.stderrExcerpt) ?? "Run exited with an error.";
+  return firstNonEmptyLine(run.error) ??
+    firstNonEmptyLine(run.stderrExcerpt) ??
+    translateInstant("Run exited with an error.", { defaultValue: "Run exited with an error." });
 }
 
 function approvalStatusLabel(status: Approval["status"]): string {
@@ -223,7 +225,7 @@ export function formatJoinRequestInboxLabel(
   if (requesterEmail) return requesterEmail;
   if (requesterName) return requesterName;
   if (requesterId) return requesterId;
-  return "Human join request";
+  return translateInstant("Human join request", { defaultValue: "Human join request" });
 }
 
 
@@ -2063,19 +2065,24 @@ export function Inbox() {
                 onClick={() => setShowMarkAllReadConfirm(true)}
                 disabled={markAllReadMutation.isPending}
               >
-                {markAllReadMutation.isPending ? "Marking…" : "Mark all as read"}
+                {markAllReadMutation.isPending
+                  ? t("Marking…", { defaultValue: "Marking…" })
+                  : t("Mark all as read", { defaultValue: "Mark all as read" })}
               </Button>
               <Dialog open={showMarkAllReadConfirm} onOpenChange={setShowMarkAllReadConfirm}>
                 <DialogContent className="sm:max-w-md">
                   <DialogHeader>
-                    <DialogTitle>Mark all as read?</DialogTitle>
+                    <DialogTitle>{t("Mark all as read?", { defaultValue: "Mark all as read?" })}</DialogTitle>
                     <DialogDescription>
-                      This will mark {unreadIssueIds.length} unread {unreadIssueIds.length === 1 ? "item" : "items"} as read.
+                      {t("inbox.markAllReadDescription", {
+                        count: unreadIssueIds.length,
+                        defaultValue: "This will mark {{count}} unread item(s) as read.",
+                      })}
                     </DialogDescription>
                   </DialogHeader>
                   <DialogFooter>
                     <Button variant="outline" onClick={() => setShowMarkAllReadConfirm(false)}>
-                      Cancel
+                      {t("Cancel", { defaultValue: "Cancel" })}
                     </Button>
                     <Button
                       onClick={() => {
@@ -2083,7 +2090,7 @@ export function Inbox() {
                         markAllReadMutation.mutate(unreadIssueIds);
                       }}
                     >
-                      Mark all as read
+                      {t("Mark all as read", { defaultValue: "Mark all as read" })}
                     </Button>
                   </DialogFooter>
                 </DialogContent>
@@ -2101,15 +2108,15 @@ export function Inbox() {
             onValueChange={(value) => updateAllCategoryFilter(value as InboxCategoryFilter)}
           >
             <SelectTrigger className="h-8 w-[170px] text-xs">
-              <SelectValue placeholder="Category" />
+              <SelectValue placeholder={t("Category", { defaultValue: "Category" })} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="everything">All categories</SelectItem>
-              <SelectItem value="issues_i_touched">My recent issues</SelectItem>
-              <SelectItem value="join_requests">Join requests</SelectItem>
-              <SelectItem value="approvals">Approvals</SelectItem>
-              <SelectItem value="failed_runs">Failed runs</SelectItem>
-              <SelectItem value="alerts">Alerts</SelectItem>
+              <SelectItem value="everything">{t("All categories", { defaultValue: "All categories" })}</SelectItem>
+              <SelectItem value="issues_i_touched">{t("My recent issues", { defaultValue: "My recent issues" })}</SelectItem>
+              <SelectItem value="join_requests">{t("Join requests", { defaultValue: "Join requests" })}</SelectItem>
+              <SelectItem value="approvals">{t("Approvals", { defaultValue: "Approvals" })}</SelectItem>
+              <SelectItem value="failed_runs">{t("Failed runs", { defaultValue: "Failed runs" })}</SelectItem>
+              <SelectItem value="alerts">{t("Alerts", { defaultValue: "Alerts" })}</SelectItem>
             </SelectContent>
           </Select>
 
@@ -2119,7 +2126,7 @@ export function Inbox() {
               onValueChange={(value) => updateAllApprovalFilter(value as InboxApprovalFilter)}
             >
               <SelectTrigger className="h-8 w-[170px] text-xs">
-                <SelectValue placeholder="Approval status" />
+                <SelectValue placeholder={t("Approval status", { defaultValue: "Approval status" })} />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">{t("All approval statuses", { defaultValue: "All approval statuses" })}</SelectItem>
@@ -2567,7 +2574,7 @@ export function Inbox() {
           {showSeparatorBefore("alerts") && <Separator />}
           <div>
             <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-              Alerts
+              {t("Alerts", { defaultValue: "Alerts" })}
             </h3>
             <div className="divide-y divide-border border border-border">
               {showAggregateAgentError && (

@@ -313,6 +313,7 @@ export function RunInvocationCard({
   payload: Record<string, unknown>;
   censorUsernameInLogs: boolean;
 }) {
+  const { t } = useTranslation();
   const rawCommandLine = [
     typeof payload.command === "string" ? payload.command : null,
     ...(Array.isArray(payload.commandArgs)
@@ -332,29 +333,37 @@ export function RunInvocationCard({
 
   return (
     <div className="rounded-lg border border-border bg-background/60 p-3 space-y-2">
-      <div className="text-xs font-medium text-muted-foreground">Invocation</div>
+      <div className="text-xs font-medium text-muted-foreground">{t("Invocation", { defaultValue: "Invocation" })}</div>
       {typeof payload.adapterType === "string" && (
-        <div className="text-xs"><span className="text-muted-foreground">Adapter: </span>{payload.adapterType}</div>
+        <div className="text-xs">
+          <span className="text-muted-foreground">{t("Adapter", { defaultValue: "Adapter" })}: </span>
+          {payload.adapterType}
+        </div>
       )}
       {typeof payload.cwd === "string" && (
-        <div className="text-xs break-all"><span className="text-muted-foreground">Working dir: </span><span className="font-mono">{payload.cwd}</span></div>
+        <div className="text-xs break-all">
+          <span className="text-muted-foreground">{t("Working dir", { defaultValue: "Working dir" })}: </span>
+          <span className="font-mono">{payload.cwd}</span>
+        </div>
       )}
       {hasAdvancedDetails && (
         <Collapsible>
           <CollapsibleTrigger className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors group">
             <ChevronRight className="h-3 w-3 transition-transform group-data-[state=open]:rotate-90" />
-            Details
+            {t("Details", { defaultValue: "Details" })}
           </CollapsibleTrigger>
           <CollapsibleContent className="pt-2 space-y-2">
             {commandLine && (
               <div className="text-xs break-all">
-                <span className="text-muted-foreground">Command: </span>
+                <span className="text-muted-foreground">{t("Command", { defaultValue: "Command" })}: </span>
                 <span className="font-mono">{commandLine}</span>
               </div>
             )}
             {Array.isArray(payload.commandNotes) && payload.commandNotes.length > 0 && (
               <div>
-                <div className="text-xs text-muted-foreground mb-1">Command notes</div>
+                <div className="text-xs text-muted-foreground mb-1">
+                  {t("Command notes", { defaultValue: "Command notes" })}
+                </div>
                 <ul className="list-disc pl-5 space-y-1">
                   {payload.commandNotes
                     .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
@@ -368,7 +377,7 @@ export function RunInvocationCard({
             )}
             {payload.prompt !== undefined && (
               <div>
-                <div className="text-xs text-muted-foreground mb-1">Prompt</div>
+                <div className="text-xs text-muted-foreground mb-1">{t("Prompt", { defaultValue: "Prompt" })}</div>
                 <pre className="bg-neutral-100 dark:bg-neutral-950 rounded-md p-2 text-xs overflow-x-auto whitespace-pre-wrap">
                   {typeof payload.prompt === "string"
                     ? redactPathText(payload.prompt, censorUsernameInLogs)
@@ -378,7 +387,7 @@ export function RunInvocationCard({
             )}
             {payload.context !== undefined && (
               <div>
-                <div className="text-xs text-muted-foreground mb-1">Context</div>
+                <div className="text-xs text-muted-foreground mb-1">{t("Context", { defaultValue: "Context" })}</div>
                 <pre className="bg-neutral-100 dark:bg-neutral-950 rounded-md p-2 text-xs overflow-x-auto whitespace-pre-wrap">
                   {JSON.stringify(redactPathValue(payload.context, censorUsernameInLogs), null, 2)}
                 </pre>
@@ -386,7 +395,7 @@ export function RunInvocationCard({
             )}
             {payload.env !== undefined && (
               <div>
-                <div className="text-xs text-muted-foreground mb-1">Environment</div>
+                <div className="text-xs text-muted-foreground mb-1">{t("Environment", { defaultValue: "Environment" })}</div>
                 <pre className="bg-neutral-100 dark:bg-neutral-950 rounded-md p-2 text-xs overflow-x-auto whitespace-pre-wrap font-mono">
                   {formatEnvForDisplay(payload.env, censorUsernameInLogs)}
                 </pre>
@@ -1108,7 +1117,11 @@ export function AgentDetail() {
       {actionError && <p className="text-sm text-destructive">{actionError}</p>}
       {isPendingApproval && (
         <div className="flex flex-wrap items-center gap-3 rounded-md border border-amber-300/60 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-400/40 dark:bg-amber-950/30 dark:text-amber-200">
-          <span>This agent is pending board approval and cannot be invoked yet.</span>
+          <span>
+            {t("This agent is pending board approval and cannot be invoked yet.", {
+              defaultValue: "This agent is pending board approval and cannot be invoked yet.",
+            })}
+          </span>
           <Button
             variant="outline"
             size="sm"
@@ -1116,7 +1129,7 @@ export function AgentDetail() {
             disabled={agentAction.isPending}
           >
             <CheckCircle2 className="h-3.5 w-3.5 sm:mr-1" />
-            <span>Approve agent</span>
+            <span>{t("Approve agent", { defaultValue: "Approve agent" })}</span>
           </Button>
         </div>
       )}
@@ -2496,9 +2509,11 @@ function PromptsTab({
               {!fileLoading && (
                 <CopyText
                   text={displayValue}
-                  ariaLabel="Copy instructions file as markdown"
-                  title="Copy as markdown"
-                  copiedLabel="Copied"
+                  ariaLabel={t("agentInstructions.copyMarkdownAriaLabel", {
+                    defaultValue: "Copy instructions file as markdown",
+                  })}
+                  title={t("Copy as markdown", { defaultValue: "Copy as markdown" })}
+                  copiedLabel={t("Copied", { defaultValue: "Copied" })}
                   className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-border text-muted-foreground hover:bg-accent hover:text-foreground"
                 >
                   <Copy className="h-3.5 w-3.5" />
@@ -2534,7 +2549,7 @@ function PromptsTab({
               key={selectedOrEntryFile}
               value={displayValue}
               onChange={(value) => setDraft(value ?? "")}
-              placeholder="# Agent instructions"
+              placeholder={t("# Agent instructions", { defaultValue: "# Agent instructions" })}
               className="min-w-0 overflow-hidden"
               contentClassName="min-h-[420px] max-w-full break-words text-sm font-mono"
               imageUploadHandler={async (file) => {
@@ -2548,7 +2563,7 @@ function PromptsTab({
               value={displayValue}
               onChange={(event) => setDraft(event.target.value)}
               className="min-h-[420px] w-full min-w-0 rounded-md border border-border bg-transparent px-3 py-2 font-mono text-sm outline-none"
-              placeholder="File contents"
+              placeholder={t("File contents", { defaultValue: "File contents" })}
             />
           )}
         </div>
@@ -2620,6 +2635,7 @@ export function AgentSkillsTab({
   companyId?: string;
 }) {
   const { t } = useTranslation();
+  const tr = (key: string, defaultValue: string) => t(key, { defaultValue });
 
   type SkillRow = {
     id: string;
@@ -2786,15 +2802,15 @@ export function AgentSkillsTab({
   const skillApplicationLabel = useMemo(() => {
     switch (skillSnapshot?.mode) {
       case "persistent":
-        return "Kept in the workspace";
+        return tr("agentSkills.keptInWorkspace", "Kept in the workspace");
       case "ephemeral":
-        return "Applied when the agent runs";
+        return tr("agentSkills.appliedWhenAgentRuns", "Applied when the agent runs");
       case "unsupported":
-        return "Tracked only";
+        return tr("agentSkills.trackedOnly", "Tracked only");
       default:
-        return "Unknown";
+        return tr("agentSkills.unknown", "Unknown");
     }
-  }, [skillSnapshot?.mode]);
+  }, [skillSnapshot?.mode, t]);
   const unsupportedSkillMessage = useMemo(() => {
     if (skillSnapshot?.mode !== "unsupported") return null;
     if (
@@ -2802,18 +2818,27 @@ export function AgentSkillsTab({
       typeof agent.adapterConfig.agent === "string" &&
       agent.adapterConfig.agent === "custom"
     ) {
-      return "Paperclip cannot manage skills for custom ACP commands yet.";
+      return tr(
+        "agentSkills.unsupportedCustomAcp",
+        "Paperclip cannot manage skills for custom ACP commands yet.",
+      );
     }
     if (agent.adapterType === "openclaw_gateway") {
-      return "Paperclip cannot manage OpenClaw skills here. Visit your OpenClaw instance to manage this agent's skills.";
+      return tr(
+        "agentSkills.unsupportedOpenClaw",
+        "Paperclip cannot manage OpenClaw skills here. Visit your OpenClaw instance to manage this agent's skills.",
+      );
     }
-    return "Paperclip cannot manage skills for this adapter yet. Manage them in the adapter directly.";
-  }, [agent.adapterConfig.agent, agent.adapterType, skillSnapshot?.mode]);
+    return tr(
+      "agentSkills.unsupportedAdapter",
+      "Paperclip cannot manage skills for this adapter yet. Manage them in the adapter directly.",
+    );
+  }, [agent.adapterConfig.agent, agent.adapterType, skillSnapshot?.mode, t]);
   const hasUnsavedChanges = !arraysEqual(skillDraft, lastSavedSkills);
   const saveStatusLabel = syncSkills.isPending
-    ? "Saving changes..."
+    ? tr("agentSkills.savingChanges", "Saving changes...")
     : hasUnsavedChanges
-      ? "Saving soon..."
+      ? tr("agentSkills.savingSoon", "Saving soon...")
       : null;
 
   return (
@@ -2823,7 +2848,7 @@ export function AgentSkillsTab({
           to="/skills"
           className="text-sm font-medium text-foreground underline-offset-4 no-underline transition-colors hover:text-foreground/70 hover:underline"
         >
-          View company skills library
+          {tr("agentSkills.viewCompanyLibrary", "View company skills library")}
         </Link>
         {saveStatusLabel ? (
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -2836,7 +2861,7 @@ export function AgentSkillsTab({
       {skillSnapshot?.warnings.length ? (
         <div className="space-y-1 rounded-xl border border-amber-300/60 bg-amber-50/60 px-4 py-3 text-sm text-amber-800 dark:border-amber-500/30 dark:bg-amber-950/20 dark:text-amber-200">
           {skillSnapshot.warnings.map((warning) => (
-            <div key={warning}>{warning}</div>
+            <div key={warning}>{t(warning, { defaultValue: warning })}</div>
           ))}
         </div>
       ) : null}
@@ -2870,7 +2895,7 @@ export function AgentSkillsTab({
                         to={skill.linkTo}
                         className="shrink-0 text-xs text-muted-foreground no-underline hover:text-foreground"
                       >
-                        View
+                        {tr("agentSkills.view", "View")}
                       </Link>
                     ) : null}
                   </div>
@@ -2880,13 +2905,22 @@ export function AgentSkillsTab({
                     </MarkdownBody>
                   )}
                   {skill.readOnly && skill.originLabel && (
-                    <p className="mt-1 text-xs text-muted-foreground">{skill.originLabel}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {t(skill.originLabel, { defaultValue: skill.originLabel })}
+                    </p>
                   )}
                   {skill.readOnly && skill.locationLabel && (
-                    <p className="mt-1 text-xs text-muted-foreground">Location: {skill.locationLabel}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {t("agentSkills.location", {
+                        location: skill.locationLabel,
+                        defaultValue: "Location: {{location}}",
+                      })}
+                    </p>
                   )}
                   {skill.detail && (
-                    <p className="mt-1 text-xs text-muted-foreground">{skill.detail}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {t(skill.detail, { defaultValue: skill.detail })}
+                    </p>
                   )}
                 </div>
               );
@@ -2924,7 +2958,9 @@ export function AgentSkillsTab({
                       <TooltipTrigger asChild>
                         <span>{checkbox}</span>
                       </TooltipTrigger>
-                      <TooltipContent side="top">{adapterEntry.requiredReason}</TooltipContent>
+                      <TooltipContent side="top">
+                        {t(adapterEntry.requiredReason, { defaultValue: adapterEntry.requiredReason })}
+                      </TooltipContent>
                     </Tooltip>
                   ) : skillSnapshot?.mode === "unsupported" ? (
                     <Tooltip>
@@ -2932,7 +2968,7 @@ export function AgentSkillsTab({
                         <span>{checkbox}</span>
                       </TooltipTrigger>
                       <TooltipContent side="top">
-                        {unsupportedSkillMessage ?? "Manage skills in the adapter directly."}
+                        {unsupportedSkillMessage ?? tr("agentSkills.manageInAdapterDirectly", "Manage skills in the adapter directly.")}
                       </TooltipContent>
                     </Tooltip>
                   ) : (
@@ -2947,7 +2983,7 @@ export function AgentSkillsTab({
               return (
                 <section className="border-y border-border">
                   <div className="px-3 py-6 text-sm text-muted-foreground">
-                    Import skills into the company library first, then attach them here.
+                    {tr("agentSkills.importFirst", "Import skills into the company library first, then attach them here.")}
                   </div>
                 </section>
               );
@@ -2965,7 +3001,7 @@ export function AgentSkillsTab({
                   <section className="border-y border-border">
                     <div className="border-b border-border bg-muted/40 px-3 py-2">
                       <span className="text-xs font-medium text-muted-foreground">
-                        Required by Paperclip
+                        {tr("agentSkills.requiredByPaperclip", "Required by Paperclip")}
                       </span>
                     </div>
                     {requiredSkillRows.map(renderSkillRow)}
@@ -2982,7 +3018,10 @@ export function AgentSkillsTab({
                       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setUnmanagedOpen((v) => !v); } }}
                     >
                       <span className="text-xs font-medium text-muted-foreground">
-                        ({unmanagedSkillRows.length}) User-installed skills, not managed by Paperclip
+                        {t("agentSkills.userInstalledUnmanaged", {
+                          count: unmanagedSkillRows.length,
+                          defaultValue: "({{count}}) User-installed skills, not managed by Paperclip",
+                        })}
                       </span>
                       {unmanagedOpen ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
                     </div>
@@ -2995,7 +3034,9 @@ export function AgentSkillsTab({
 
           {desiredOnlyMissingSkills.length > 0 && (
             <div className="rounded-xl border border-amber-300/60 bg-amber-50/60 px-4 py-3 text-sm text-amber-800 dark:border-amber-500/30 dark:bg-amber-950/20 dark:text-amber-200">
-              <div className="font-medium">Requested skills missing from the company library</div>
+              <div className="font-medium">
+                {tr("agentSkills.requestedMissing", "Requested skills missing from the company library")}
+              </div>
               <div className="mt-1 text-xs">
                 {desiredOnlyMissingSkills.join(", ")}
               </div>
@@ -3106,7 +3147,11 @@ function RunsTab({
   const { isMobile } = useSidebar();
 
   if (runs.length === 0) {
-    return <p className="text-sm text-muted-foreground">No runs yet.</p>;
+    return (
+      <p className="text-sm text-muted-foreground">
+        {translateInstant("No runs yet.", { defaultValue: "No runs yet." })}
+      </p>
+    );
   }
 
   // Sort by created descending
@@ -4096,7 +4141,9 @@ function LogViewer({ run, adapterType }: { run: HeartbeatRun; adapterType: strin
                 )}
                 onClick={() => setTranscriptMode(mode)}
               >
-                {mode}
+                {mode === "nice"
+                  ? t("Nice", { defaultValue: "Nice" })
+                  : t("Raw", { defaultValue: "Raw" })}
               </button>
             ))}
           </div>

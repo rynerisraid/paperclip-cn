@@ -57,13 +57,15 @@ function KeyCap({ children }: { children: string }) {
 }
 
 export function KeyboardShortcutsCheatsheetContent() {
+  const { t } = useTranslation();
+
   return (
     <>
       <div className="divide-y divide-border border-t border-border">
         {sections.map((section) => (
           <div key={section.title} className="px-5 py-3">
             <h3 className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-              {section.title}
+              {t(section.title, { defaultValue: section.title })}
             </h3>
             <div className="space-y-1.5">
               {section.shortcuts.map((shortcut) => (
@@ -71,11 +73,17 @@ export function KeyboardShortcutsCheatsheetContent() {
                   key={shortcut.label + shortcut.keys.join()}
                   className="flex items-center justify-between gap-4"
                 >
-                  <span className="text-sm text-foreground/90">{shortcut.label}</span>
+                  <span className="text-sm text-foreground/90">
+                    {t(shortcut.label, { defaultValue: shortcut.label })}
+                  </span>
                   <div className="flex items-center gap-1">
                     {shortcut.keys.map((key, i) => (
                       <span key={key} className="flex items-center gap-1">
-                        {i > 0 && <span className="text-xs text-muted-foreground">then</span>}
+                        {i > 0 && (
+                          <span className="text-xs text-muted-foreground">
+                            {t("then", { defaultValue: "then" })}
+                          </span>
+                        )}
                         <KeyCap>{key}</KeyCap>
                       </span>
                     ))}
@@ -88,7 +96,9 @@ export function KeyboardShortcutsCheatsheetContent() {
       </div>
       <div className="border-t border-border px-5 py-3">
         <p className="text-xs text-muted-foreground">
-          Press <KeyCap>Esc</KeyCap> to close &middot; Shortcuts are disabled in text fields
+          {t("Press", { defaultValue: "Press" })} <KeyCap>Esc</KeyCap> {t("to close", { defaultValue: "to close" })}
+          {" · "}
+          {t("Shortcuts are disabled in text fields", { defaultValue: "Shortcuts are disabled in text fields" })}
         </p>
       </div>
     </>

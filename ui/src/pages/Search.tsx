@@ -301,6 +301,7 @@ export function Search() {
       else if (value === "projects") count = counts.project ?? 0;
       return {
         value,
+        mobileLabel: translateScopeLabel(t, value as CompanySearchScope),
         label: (
           <span className="flex items-center">
             {translateScopeLabel(t, value as CompanySearchScope)}

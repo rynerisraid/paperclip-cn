@@ -13,6 +13,7 @@ import { secretsApi } from "../api/secrets";
 import { useCompany } from "../context/CompanyContext";
 import { queryKeys } from "../lib/queryKeys";
 import { translateStatusLabel } from "../lib/i18n-labels";
+import { isHttpGitRepoUrl } from "../lib/git-repo-url";
 import { statusBadge, statusBadgeDefault } from "../lib/status-colors";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
@@ -399,17 +400,6 @@ export function ProjectProperties({ project, onUpdate, onFieldUpdate, getFieldSa
 
   const isAbsolutePath = (value: string) => value.startsWith("/") || /^[A-Za-z]:[\\/]/.test(value);
 
-  const looksLikeRepoUrl = (value: string) => {
-    try {
-      const parsed = new URL(value);
-      if (parsed.protocol !== "https:") return false;
-      const segments = parsed.pathname.split("/").filter(Boolean);
-      return segments.length >= 2;
-    } catch {
-      return false;
-    }
-  };
-
   const isSafeExternalUrl = (value: string | null | undefined) => {
     if (!value) return false;
     try {
@@ -424,11 +414,10 @@ export function ProjectProperties({ project, onUpdate, onFieldUpdate, getFieldSa
     try {
       const parsed = new URL(value);
       const segments = parsed.pathname.split("/").filter(Boolean);
-      if (segments.length < 2) return parsed.host;
-      const owner = segments[0];
-      const repo = segments[1]?.replace(/\.git$/i, "");
-      if (!owner || !repo) return parsed.host;
-      return `${parsed.host}/${owner}/${repo}`;
+      if (segments.length === 0) return parsed.host;
+      const lastIndex = segments.length - 1;
+      segments[lastIndex] = segments[lastIndex]!.replace(/\.git$/i, "");
+      return `${parsed.host}/${segments.join("/")}`;
     } catch {
       return value;
     }
@@ -487,8 +476,8 @@ export function ProjectProperties({ project, onUpdate, onFieldUpdate, getFieldSa
       persistCodebase({ repoUrl: null });
       return;
     }
-    if (!looksLikeRepoUrl(repoUrl)) {
-      setWorkspaceError(t("newProject.repoUrlInvalid", { defaultValue: "Repo must use a valid GitHub or GitHub Enterprise repo URL." }));
+    if (!isHttpGitRepoUrl(repoUrl)) {
+      setWorkspaceError(t("newProject.repoUrlInvalid", { defaultValue: "Repo must use a valid HTTP(S) Git repository URL." }));
       return;
     }
     setWorkspaceError(null);
@@ -908,7 +897,7 @@ export function ProjectProperties({ project, onUpdate, onFieldUpdate, getFieldSa
                 className="w-full rounded border border-border bg-transparent px-2 py-1 text-xs outline-none"
                 value={workspaceRepoUrl}
                 onChange={(e) => setWorkspaceRepoUrl(e.target.value)}
-                placeholder={t("newProject.repoUrlPlaceholder", { defaultValue: "https://github.com/org/repo" })}
+                placeholder={t("newProject.repoUrlPlaceholder", { defaultValue: "https://gitlab.example.com/team/demo-repo" })}
               />
               <div className="flex items-center gap-2">
                 <Button
