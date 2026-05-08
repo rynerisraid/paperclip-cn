@@ -1,5 +1,5 @@
 /// <reference path="./types/express.d.ts" />
-import { existsSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
 import { createServer } from "node:http";
 import { resolve } from "node:path";
 import { createInterface } from "node:readline/promises";
@@ -16,6 +16,7 @@ import {
   applyPendingMigrations,
   createEmbeddedPostgresLogBuffer,
   recoverEmbeddedPostgresStart,
+  resetIncompleteEmbeddedPostgresDataDir,
   reconcilePendingMigrationHistory,
   shouldRetryEmbeddedPostgresStart,
   formatDatabaseBackupResult,
@@ -320,6 +321,12 @@ export async function startServer(): Promise<StartedServer> {
     }
   
     const clusterVersionFile = resolve(dataDir, "PG_VERSION");
+    if (resetIncompleteEmbeddedPostgresDataDir(dataDir)) {
+      logger.warn(
+        `Embedded PostgreSQL data dir ${dataDir} was left half-initialized; resetting it before retrying startup.`,
+      );
+      mkdirSync(dataDir, { recursive: true });
+    }
     const clusterAlreadyInitialized = existsSync(clusterVersionFile);
     const postmasterPidFile = resolve(dataDir, "postmaster.pid");
     const isPidRunning = (pid: number): boolean => {
