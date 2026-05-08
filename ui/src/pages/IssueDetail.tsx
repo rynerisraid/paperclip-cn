@@ -73,6 +73,7 @@ import { AgentIcon } from "../components/AgentIconPicker";
 import { IssueReferenceActivitySummary } from "../components/IssueReferenceActivitySummary";
 import { IssueRelatedWorkPanel } from "../components/IssueRelatedWorkPanel";
 import { IssueMonitorActivityCard } from "../components/IssueMonitorActivityCard";
+import { IssueScheduledRetryCard } from "../components/IssueScheduledRetryCard";
 import { IssueProperties } from "../components/IssueProperties";
 import { IssueRunLedger } from "../components/IssueRunLedger";
 import { IssueWorkspaceCard } from "../components/IssueWorkspaceCard";
@@ -111,6 +112,7 @@ import {
   SUCCESSFUL_RUN_HANDOFF_REQUIRED_ACTION,
   successfulRunHandoffActivityTone,
 } from "../lib/successful-run-handoff";
+import { hasAssignedBacklogBlocker } from "../lib/issue-blockers";
 import {
   Activity as ActivityIcon,
   AlertTriangle,
@@ -121,6 +123,7 @@ import {
   Copy,
   Eye,
   EyeOff,
+  Flag,
   Hexagon,
   ListTree,
   MessageSquare,
@@ -700,6 +703,9 @@ type IssueDetailChatTabProps = {
     answers: AskUserQuestionsAnswer[],
   ) => Promise<void>;
   onCancelInteraction: (interaction: AskUserQuestionsInteraction) => Promise<void>;
+  assigneeUserId: string | null;
+  onResumeFromBacklog?: () => Promise<void> | void;
+  resumeFromBacklogPending?: boolean;
 };
 
 const IssueDetailChatTab = memo(function IssueDetailChatTab({
@@ -750,6 +756,9 @@ const IssueDetailChatTab = memo(function IssueDetailChatTab({
   onRejectInteraction,
   onSubmitInteractionAnswers,
   onCancelInteraction,
+  assigneeUserId,
+  onResumeFromBacklog,
+  resumeFromBacklogPending,
 }: IssueDetailChatTabProps) {
   const { t } = useTranslation();
   const { data: activity } = useQuery({
@@ -958,6 +967,9 @@ const IssueDetailChatTab = memo(function IssueDetailChatTab({
           : undefined}
         onImageClick={onImageClick}
         onRefreshLatestComments={onRefreshLatestComments}
+        assigneeUserId={assigneeUserId}
+        onResumeFromBacklog={onResumeFromBacklog}
+        resumeFromBacklogPending={resumeFromBacklogPending}
       />
     </div>
   );
@@ -1259,6 +1271,7 @@ function IssueDetailActivityTab({
         </div>
       )}
       <IssueContinuationHandoff document={continuationHandoff} focusSignal={handoffFocusSignal} />
+      <IssueScheduledRetryCard issueId={issue.id} scheduledRetry={issue.scheduledRetry ?? null} />
       <IssueMonitorActivityCard
         issue={issue}
         onCheckNow={onCheckMonitorNow}
@@ -3059,6 +3072,10 @@ export function IssueDetail() {
   const handleCancelInteraction = useCallback(async (interaction: AskUserQuestionsInteraction) => {
     await cancelInteraction.mutateAsync({ interaction });
   }, [cancelInteraction]);
+  const canResumeFromBacklog = issue?.status === "backlog" && Boolean(issue.assigneeAgentId || issue.assigneeUserId);
+  const handleResumeFromBacklog = useCallback(async () => {
+    await updateIssue.mutateAsync({ status: "todo" });
+  }, [updateIssue.mutateAsync]);
 
   const treePreviewAffectedIssues = useMemo(
     () => (treeControlPreview?.issues ?? []).filter((candidate) => !candidate.skipped),
@@ -3436,6 +3453,19 @@ export function IssueDetail() {
               title="This issue is in planning mode."
             >
               Planning
+            </span>
+          ) : null}
+
+          {hasAssignedBacklogBlocker(issue.blockedBy) ? (
+            <span
+              data-testid="issue-detail-parked-blocker"
+              className="inline-flex items-center gap-1 rounded-full border border-amber-500/60 bg-amber-500/15 px-2 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-300 shrink-0"
+              title={t("issueBlocked.parkedWorkTitle", {
+                defaultValue: "Blocked by parked work - at least one assigned blocker is in backlog and will not wake its assignee.",
+              })}
+            >
+              <Flag className="h-3 w-3" />
+              {t("issueBlocked.parkedWork", { defaultValue: "Blocked by parked work" })}
             </span>
           ) : null}
 
@@ -4020,6 +4050,11 @@ export function IssueDetail() {
               onRejectInteraction={handleRejectInteraction}
               onSubmitInteractionAnswers={handleSubmitInteractionAnswers}
               onCancelInteraction={handleCancelInteraction}
+              assigneeUserId={issue.assigneeUserId ?? null}
+              onResumeFromBacklog={canResumeFromBacklog ? handleResumeFromBacklog : undefined}
+              resumeFromBacklogPending={
+                updateIssue.isPending && updateIssue.variables?.status === "todo"
+              }
             />
           ) : null}
         </TabsContent>

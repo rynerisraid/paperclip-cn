@@ -770,10 +770,10 @@ export function IssuesList({
   }, [projects]);
 
   const projectWorkspaceById = useMemo(() => {
-    const map = new Map<string, { name: string }>();
+    const map = new Map<string, { name: string; projectId: string }>();
     for (const project of projects ?? []) {
       for (const workspace of project.workspaces ?? []) {
-        map.set(workspace.id, { name: workspace.name || project.name });
+        map.set(workspace.id, { name: workspace.name || project.name, projectId: project.id });
       }
     }
     return map;
@@ -800,16 +800,21 @@ export function IssuesList({
       name: string;
       mode: "shared_workspace" | "isolated_workspace" | "operator_branch" | "adapter_managed" | "cloud_sandbox";
       projectWorkspaceId: string | null;
+      projectId: string | null;
     }>();
     for (const workspace of executionWorkspaces) {
+      const projectWorkspace = workspace.projectWorkspaceId
+        ? projectWorkspaceById.get(workspace.projectWorkspaceId) ?? null
+        : null;
       map.set(workspace.id, {
         name: workspace.name,
         mode: workspace.mode,
         projectWorkspaceId: workspace.projectWorkspaceId ?? null,
+        projectId: projectWorkspace?.projectId ?? null,
       });
     }
     return map;
-  }, [executionWorkspaces]);
+  }, [executionWorkspaces, projectWorkspaceById]);
   const issueFilterWorkspaceContext = useMemo(() => ({
     executionWorkspaceById,
     defaultProjectWorkspaceIdByProjectId,
@@ -1209,7 +1214,8 @@ export function IssuesList({
     };
   }, [canLoadMoreIssues, hasMoreIssues, hasMoreRenderedRows, loadMoreIssueRows]);
 
-  const newIssueDefaults = useCallback((groupKey?: string) => {
+  const newIssueDefaults = useCallback((group?: { key: string; items: Issue[] }) => {
+    const groupKey = group?.key;
     const defaults: Record<string, unknown> = { ...(baseCreateIssueDefaults ?? {}) };
     if (projectId && defaults.projectId === undefined) defaults.projectId = projectId;
     if (groupKey) {
@@ -1220,6 +1226,27 @@ export function IssuesList({
         else defaults.assigneeAgentId = groupKey;
       }
       else if (viewState.groupBy === "project" && groupKey !== "__no_project") defaults.projectId = groupKey;
+      else if (viewState.groupBy === "workspace" && groupKey !== "__no_workspace") {
+        const representativeIssue = group?.items.find((issue) => issue.executionWorkspaceId === groupKey) ?? null;
+        const executionWorkspace = executionWorkspaceById.get(groupKey);
+        if (executionWorkspace) {
+          defaults.executionWorkspaceId = groupKey;
+          defaults.executionWorkspaceMode = "reuse_existing";
+          if (executionWorkspace.projectWorkspaceId) defaults.projectWorkspaceId = executionWorkspace.projectWorkspaceId;
+          const groupedProjectId = executionWorkspace.projectId
+            ?? (executionWorkspace.projectWorkspaceId
+              ? projectWorkspaceById.get(executionWorkspace.projectWorkspaceId)?.projectId
+              : null)
+            ?? (representativeIssue?.executionWorkspaceId === groupKey ? representativeIssue.projectId : null);
+          if (groupedProjectId) defaults.projectId = groupedProjectId;
+        } else {
+          const projectWorkspace = projectWorkspaceById.get(groupKey);
+          if (projectWorkspace) {
+            defaults.projectWorkspaceId = groupKey;
+            defaults.projectId = projectWorkspace.projectId;
+          }
+        }
+      }
       else if (viewState.groupBy === "parent" && groupKey !== "__no_parent") {
         const parentIssue = issueById.get(groupKey);
         if (parentIssue) Object.assign(defaults, buildSubIssueDefaultsForViewer(parentIssue, currentUserId));
@@ -1227,7 +1254,15 @@ export function IssuesList({
       }
     }
     return defaults;
-  }, [baseCreateIssueDefaults, currentUserId, issueById, projectId, viewState.groupBy]);
+  }, [
+    baseCreateIssueDefaults,
+    currentUserId,
+    executionWorkspaceById,
+    issueById,
+    projectId,
+    projectWorkspaceById,
+    viewState.groupBy,
+  ]);
 
   const createActionLabel = createIssueLabel
     ? t("Create {{label}}", { label: createIssueLabel, defaultValue: `Create ${createIssueLabel}` })
@@ -1235,8 +1270,8 @@ export function IssuesList({
   const createButtonLabel = createIssueLabel
     ? t("New {{label}}", { label: createIssueLabel, defaultValue: `New ${createIssueLabel}` })
     : t("New Issue", { defaultValue: "New Issue" });
-  const openCreateIssueDialog = useCallback((groupKey?: string) => {
-    openNewIssue(newIssueDefaults(groupKey));
+  const openCreateIssueDialog = useCallback((group?: { key: string; items: Issue[] }) => {
+    openNewIssue(newIssueDefaults(group));
   }, [newIssueDefaults, openNewIssue]);
 
   const filterToWorkspace = useCallback((workspaceId: string) => {
@@ -1495,8 +1530,16 @@ export function IssuesList({
                   <Button
                     variant="ghost"
                     size="icon-xs"
-                    className="text-muted-foreground"
-                    onClick={() => openCreateIssueDialog(group.key)}
+                    className="-mr-2 text-muted-foreground"
+                    title={t("issuesList.newIssueInGroup", {
+                      group: group.label,
+                      defaultValue: "New issue in {{group}}",
+                    })}
+                    aria-label={t("issuesList.newIssueInGroup", {
+                      group: group.label,
+                      defaultValue: "New issue in {{group}}",
+                    })}
+                    onClick={() => openCreateIssueDialog(group)}
                   >
                     <Plus className="h-3 w-3" />
                   </Button>

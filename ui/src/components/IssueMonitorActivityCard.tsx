@@ -6,7 +6,7 @@ import { formatDateTime } from "@/lib/utils";
 
 function resolveScheduledMonitor(issue: Issue) {
   const nextCheckAt =
-    issue.monitorNextCheckAt?.toISOString() ??
+    issue.monitorNextCheckAt ??
     issue.executionPolicy?.monitor?.nextCheckAt ??
     issue.executionState?.monitor?.nextCheckAt ??
     null;
@@ -31,7 +31,7 @@ export function IssueMonitorActivityCard({
   onCheckNow = null,
   checkingNow = false,
 }: IssueMonitorActivityCardProps) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(undefined, { useSuspense: false });
   const monitor = resolveScheduledMonitor(issue);
   if (!monitor) return null;
 

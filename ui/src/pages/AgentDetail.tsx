@@ -313,7 +313,7 @@ export function RunInvocationCard({
   payload: Record<string, unknown>;
   censorUsernameInLogs: boolean;
 }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(undefined, { useSuspense: false });
   const rawCommandLine = [
     typeof payload.command === "string" ? payload.command : null,
     ...(Array.isArray(payload.commandArgs)
@@ -3374,7 +3374,7 @@ function RunDetail({ run: initialRun, agentRouteId, adapterType, adapterConfig }
   const sessionChanged = run.sessionIdBefore && run.sessionIdAfter && run.sessionIdBefore !== run.sessionIdAfter;
   const sessionId = run.sessionIdAfter || run.sessionIdBefore;
   const hasNonZeroExit = run.exitCode !== null && run.exitCode !== 0;
-  const retryState = describeRunRetryState(run);
+  const retryState = describeRunRetryState(run, t);
 
   return (
     <div className="space-y-4 min-w-0">

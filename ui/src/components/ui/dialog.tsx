@@ -54,7 +54,7 @@ function DialogContent({
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean
 }) {
-  const { t } = useTranslation()
+  const { t } = useTranslation(undefined, { useSuspense: false })
   return (
     <DialogPortal data-slot="dialog-portal">
       <DialogOverlay />
@@ -99,7 +99,7 @@ function DialogFooter({
 }: React.ComponentProps<"div"> & {
   showCloseButton?: boolean
 }) {
-  const { t } = useTranslation()
+  const { t } = useTranslation(undefined, { useSuspense: false })
   return (
     <div
       data-slot="dialog-footer"

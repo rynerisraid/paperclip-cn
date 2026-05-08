@@ -58,7 +58,7 @@ function SidebarAgentItem({
   runCount: number;
   setSidebarOpen: (open: boolean) => void;
 }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(undefined, { useSuspense: false });
   const routeRef = agentRouteRef(agent);
   const href = activeTab ? `${agentUrl(agent)}/${activeTab}` : agentUrl(agent);
   const editHref = `${agentUrl(agent)}/configuration`;
@@ -164,7 +164,7 @@ function SidebarAgentItem({
 }
 
 export function SidebarAgents() {
-  const { t } = useTranslation();
+  const { t } = useTranslation(undefined, { useSuspense: false });
   const [open, setOpen] = useState(true);
   const [pendingAgentIds, setPendingAgentIds] = useState<Set<string>>(() => new Set());
   const queryClient = useQueryClient();
@@ -241,14 +241,18 @@ export function SidebarAgents() {
         queryClient.invalidateQueries({ queryKey: queryKeys.agents.detail(agentRouteRef(agent)) }),
       ]);
       pushToast({
-        title: action === "pause" ? "Agent paused" : "Agent resumed",
+        title: action === "pause"
+          ? t("Agent paused", { defaultValue: "Agent paused" })
+          : t("Agent resumed", { defaultValue: "Agent resumed" }),
         body: agent.name,
         tone: "success",
       });
     },
     onError: (error, { agent, action }) => {
       pushToast({
-        title: action === "pause" ? "Could not pause agent" : "Could not resume agent",
+        title: action === "pause"
+          ? t("Could not pause agent", { defaultValue: "Could not pause agent" })
+          : t("Could not resume agent", { defaultValue: "Could not resume agent" }),
         body: error instanceof Error ? error.message : agent.name,
         tone: "error",
       });

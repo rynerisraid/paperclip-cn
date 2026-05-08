@@ -135,6 +135,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Textarea } from "@/components/ui/textarea";
 import { AlertTriangle, ArrowRight, Brain, Check, ChevronDown, ClipboardList, Copy, Hammer, Loader2, MoreHorizontal, Paperclip, PauseCircle, Search, Square, ThumbsDown, ThumbsUp } from "lucide-react";
 import { IssueBlockedNotice } from "./IssueBlockedNotice";
+import { IssueAssignedBacklogNotice } from "./IssueAssignedBacklogNotice";
 
 interface IssueChatMessageContext {
   feedbackDataSharingPreference: FeedbackDataSharingPreference;
@@ -188,7 +189,6 @@ export function resolveAssistantMessageFoldedState(args: {
   previousMessageId: string | null;
   previousIsFoldable: boolean;
 }) {
-  const { t } = useTranslation();
   const {
     messageId,
     currentFolded,
@@ -299,6 +299,9 @@ interface IssueChatThreadProps {
   blockedBy?: IssueRelationIssueSummary[];
   blockerAttention?: IssueBlockerAttention | null;
   successfulRunHandoff?: SuccessfulRunHandoffState | null;
+  assigneeUserId?: string | null;
+  onResumeFromBacklog?: () => Promise<void> | void;
+  resumeFromBacklogPending?: boolean;
   companyId?: string | null;
   projectId?: string | null;
   issueStatus?: string;
@@ -815,7 +818,7 @@ function IssueChatChainOfThought({
   message: ThreadMessage;
   cotParts: readonly IssueChatCoTPart[];
 }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(undefined, { useSuspense: false });
   const { agentMap } = useContext(IssueChatCtx);
   const custom = message.metadata.custom as Record<string, unknown>;
   const runAgentId = typeof custom.runAgentId === "string" ? custom.runAgentId : null;
@@ -933,7 +936,7 @@ function IssueChatChainOfThought({
 }
 
 function IssueChatReasoningPart({ text }: { text: string }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(undefined, { useSuspense: false });
   const lines = text.split("\n").filter((l) => l.trim()).map((line) => formatReasoningLine(line, t));
   const lastLine = lines[lines.length - 1] ?? text.slice(-200);
   const prevRef = useRef(lastLine);
@@ -1277,7 +1280,7 @@ function IssueChatUserMessage({
   message: ThreadMessage;
   isInterruptingQueuedRun: boolean;
 }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(undefined, { useSuspense: false });
   const {
     onInterruptQueued,
     onCancelQueued,
@@ -1445,7 +1448,7 @@ function IssueChatAssistantMessage({
   isRunActive: boolean;
   isStoppingRun: boolean;
 }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(undefined, { useSuspense: false });
   const {
     feedbackDataSharingPreference,
     feedbackTermsUrl,
@@ -3170,7 +3173,7 @@ const IssueChatComposer = forwardRef<IssueChatComposerHandle, IssueChatComposerP
   issueWorkMode,
   onWorkModeChange,
 }, forwardedRef) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(undefined, { useSuspense: false });
   const api = useAui();
   const toastActions = useOptionalToastActions();
   const [body, setBody] = useState("");
@@ -3741,8 +3744,11 @@ export function IssueChatThread({
   issueWorkMode,
   onWorkModeChange,
   onRefreshLatestComments,
+  assigneeUserId = null,
+  onResumeFromBacklog,
+  resumeFromBacklogPending = false,
 }: IssueChatThreadProps) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(undefined, { useSuspense: false });
   const location = useLocation();
   const lastScrolledHashRef = useRef<string | null>(null);
   const virtualizedThreadRef = useRef<VirtualizedIssueChatThreadListHandle | null>(null);
@@ -4322,6 +4328,13 @@ export function IssueChatThread({
             )}
               {showComposer ? (
                 <div data-testid="issue-chat-thread-notices" className="space-y-2">
+                  <IssueAssignedBacklogNotice
+                    issueStatus={issueStatus ?? ""}
+                    assigneeAgent={assignedAgent}
+                    assigneeUserId={assigneeUserId}
+                    onResume={onResumeFromBacklog}
+                    resuming={resumeFromBacklogPending}
+                  />
                   <IssueBlockedNotice
                     issueStatus={issueStatus}
                     blockers={unresolvedBlockers}
