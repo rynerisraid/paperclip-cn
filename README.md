@@ -411,6 +411,7 @@ We welcome contributions. See the [contributing guide](CONTRIBUTING.md) for deta
 <br/>
 
 ## Community
+<img width="915" height="327" alt="image" src="https://github.com/user-attachments/assets/10cb4c01-6e4e-4d1f-ada9-50943d224595" />
 
 - [Discord](https://discord.gg/m4HZY7xNG3) — Join the community
 - [Twitter / X](https://x.com/papercliping) — Follow updates and announcements
