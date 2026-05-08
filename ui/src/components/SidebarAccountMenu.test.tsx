@@ -11,6 +11,7 @@ const translations: Record<string, string> = {
   "language.zh-CN": "简体中文",
   "language.en": "English",
   "layout.languageSwitcherLabel": "Switch language",
+  "sidebarAccountMenu.languageLabel": "Language",
   "sidebarAccountMenu.languageDescription": "Choose the interface language for this browser.",
 };
 
@@ -137,8 +138,8 @@ describe("SidebarAccountMenu", () => {
     expect(document.body.textContent).toContain("Documentation");
     expect(document.body.textContent).toContain("Paperclip v1.2.3");
     expect(document.body.textContent).toContain("jane@example.com");
-    expect(document.body.textContent).toContain("Switch language");
-    expect(document.body.textContent).toContain("Choose the interface language for this browser.");
+    expect(document.body.textContent).toContain("Language");
+    expect(document.body.textContent).not.toContain("Choose the interface language for this browser.");
     expect(document.body.textContent).toContain("中文");
     expect(document.body.textContent).toContain("English");
     expect(document.body.querySelector('[data-slot="popover-content"]')?.className)

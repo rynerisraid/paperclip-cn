@@ -1,6 +1,7 @@
 import { useMemo, useState, type ReactNode } from "react";
 import type { ActivityEvent, Issue, Agent } from "@penclipai/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { Link } from "@/lib/router";
 import { accessApi, type CurrentBoardAccess } from "../api/access";
 import { activityApi, type RunForIssue, type RunLivenessState } from "../api/activity";
@@ -489,6 +490,7 @@ export function IssueRunLedgerContent({
   watchdogDecisionError,
   onWatchdogDecision,
 }: IssueRunLedgerContentProps) {
+  const { t } = useTranslation(undefined, { useSuspense: false });
   const ledgerRuns = useMemo(() => mergeRuns(runs, liveRuns, activeRun), [activeRun, liveRuns, runs]);
   const latestRun = ledgerRuns[0] ?? null;
   const latestSilentRun = useMemo(
@@ -691,7 +693,7 @@ export function IssueRunLedgerContent({
             const duration = formatDuration(run.startedAt, run.finishedAt);
             const exhausted = hasExhaustedContinuation(run);
             const continuation = continuationLabel(run);
-            const retryState = describeRunRetryState(run);
+            const retryState = describeRunRetryState(run, t);
             const agentName = compactAgentName(run, agentMap);
             return (
               <article

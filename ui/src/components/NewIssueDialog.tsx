@@ -1,6 +1,7 @@
 import { memo, useState, useEffect, useRef, useCallback, useMemo, type ChangeEvent, type DragEvent, type RefObject } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import type { IssueWorkMode } from "@penclipai/shared";
 import { pickTextColorForSolidBg } from "@/lib/color-contrast";
 import { useDialog } from "../context/DialogContext";
@@ -55,6 +56,7 @@ import {
   Calendar,
   Paperclip,
   FileText,
+  Flag,
   Loader2,
   ListTree,
   X,
@@ -149,6 +151,12 @@ const ISSUE_WORK_MODE_OPTIONS: ReadonlyArray<{
   { value: "planning", label: "Planning", icon: ClipboardList },
 ];
 
+function issueWorkModeLabel(t: TFunction, mode: IssueWorkMode) {
+  return mode === "planning"
+    ? t("newIssue.workMode.planning", { defaultValue: "Planning" })
+    : t("newIssue.workMode.standard", { defaultValue: "Standard" });
+}
+
 function loadDraft(): IssueDraft | null {
   try {
     const raw = localStorage.getItem(DRAFT_KEY);
@@ -220,9 +228,19 @@ function formatFileSize(file: File) {
   return `${(file.size / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-const statuses = [
-  { value: "backlog", label: "Backlog", color: issueStatusText.backlog ?? issueStatusTextDefault },
-  { value: "todo", label: "Todo", color: issueStatusText.todo ?? issueStatusTextDefault },
+const statuses: ReadonlyArray<{ value: string; label: string; color: string; description?: string }> = [
+  {
+    value: "backlog",
+    label: "Backlog",
+    color: issueStatusText.backlog ?? issueStatusTextDefault,
+    description: "Parked — assignee will not be woken",
+  },
+  {
+    value: "todo",
+    label: "Todo",
+    color: issueStatusText.todo ?? issueStatusTextDefault,
+    description: "Executable — assignee will be woken",
+  },
   { value: "in_progress", label: "In Progress", color: issueStatusText.in_progress ?? issueStatusTextDefault },
   { value: "in_review", label: "In Review", color: issueStatusText.in_review ?? issueStatusTextDefault },
   { value: "done", label: "Done", color: issueStatusText.done ?? issueStatusTextDefault },
@@ -240,6 +258,16 @@ const EXECUTION_WORKSPACE_MODES = [
   { value: "isolated_workspace", label: "New isolated workspace" },
   { value: "reuse_existing", label: "Reuse existing workspace" },
 ] as const;
+
+function executionWorkspaceModeLabel(t: TFunction, value: (typeof EXECUTION_WORKSPACE_MODES)[number]["value"]) {
+  if (value === "isolated_workspace") {
+    return t("newIssue.executionWorkspaceMode.isolated_workspace", { defaultValue: "New isolated workspace" });
+  }
+  if (value === "reuse_existing") {
+    return t("newIssue.executionWorkspaceMode.reuse_existing", { defaultValue: "Reuse existing workspace" });
+  }
+  return t("newIssue.executionWorkspaceMode.shared_workspace", { defaultValue: "Project default" });
+}
 
 function defaultProjectWorkspaceIdForProject(project: { workspaces?: Array<{ id: string; isPrimary: boolean }>; executionWorkspacePolicy?: { defaultProjectWorkspaceId?: string | null } | null } | null | undefined) {
   if (!project) return "";
@@ -295,6 +323,7 @@ const IssueTitleTextarea = memo(function IssueTitleTextarea({
   projectSelectorRef: RefObject<HTMLButtonElement | null>;
   onChange: (value: string) => void;
 }) {
+  const { t } = useTranslation();
   const [draftValue, setDraftValue] = useState(value);
 
   useEffect(() => {
@@ -304,7 +333,7 @@ const IssueTitleTextarea = memo(function IssueTitleTextarea({
   return (
     <textarea
       className="w-full text-lg font-semibold bg-transparent outline-none resize-none overflow-hidden placeholder:text-muted-foreground/50"
-      placeholder="Issue title"
+      placeholder={t("newIssue.titlePlaceholder", { defaultValue: "Issue title" })}
       rows={1}
       value={draftValue}
       onChange={(e) => {
@@ -358,6 +387,7 @@ const IssueDescriptionEditor = memo(function IssueDescriptionEditor({
   imageUploadHandler: (file: File) => Promise<string>;
   onChange: (value: string) => void;
 }) {
+  const { t } = useTranslation();
   const [draftValue, setDraftValue] = useState(value);
 
   useEffect(() => {
@@ -372,7 +402,7 @@ const IssueDescriptionEditor = memo(function IssueDescriptionEditor({
         setDraftValue(nextValue);
         onChange(nextValue);
       }}
-      placeholder="Add description..."
+      placeholder={t("newIssue.descriptionPlaceholder", { defaultValue: "Add description..." })}
       bordered={false}
       mentions={mentions}
       contentClassName={cn("text-sm text-muted-foreground pb-12", expanded ? "min-h-[220px]" : "min-h-[120px]")}
@@ -1089,12 +1119,12 @@ export function NewIssueDialog() {
     && !isUsingParentExecutionWorkspace;
   const assigneeOptionsTitle =
     assigneeAdapterType === "claude_local"
-      ? "Claude options"
+      ? t("newIssue.assigneeOptions.claude_local", { defaultValue: "Claude options" })
       : assigneeAdapterType === "codex_local"
-        ? "Codex options"
+        ? t("newIssue.assigneeOptions.codex_local", { defaultValue: "Codex options" })
         : assigneeAdapterType === "opencode_local"
-          ? "OpenCode options"
-        : "Agent options";
+          ? t("newIssue.assigneeOptions.opencode_local", { defaultValue: "OpenCode options" })
+        : t("newIssue.assigneeOptions.agent", { defaultValue: "Agent options" });
   const thinkingEffortOptions =
     assigneeAdapterType === "codex_local"
       ? ISSUE_THINKING_EFFORT_OPTIONS.codex_local
@@ -1285,8 +1315,8 @@ export function NewIssueDialog() {
             <span className="text-muted-foreground/60">&rsaquo;</span>
             <span>
               {isSubIssueMode
-                ? t("New sub-issue", { defaultValue: "New sub-issue" })
-                : t("New issue", { defaultValue: "New issue" })}
+                ? t("newIssue.subIssueTitle", { defaultValue: "New sub-issue" })
+                : t("newIssue.title", { defaultValue: "New issue" })}
             </span>
           </div>
           <div className="flex items-center gap-1">
@@ -1335,7 +1365,7 @@ export function NewIssueDialog() {
                 value={assigneeValue}
                 options={assigneeOptions}
                 recentOptionIds={recentAssigneeOptionIds}
-                placeholder="Assignee"
+                placeholder={t("Assignee", { defaultValue: "Assignee" })}
                 disablePortal
                 noneLabel={t("No assignee", { defaultValue: "No assignee" })}
                 searchPlaceholder={t("Search assignees...", { defaultValue: "Search assignees..." })}
@@ -1346,6 +1376,10 @@ export function NewIssueDialog() {
                     trackRecentAssignee(nextAssignee.assigneeAgentId);
                   }
                   setAssigneeValue(value);
+                  const hasAssignee = Boolean(nextAssignee.assigneeAgentId || nextAssignee.assigneeUserId);
+                  if (hasAssignee && status === "backlog") {
+                    setStatus("todo");
+                  }
                 }}
                 onConfirm={() => {
                   if (projectId) {
@@ -1381,13 +1415,13 @@ export function NewIssueDialog() {
                   );
                 }}
               />
-              <span>{t("in", { defaultValue: "in" })}</span>
+              <span>{t("newIssue.inLabel", { defaultValue: "in" })}</span>
               <InlineEntitySelector
                 ref={projectSelectorRef}
                 value={projectId}
                 options={projectOptions}
                 recentOptionIds={recentProjectIds}
-                placeholder="Project"
+                placeholder={t("Project", { defaultValue: "Project" })}
                 disablePortal
                 noneLabel={t("No project", { defaultValue: "No project" })}
                 searchPlaceholder={t("Search projects...", { defaultValue: "Search projects..." })}
@@ -1429,7 +1463,7 @@ export function NewIssueDialog() {
                   <button
                     type="button"
                     className="inline-flex items-center justify-center rounded-md p-1 text-muted-foreground hover:bg-accent/50 transition-colors"
-                    title={t("Add reviewer or approver", { defaultValue: "Add reviewer or approver" })}
+                    title={t("newIssue.addReviewerOrApprover", { defaultValue: "Add reviewer or approver" })}
                   >
                     <MoreHorizontal className="h-4 w-4" />
                   </button>
@@ -1476,7 +1510,7 @@ export function NewIssueDialog() {
                 value={reviewerValue}
                 options={assigneeOptions}
                 recentOptionIds={recentAssigneeOptionIds}
-                placeholder="Reviewer"
+                placeholder={t("Reviewer", { defaultValue: "Reviewer" })}
                 disablePortal
                 noneLabel={t("None", { defaultValue: "None" })}
                 searchPlaceholder={t("Search reviewers...", { defaultValue: "Search reviewers..." })}
@@ -1521,7 +1555,7 @@ export function NewIssueDialog() {
                 value={approverValue}
                 options={assigneeOptions}
                 recentOptionIds={recentAssigneeOptionIds}
-                placeholder="Approver"
+                placeholder={t("Approver", { defaultValue: "Approver" })}
                 disablePortal
                 noneLabel={t("None", { defaultValue: "None" })}
                 searchPlaceholder={t("Search approvers...", { defaultValue: "Search approvers..." })}
@@ -1564,7 +1598,7 @@ export function NewIssueDialog() {
             <div className="max-w-full rounded-md border border-border bg-muted/30 px-2.5 py-1.5 text-xs text-muted-foreground">
               <div className="flex items-center gap-1.5">
                 <ListTree className="h-3.5 w-3.5 shrink-0" />
-                <span className="shrink-0">{t("Sub-issue of", { defaultValue: "Sub-issue of" })}</span>
+                <span className="shrink-0">{t("newIssue.subIssueOf", { defaultValue: "Sub-issue of" })}</span>
                 <span className="font-medium text-foreground">{parentIssueLabel}</span>
               </div>
               {newIssueDefaults.parentTitle ? (
@@ -1579,9 +1613,13 @@ export function NewIssueDialog() {
           {currentProject && currentProjectSupportsExecutionWorkspace && (
             <div className="px-4 py-3 space-y-2">
             <div className="space-y-1.5">
-              <div className="text-xs font-medium">Execution workspace</div>
+              <div className="text-xs font-medium">
+                {t("newIssue.executionWorkspaceTitle", { defaultValue: "Execution workspace" })}
+              </div>
               <div className="text-[11px] text-muted-foreground">
-                Control whether this issue runs in the shared workspace, a new isolated workspace, or an existing one.
+                {t("newIssue.executionWorkspaceHelp", {
+                  defaultValue: "Control whether this issue runs in the shared workspace, a new isolated workspace, or an existing one.",
+                })}
               </div>
               <select
                 className="w-full rounded border border-border bg-transparent px-2 py-1.5 text-xs outline-none"
@@ -1595,7 +1633,7 @@ export function NewIssueDialog() {
               >
                 {EXECUTION_WORKSPACE_MODES.map((option) => (
                   <option key={option.value} value={option.value}>
-                    {option.label}
+                    {executionWorkspaceModeLabel(t, option.value)}
                   </option>
                 ))}
               </select>
@@ -1605,7 +1643,9 @@ export function NewIssueDialog() {
                   value={selectedExecutionWorkspaceId}
                   onChange={(e) => setSelectedExecutionWorkspaceId(e.target.value)}
                 >
-                  <option value="">Choose an existing workspace</option>
+                  <option value="">
+                    {t("newIssue.chooseExistingWorkspace", { defaultValue: "Choose an existing workspace" })}
+                  </option>
                   {deduplicatedReusableWorkspaces.map((workspace) => (
                     <option key={workspace.id} value={workspace.id}>
                       {workspace.name} · {workspace.status} · {workspace.branchName ?? workspace.cwd ?? workspace.id.slice(0, 8)}
@@ -1615,12 +1655,24 @@ export function NewIssueDialog() {
               )}
               {executionWorkspaceMode === "reuse_existing" && selectedReusableExecutionWorkspace && (
                 <div className="text-[11px] text-muted-foreground">
-                  Reusing {selectedReusableExecutionWorkspace.name} from {selectedReusableExecutionWorkspace.branchName ?? selectedReusableExecutionWorkspace.cwd ?? "existing execution workspace"}.
+                  {(() => {
+                    const source = selectedReusableExecutionWorkspace.branchName ??
+                      selectedReusableExecutionWorkspace.cwd ??
+                      t("newIssue.existingExecutionWorkspace", { defaultValue: "existing execution workspace" });
+                    return t("newIssue.reusingExecutionWorkspace", {
+                      defaultValue: `Reusing ${selectedReusableExecutionWorkspace.name} from ${source}.`,
+                      name: selectedReusableExecutionWorkspace.name,
+                      source,
+                    });
+                  })()}
                 </div>
               )}
               {showParentWorkspaceWarning ? (
                 <div className="rounded-md border border-amber-300/60 bg-amber-50 px-2 py-1.5 text-[11px] text-amber-900 dark:border-amber-800/70 dark:bg-amber-950/30 dark:text-amber-100">
-                  Warning: this sub-issue will no longer use the parent issue workspace{parentExecutionWorkspaceLabel ? ` (${parentExecutionWorkspaceLabel})` : ""}.
+                  {t("newIssue.executionWorkspace.parentWarning", {
+                    defaultValue: `Warning: this sub-issue will no longer use the parent issue workspace${parentExecutionWorkspaceLabel ? ` (${parentExecutionWorkspaceLabel})` : ""}.`,
+                    suffix: parentExecutionWorkspaceLabel ? ` (${parentExecutionWorkspaceLabel})` : "",
+                  })}
                 </div>
               ) : null}
             </div>
@@ -1639,11 +1691,13 @@ export function NewIssueDialog() {
             {assigneeOptionsOpen && (
               <div className="mt-2 rounded-md border border-border p-3 bg-muted/20 space-y-3">
                 <div className="space-y-1.5">
-                  <div className="text-xs text-muted-foreground">Model lane</div>
+                  <div className="text-xs text-muted-foreground">
+                    {t("newIssue.modelLane.title", { defaultValue: "Model lane" })}
+                  </div>
                   <div
                     className="flex w-full overflow-hidden rounded-md border border-border"
                     role="radiogroup"
-                    aria-label="Model lane"
+                    aria-label={t("newIssue.modelLane.title", { defaultValue: "Model lane" })}
                   >
                     {(["primary", ...(assigneeSupportsCheapLane ? (["cheap"] as const) : ([] as const)), "custom"] as const).map((lane) => (
                       <button
@@ -1658,48 +1712,54 @@ export function NewIssueDialog() {
                         onClick={() => setAssigneeModelLane(lane)}
                       >
                         {lane === "primary"
-                          ? "Primary"
+                          ? t("newIssue.modelLane.primary", { defaultValue: "Primary" })
                           : lane === "cheap"
-                            ? "Cheap"
-                            : "Custom"}
+                            ? t("newIssue.modelLane.cheap", { defaultValue: "Cheap" })
+                            : t("newIssue.modelLane.custom", { defaultValue: "Custom" })}
                       </button>
                     ))}
                   </div>
                   {assigneeModelLane === "cheap" && (
                     <p className="text-[11px] text-muted-foreground">
-                      Sends <code>modelProfile: "cheap"</code>{" "}
+                      {t("newIssue.modelLane.cheapSendsPrefix", { defaultValue: "Sends" })} <code>modelProfile: "cheap"</code>{" "}
                       {assigneeCheapProfile?.adapterConfig && typeof (assigneeCheapProfile.adapterConfig as Record<string, unknown>).model === "string"
-                        ? <>· adapter default <code>{String((assigneeCheapProfile.adapterConfig as Record<string, unknown>).model)}</code></>
+                        ? <>{t("newIssue.modelLane.adapterDefaultPrefix", { defaultValue: "· adapter default" })} <code>{String((assigneeCheapProfile.adapterConfig as Record<string, unknown>).model)}</code></>
                         : assigneeCheapProfile
-                          ? <>· uses the agent's configured cheap profile</>
-                          : <>· falls back to the primary model if no cheap profile is configured</>}
+                          ? <>{t("newIssue.modelLane.usesCheapProfile", { defaultValue: "· uses the agent's configured cheap profile" })}</>
+                          : <>{t("newIssue.modelLane.fallsBackToPrimary", { defaultValue: "· falls back to the primary model if no cheap profile is configured" })}</>}
                     </p>
                   )}
                   {assigneeModelLane === "primary" && (
-                    <p className="text-[11px] text-muted-foreground">Runs on the agent's primary model.</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      {t("newIssue.modelLane.primaryDescription", { defaultValue: "Runs on the agent's primary model." })}
+                    </p>
                   )}
                   {assigneeModelLane === "custom" && (
-                    <p className="text-[11px] text-muted-foreground">Override the model and effort for this issue only.</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      {t("newIssue.modelLane.customDescription", { defaultValue: "Override the model and effort for this issue only." })}
+                    </p>
                   )}
                 </div>
                 {assigneeModelLane === "custom" && (
                   <div className="space-y-1.5">
-                    <div className="text-xs text-muted-foreground">Model</div>
+                    <div className="text-xs text-muted-foreground">{t("Model", { defaultValue: "Model" })}</div>
                     <InlineEntitySelector
                       value={assigneeModelOverride}
                       options={modelOverrideOptions}
-                      placeholder="Default model"
+                      placeholder={t("newIssue.defaultModel", { defaultValue: "Default model" })}
                       disablePortal
-                      noneLabel="Default model"
-                      searchPlaceholder="Search models..."
-                      emptyMessage="No models found."
+                      noneLabel={t("newIssue.defaultModel", { defaultValue: "Default model" })}
+                      searchPlaceholder={t("Search models...", { defaultValue: "Search models..." })}
+                      emptyMessage={t("agentConfig.noModelsFound", { defaultValue: "No models found." })}
                       onChange={setAssigneeModelOverride}
                     />
                   </div>
                 )}
                 {assigneeModelLane === "custom" && (
                   <div className="space-y-1.5">
-                    <div className="text-xs text-muted-foreground">Thinking effort</div>
+                    <div className="text-xs text-muted-foreground">
+                      {t("agentConfig.thinkingEffort", { defaultValue: "Thinking effort" })}
+                    </div>
                     <div className="flex items-center gap-1.5 flex-wrap">
                       {thinkingEffortOptions.map((option) => (
                         <button
@@ -1710,7 +1770,7 @@ export function NewIssueDialog() {
                           )}
                           onClick={() => setAssigneeThinkingEffort(option.value)}
                         >
-                          {option.label}
+                          {t(`agentConfig.${option.value || "default"}`, { defaultValue: option.label })}
                         </button>
                       ))}
                     </div>
@@ -1718,7 +1778,9 @@ export function NewIssueDialog() {
                 )}
                 {assigneeAdapterType === "claude_local" && assigneeModelLane === "custom" && (
                   <div className="flex items-center justify-between rounded-md border border-border px-2 py-1.5">
-                    <div className="text-xs text-muted-foreground">Enable Chrome (--chrome)</div>
+                    <div className="text-xs text-muted-foreground">
+                      {t("newIssue.enableChrome", { defaultValue: "Enable Chrome (--chrome)" })}
+                    </div>
                     <ToggleSwitch
                       checked={assigneeChrome}
                       onCheckedChange={() => setAssigneeChrome((value) => !value)}
@@ -1836,18 +1898,25 @@ export function NewIssueDialog() {
                 {getStatusLabel(currentStatus.value)}
               </button>
             </PopoverTrigger>
-            <PopoverContent className="w-36 p-1" align="start">
+            <PopoverContent className="w-56 p-1" align="start">
               {statuses.map((s) => (
                 <button
                   key={s.value}
                   className={cn(
-                    "flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded hover:bg-accent/50",
+                    "flex w-full items-start gap-2 px-2 py-1.5 text-xs rounded hover:bg-accent/50",
                     s.value === status && "bg-accent"
                   )}
                   onClick={() => { setStatus(s.value); setStatusOpen(false); }}
                 >
-                  <CircleDot className={cn("h-3 w-3", s.color)} />
-                  {getStatusLabel(s.value)}
+                  <CircleDot className={cn("h-3 w-3 mt-0.5 shrink-0", s.color)} />
+                  <span className="flex flex-col text-left leading-tight">
+                    <span>{getStatusLabel(s.value)}</span>
+                    {s.description ? (
+                      <span className="text-[10px] text-muted-foreground">
+                        {t(`newIssue.statusDescriptions.${s.value}`, { defaultValue: s.description })}
+                      </span>
+                    ) : null}
+                  </span>
                 </button>
               ))}
             </PopoverContent>
@@ -1924,7 +1993,7 @@ export function NewIssueDialog() {
                 )}
               >
                 <CurrentWorkModeIcon className="h-3 w-3" />
-                {currentWorkMode.label}
+                {issueWorkModeLabel(t, currentWorkMode.value)}
               </button>
             </PopoverTrigger>
             <PopoverContent className="w-36 p-1" align="start">
@@ -1945,7 +2014,7 @@ export function NewIssueDialog() {
                     }}
                   >
                     <Icon className="h-3 w-3" />
-                    {option.label}
+                    {issueWorkModeLabel(t, option.value)}
                   </button>
                 );
               })}
@@ -1962,15 +2031,27 @@ export function NewIssueDialog() {
             <PopoverContent className="w-44 p-1" align="start">
               <button className="flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded hover:bg-accent/50 text-muted-foreground">
                 <Calendar className="h-3 w-3" />
-                {t("Start date", { defaultValue: "Start date" })}
+                {t("newIssue.startDate", { defaultValue: "Start date" })}
               </button>
               <button className="flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded hover:bg-accent/50 text-muted-foreground">
                 <Calendar className="h-3 w-3" />
-                {t("Due date", { defaultValue: "Due date" })}
+                {t("newIssue.dueDate", { defaultValue: "Due date" })}
               </button>
             </PopoverContent>
           </Popover>
         </div>
+
+        {assigneeValue && status === "backlog" ? (
+          <div
+            data-testid="new-issue-assigned-backlog-note"
+            className="mx-4 mb-2 flex items-start gap-2 rounded-md border border-amber-300/70 bg-amber-50/90 px-3 py-2 text-xs text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-100"
+          >
+            <Flag className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-600 dark:text-amber-300" />
+            <span className="leading-snug">
+              Assigning implies executable intent — leave status as <span className="font-medium">Backlog</span> only to deliberately park this. The assignee will not be woken until status moves to <span className="font-medium">Todo</span> or <span className="font-medium">In Progress</span>.
+            </span>
+          </div>
+        ) : null}
 
         {/* Footer */}
         <div className="flex items-center justify-between px-4 py-2.5 border-t border-border shrink-0">
@@ -1988,7 +2069,7 @@ export function NewIssueDialog() {
               {createIssue.isPending ? (
                 <span className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                   <Loader2 className="h-3 w-3 animate-spin" />
-                  {t("Creating issue...", { defaultValue: "Creating issue..." })}
+                  {t("newIssue.creatingIssue", { defaultValue: "Creating issue..." })}
                 </span>
               ) : createIssue.isError ? (
                 <span className="text-xs text-destructive">{createIssueErrorMessage}</span>
@@ -2005,9 +2086,9 @@ export function NewIssueDialog() {
                 {createIssue.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
                 <span>
                   {createIssue.isPending
-                    ? t("Creating...", { defaultValue: "Creating..." })
+                    ? t("newIssue.creating", { defaultValue: "Creating..." })
                     : isSubIssueMode
-                      ? t("Create Sub-Issue", { defaultValue: "Create Sub-Issue" })
+                      ? t("newIssue.createSubIssue", { defaultValue: "Create Sub-Issue" })
                       : t("Create Issue", { defaultValue: "Create Issue" })}
                 </span>
               </span>

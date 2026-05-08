@@ -58,18 +58,21 @@ function SidebarAgentItem({
   runCount: number;
   setSidebarOpen: (open: boolean) => void;
 }) {
+  const { t } = useTranslation(undefined, { useSuspense: false });
   const routeRef = agentRouteRef(agent);
   const href = activeTab ? `${agentUrl(agent)}/${activeTab}` : agentUrl(agent);
   const editHref = `${agentUrl(agent)}/configuration`;
   const isActive = activeAgentId === routeRef;
   const isPaused = agent.status === "paused";
   const isBudgetPaused = isPaused && agent.pauseReason === "budget";
-  const pauseResumeLabel = isPaused ? "Resume agent" : "Pause agent";
+  const pauseResumeLabel = isPaused
+    ? t("Resume agent", { defaultValue: "Resume agent" })
+    : t("Pause agent", { defaultValue: "Pause agent" });
   const pauseResumeDisabled = disabled || agent.status === "pending_approval" || isBudgetPaused;
   const pauseResumeDisabledLabel = disabled
-    ? "Updating..."
+    ? t("Updating...", { defaultValue: "Updating..." })
     : isBudgetPaused
-      ? "Budget paused"
+      ? t("Budget paused", { defaultValue: "Budget paused" })
       : pauseResumeLabel;
 
   return (
@@ -92,7 +95,7 @@ function SidebarAgentItem({
         {(agent.pauseReason === "budget" || runCount > 0) && (
           <span className="ml-auto flex items-center gap-1.5 shrink-0">
             {agent.pauseReason === "budget" ? (
-              <BudgetSidebarMarker title="Agent paused by budget" />
+              <BudgetSidebarMarker title={t("Agent paused by budget", { defaultValue: "Agent paused by budget" })} />
             ) : null}
             {runCount > 0 ? (
               <span className="relative flex h-2 w-2">
@@ -102,7 +105,7 @@ function SidebarAgentItem({
             ) : null}
             {runCount > 0 ? (
               <span className="text-[11px] font-medium text-blue-600 dark:text-blue-400">
-                {runCount} live
+                {t("{{count}} live", { defaultValue: "{{count}} live", count: runCount })}
               </span>
             ) : null}
           </span>
@@ -120,7 +123,10 @@ function SidebarAgentItem({
                 ? "opacity-100"
                 : "pointer-events-none opacity-0 group-hover/agent:pointer-events-auto group-hover/agent:opacity-100 group-focus-within/agent:pointer-events-auto group-focus-within/agent:opacity-100",
             )}
-            aria-label={`Open actions for ${agent.name}`}
+            aria-label={t("Open actions for {{name}}", {
+              defaultValue: "Open actions for {{name}}",
+              name: agent.name,
+            })}
           >
             <MoreHorizontal className="h-3.5 w-3.5" />
           </Button>
@@ -134,7 +140,7 @@ function SidebarAgentItem({
               }}
             >
               <Pencil className="size-4" />
-              <span>Edit agent</span>
+              <span>{t("Edit agent", { defaultValue: "Edit agent" })}</span>
             </Link>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
@@ -144,7 +150,9 @@ function SidebarAgentItem({
               onPauseResume(agent, isPaused ? "resume" : "pause");
             }}
             disabled={pauseResumeDisabled}
-            title={isBudgetPaused ? "Agent was paused by budget limits" : undefined}
+            title={isBudgetPaused
+              ? t("Agent was paused by budget limits", { defaultValue: "Agent was paused by budget limits" })
+              : undefined}
           >
             {isPaused ? <PlayCircle className="size-4" /> : <PauseCircle className="size-4" />}
             <span>{pauseResumeDisabledLabel}</span>
@@ -156,7 +164,7 @@ function SidebarAgentItem({
 }
 
 export function SidebarAgents() {
-  const { t } = useTranslation();
+  const { t } = useTranslation(undefined, { useSuspense: false });
   const [open, setOpen] = useState(true);
   const [pendingAgentIds, setPendingAgentIds] = useState<Set<string>>(() => new Set());
   const queryClient = useQueryClient();
@@ -233,14 +241,18 @@ export function SidebarAgents() {
         queryClient.invalidateQueries({ queryKey: queryKeys.agents.detail(agentRouteRef(agent)) }),
       ]);
       pushToast({
-        title: action === "pause" ? "Agent paused" : "Agent resumed",
+        title: action === "pause"
+          ? t("Agent paused", { defaultValue: "Agent paused" })
+          : t("Agent resumed", { defaultValue: "Agent resumed" }),
         body: agent.name,
         tone: "success",
       });
     },
     onError: (error, { agent, action }) => {
       pushToast({
-        title: action === "pause" ? "Could not pause agent" : "Could not resume agent",
+        title: action === "pause"
+          ? t("Could not pause agent", { defaultValue: "Could not pause agent" })
+          : t("Could not resume agent", { defaultValue: "Could not resume agent" }),
         body: error instanceof Error ? error.message : agent.name,
         tone: "error",
       });

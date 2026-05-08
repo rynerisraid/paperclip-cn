@@ -512,7 +512,7 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
       errorMessage: testEnvironment.error instanceof Error
         ? testEnvironment.error.message
         : testEnvironment.error
-          ? "Environment test failed"
+          ? tr("agentConfig.environmentTestFailed", "Environment test failed")
           : null,
       result: testEnvironment.data ?? null,
     });
@@ -534,7 +534,11 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
       const refreshed = await agentsApi.adapterModels(selectedCompanyId, adapterType, { refresh: true });
       queryClient.setQueryData(modelQueryKey, refreshed);
     } catch (error) {
-      setRefreshModelsError(error instanceof Error ? error.message : "Failed to refresh adapter models.");
+      setRefreshModelsError(
+        error instanceof Error
+          ? error.message
+          : tr("agentConfig.failedToRefreshAdapterModels", "Failed to refresh adapter models."),
+      );
     } finally {
       setRefreshingModels(false);
     }
@@ -693,13 +697,15 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
       {isDirty && !props.hideInlineSave && (
         <div className="sticky top-0 z-10 flex items-center justify-end px-4 py-2 bg-background/90 backdrop-blur-sm border-b border-primary/20">
           <div className="flex items-center gap-3">
-            <span className="text-xs text-muted-foreground">Unsaved changes</span>
+            <span className="text-xs text-muted-foreground">{tr("agentConfig.unsavedChanges", "Unsaved changes")}</span>
             <Button
               size="sm"
               onClick={handleSave}
               disabled={!isCreate && props.isSaving}
             >
-              {!isCreate && props.isSaving ? "Saving..." : "Save"}
+              {!isCreate && props.isSaving
+                ? t("common.saving", { defaultValue: "Saving..." })
+                : t("common.save", { defaultValue: "Save" })}
             </Button>
           </div>
         </div>
@@ -757,7 +763,7 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
             </Field>
             {isLocal && !props.hidePromptTemplate && (
               <>
-                <Field label="Prompt Template" hint={help.promptTemplate}>
+                <Field label={tr("agentConfig.promptTemplate", "Prompt template")} hint={help.promptTemplate}>
                   <MarkdownEditor
                     value={eff(
                       "adapterConfig",
@@ -765,7 +771,7 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
                       String(config.promptTemplate ?? ""),
                     )}
                     onChange={(v) => mark("adapterConfig", "promptTemplate", v ?? "")}
-                    placeholder="You are agent {{ agent.name }}. Your role is {{ agent.role }}..."
+                    placeholder={tr("agentConfig.promptTemplatePlaceholder", "You are agent {{ agent.name }}. Your role is {{ agent.role }}...")}
                     contentClassName="min-h-[88px] text-sm font-mono"
                     imageUploadHandler={async (file) => {
                       const namespace = `agents/${props.agent.id}/prompt-template`;
@@ -775,7 +781,10 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
                   />
                 </Field>
                 <div className="rounded-md border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
-                  Prompt template is replayed on every heartbeat. Keep it compact and dynamic to avoid recurring token cost and cache churn.
+                  {tr(
+                    "agentConfig.promptTemplateWarning",
+                    "Prompt template is replayed on every heartbeat. Keep it concise and stable so context does not keep ballooning.",
+                  )}
                 </div>
               </>
             )}
@@ -787,13 +796,16 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
       {environmentsEnabled ? (
         <div className={cn(!cards && (isCreate ? "border-t border-border" : "border-b border-border"))}>
           {cards
-            ? <h3 className="text-sm font-medium mb-3">Execution</h3>
-            : <div className="px-4 py-2 text-xs font-medium text-muted-foreground">Execution</div>
+            ? <h3 className="text-sm font-medium mb-3">{tr("agentConfig.execution", "Execution")}</h3>
+            : <div className="px-4 py-2 text-xs font-medium text-muted-foreground">{tr("agentConfig.execution", "Execution")}</div>
           }
           <div className={cn(cards ? "border border-border rounded-lg p-4 space-y-3" : "px-4 pb-3 space-y-3")}>
             <Field
-              label="Default environment"
-              hint="Agent-level default execution target. Project and issue settings can still override this."
+              label={tr("agentConfig.defaultEnvironment", "Default environment")}
+              hint={tr(
+                "agentConfig.defaultEnvironmentHint",
+                "Agent-level default execution target. Project and issue settings can still override this.",
+              )}
             >
               <select
                 className={inputClass}
@@ -807,7 +819,7 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
                   mark("identity", "defaultEnvironmentId", nextValue || null);
                 }}
               >
-                <option value="">Company default (Local)</option>
+                <option value="">{tr("agentConfig.companyDefaultLocal", "Company default (Local)")}</option>
                 {runnableEnvironments.map((environment) => (
                   <option key={environment.id} value={environment.id}>
                     {environment.name} · {environment.driver}
@@ -836,7 +848,7 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
               disabled={testEnvironmentDisabled}
             >
               {testEnvironment.isPending
-                ? t("agentConfig.testing", { defaultValue: "Testing..." })
+                ? t("agentConfig.testingEnvironment", { defaultValue: "Testing..." })
                 : tr("agentConfig.testEnvironment", "Test")}
             </Button>
           )}
@@ -904,7 +916,7 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
             <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
               {testEnvironment.error instanceof Error
                 ? testEnvironment.error.message
-                : "Environment test failed"}
+                : tr("agentConfig.environmentTestFailed", "Environment test failed")}
             </div>
           )}
 
@@ -914,7 +926,7 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
 
           {/* Working directory */}
           {showLegacyWorkingDirectoryField && (
-            <Field label="Working directory (deprecated)" hint={help.cwd}>
+            <Field label={tr("agentConfig.workingDirectoryDeprecated", "Working directory (legacy)")} hint={help.cwd}>
               <div className="flex items-center gap-2 rounded-md border border-border px-2.5 py-1.5">
                 <FolderOpen className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                 <DraftInput
@@ -930,7 +942,7 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
                   }
                   immediate
                   className="w-full bg-transparent outline-none text-sm font-mono placeholder:text-muted-foreground/40"
-                  placeholder="/path/to/project"
+                  placeholder={tr("agentConfig.workingDirectoryPlaceholder", "/absolute/path/to/workspace")}
                 />
                 <ChoosePathButton />
               </div>
@@ -1016,22 +1028,26 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
                     : undefined
                 }
                 refreshingModels={refreshingModels}
-                detectModelLabel="Detect model"
-                emptyDetectHint="No model detected. Select or enter one manually."
+                detectModelLabel={tr("agentConfig.detectModel", "Detect model")}
+                emptyDetectHint={tr("agentConfig.noDetectedModelSelectManually", "No model detected. Select or enter one manually.")}
               />
               {(refreshModelsError || fetchedModelsError) && (
                 <p className="text-xs text-destructive">
                   {refreshModelsError
                     ?? (fetchedModelsError instanceof Error
                       ? fetchedModelsError.message
-                      : "Failed to load adapter models.")}
+                      : tr("agentConfig.failedToLoadAdapterModels", "Failed to load adapter models."))}
                 </p>
               )}
               {adapterType === "opencode_local"
                 && currentDefaultEnvironment
                 && currentDefaultEnvironment.driver !== "local" && (
                 <p className="text-xs text-muted-foreground">
-                  Live OpenCode model discovery only runs for Local environments. Using the curated list and manual entry for {currentDefaultEnvironment.name}.
+                  {t("agentConfig.liveOpenCodeDiscoveryLocalOnly", {
+                    environmentName: currentDefaultEnvironment.name,
+                    defaultValue:
+                      "Live OpenCode model discovery only runs for Local environments. Using the curated list and manual entry for {{environmentName}}.",
+                  })}
                 </p>
               )}
 
@@ -1066,14 +1082,14 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
                     codexSearchEnabled &&
                     currentThinkingEffort === "minimal" && (
                       <p className="text-xs text-amber-400">
-                        Codex may reject `minimal` thinking when search is enabled.
+                        {tr("agentConfig.codexMinimalSearchWarning", "Codex may reject `minimal` thinking when search is enabled.")}
                       </p>
                     )}
                 </>
               )}
               {!isCreate && typeof config.bootstrapPromptTemplate === "string" && config.bootstrapPromptTemplate && (
                 <>
-                  <Field label="Bootstrap prompt (legacy)" hint={help.bootstrapPrompt}>
+                  <Field label={tr("agentConfig.bootstrapPromptLegacy", "Bootstrap prompt (legacy)")} hint={help.bootstrapPrompt}>
                     <MarkdownEditor
                       value={eff(
                         "adapterConfig",
@@ -1083,7 +1099,7 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
                       onChange={(v) =>
                         mark("adapterConfig", "bootstrapPromptTemplate", v || undefined)
                       }
-                      placeholder="Optional initial setup prompt for the first run"
+                      placeholder={tr("agentConfig.bootstrapPromptPlaceholder", "Optional initial setup prompt for the first run")}
                       contentClassName="min-h-[44px] text-sm font-mono"
                       imageUploadHandler={async (file) => {
                         const namespace = `agents/${props.agent.id}/bootstrap-prompt`;
@@ -1093,7 +1109,10 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
                     />
                   </Field>
                   <div className="rounded-md border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
-                    Bootstrap prompt is legacy and will be removed in a future release. Consider moving this content into the agent&apos;s prompt template or instructions file instead.
+                    {tr(
+                      "agentConfig.bootstrapPromptLegacyWarning",
+                      "Bootstrap prompt is legacy and will be removed in a future release. Consider moving this content into the agent's prompt template or instructions file instead.",
+                    )}
                   </div>
                 </>
               )}
@@ -1116,7 +1135,7 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
                   }
                   immediate
                   className={inputClass}
-                  placeholder="e.g. --verbose, --foo=bar"
+                  placeholder={tr("agentConfig.extraArgsPlaceholder", "Comma-separated, e.g. --verbose, --search")}
                 />
               </Field>
 
@@ -1189,8 +1208,8 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
               onCheckedChange={(v) => set!({ heartbeatEnabled: v })}
               number={val!.intervalSec}
               onNumberChange={(v) => set!({ intervalSec: v })}
-              numberLabel="sec"
-              numberPrefix="Run heartbeat every"
+              numberLabel={tr("agentConfig.seconds", "sec")}
+              numberPrefix={tr("agentConfig.runHeartbeatEvery", "Run heartbeat every")}
               numberHint={help.intervalSec}
               showNumber={val!.heartbeatEnabled}
             />
@@ -1211,8 +1230,8 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
                 onCheckedChange={(v) => mark("heartbeat", "enabled", v)}
                 number={eff("heartbeat", "intervalSec", Number(heartbeat.intervalSec ?? 300))}
                 onNumberChange={(v) => mark("heartbeat", "intervalSec", v)}
-                numberLabel="sec"
-                numberPrefix="Run heartbeat every"
+                numberLabel={tr("agentConfig.seconds", "sec")}
+                numberPrefix={tr("agentConfig.runHeartbeatEvery", "Run heartbeat every")}
                 numberHint={help.intervalSec}
                 showNumber={eff("heartbeat", "enabled", heartbeat.enabled === true)}
               />
@@ -1260,14 +1279,14 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
               </Field>
               <div className="rounded-md border border-border/70 px-3 py-2">
                 <ToggleField
-                  label="Continue after max-turn stop"
+                  label={tr("agentConfig.continueAfterMaxTurnStop", "Continue after max-turn stop")}
                   hint={help.maxTurnContinuationEnabled}
                   checked={maxTurnContinuationEnabled}
                   onChange={(v) => updateMaxTurnContinuation({ enabled: v })}
                 />
                 {maxTurnContinuationEnabled ? (
                   <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                    <Field label="Continuation attempts" hint={help.maxTurnContinuationMaxAttempts}>
+                    <Field label={tr("agentConfig.continuationAttempts", "Continuation attempts")} hint={help.maxTurnContinuationMaxAttempts}>
                       <DraftNumberInput
                         value={maxTurnContinuationMaxAttempts}
                         onCommit={(v) =>
@@ -1278,7 +1297,7 @@ export function AgentConfigForm(props: AgentConfigFormProps) {
                         className={inputClass}
                       />
                     </Field>
-                    <Field label="Continuation delay (sec)" hint={help.maxTurnContinuationDelaySec}>
+                    <Field label={tr("agentConfig.continuationDelaySec", "Continuation delay (sec)")} hint={help.maxTurnContinuationDelaySec}>
                       <DraftNumberInput
                         value={maxTurnContinuationDelaySec}
                         onCommit={(v) =>
@@ -1348,6 +1367,7 @@ function AdapterTypeDropdown({
   onChange: (type: string) => void;
   disabledTypes: Set<string>;
 }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const selectedDisplay = getAdapterDisplay(value);
   const adapterList = useMemo(
@@ -1395,7 +1415,9 @@ function AdapterTypeDropdown({
               {item.experimental && <ExperimentalBadge />}
             </span>
             {item.comingSoon && (
-              <span className="text-[10px] text-muted-foreground">Coming soon</span>
+              <span className="text-[10px] text-muted-foreground">
+                {t("agentConfig.comingSoon", { defaultValue: "Coming soon" })}
+              </span>
             )}
           </button>
         ))}
@@ -1405,9 +1427,10 @@ function AdapterTypeDropdown({
 }
 
 function ExperimentalBadge() {
+  const { t } = useTranslation();
   return (
     <span className="shrink-0 rounded border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium leading-none text-amber-700 dark:text-amber-200">
-      Experimental
+      {t("Experimental", { defaultValue: "Experimental" })}
     </span>
   );
 }
@@ -1449,6 +1472,8 @@ function ModelDropdown({
   emptyDetectHint?: string;
   defaultLabel?: string;
 }) {
+  const { t } = useTranslation();
+  const tr = (key: string, defaultValue: string) => t(key, { defaultValue });
   const [modelSearch, setModelSearch] = useState("");
   const [detectingModel, setDetectingModel] = useState(false);
   const selected = models.find((m) => m.id === value);
@@ -1520,8 +1545,11 @@ function ModelDropdown({
     }
   }
 
+  const detectButtonLabel = detectModelLabel ?? tr("agentConfig.detectFromConfig", "Detect from config");
+  const redetectButtonLabel = tr("agentConfig.redetectFromConfig", "Re-detect from config");
+
   return (
-    <Field label="Model" hint={help.model}>
+    <Field label={tr("agentConfig.model", "Model")} hint={help.model}>
       <Popover
         open={open}
         onOpenChange={(nextOpen) => {
@@ -1535,7 +1563,11 @@ function ModelDropdown({
               {selected
                 ? selected.label
                 : value
-                  || (allowDefault ? (defaultLabel ?? "Default") : required ? "Select model (required)" : "Select model")}
+                  || (allowDefault
+                    ? (defaultLabel ?? tr("agentConfig.default", "Default"))
+                    : required
+                      ? tr("agentConfig.selectModelRequired", "Select model (required)")
+                      : tr("agentConfig.selectModel", "Select model"))}
             </span>
             <ChevronDown className="h-3 w-3 text-muted-foreground" />
           </button>
@@ -1544,7 +1576,9 @@ function ModelDropdown({
           <div className="relative mb-1">
             <input
               className="w-full px-2 py-1.5 pr-6 text-xs bg-transparent outline-none border-b border-border placeholder:text-muted-foreground/50"
-              placeholder={creatable ? "Search models... (type to create)" : "Search models..."}
+              placeholder={creatable
+                ? tr("agentConfig.searchModelsCreateHint", "Search models... (type to create)")
+                : tr("agentConfig.searchModels", "Search models...")}
               value={modelSearch}
               onChange={(e) => setModelSearch(e.target.value)}
               autoFocus
@@ -1575,7 +1609,11 @@ function ModelDropdown({
                 <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
                 <path d="M3 3v5h5" />
               </svg>
-              {detectingModel ? "Detecting..." : detectedModel ? (detectModelLabel?.replace(/^Detect\b/, "Re-detect") ?? "Re-detect from config") : (detectModelLabel ?? "Detect from config")}
+              {detectingModel
+                ? tr("agentConfig.detectingModel", "Detecting...")
+                : detectedModel
+                  ? redetectButtonLabel
+                  : detectButtonLabel}
             </button>
           )}
           {onRefreshModels && !modelSearch.trim() && (
@@ -1593,7 +1631,9 @@ function ModelDropdown({
                 <path d="M21 12a9 9 0 0 1-15.28 6.36L3 16" />
                 <path d="M8 16H3v5" />
               </svg>
-              {refreshingModels ? "Refreshing..." : "Refresh models"}
+              {refreshingModels
+                ? tr("agentConfig.refreshingModels", "Refreshing...")
+                : tr("agentConfig.refreshModels", "Refresh models")}
             </button>
           )}
           {value && (!models.some((m) => m.id === value) || promotedModelIds.has(value)) && (
@@ -1610,7 +1650,7 @@ function ModelDropdown({
                 {models.find((m) => m.id === value)?.label ?? value}
               </span>
               <span className="shrink-0 ml-auto text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-green-500/15 text-green-400 border border-green-500/20">
-                current
+                {tr("agentConfig.currentBadge", "current")}
               </span>
             </button>
           )}
@@ -1629,7 +1669,7 @@ function ModelDropdown({
                 {models.find((m) => m.id === detectedModel)?.label ?? detectedModel}
               </span>
               <span className="shrink-0 ml-auto text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-blue-500/15 text-blue-400 border border-blue-500/20">
-                detected
+                {tr("agentConfig.detectedBadge", "detected")}
               </span>
             </button>
           )}
@@ -1653,7 +1693,7 @@ function ModelDropdown({
                     {entry?.label ?? candidate}
                   </span>
                   <span className="shrink-0 ml-auto text-[9px] font-medium px-1.5 py-0.5 rounded-full bg-sky-500/15 text-sky-400 border border-sky-500/20">
-                    config
+                    {tr("agentConfig.configBadge", "config")}
                   </span>
                 </button>
               );
@@ -1671,7 +1711,7 @@ function ModelDropdown({
                   onOpenChange(false);
                 }}
               >
-                Default
+                {tr("agentConfig.default", "Default")}
               </button>
             )}
             {canCreateManualModel && (
@@ -1684,7 +1724,7 @@ function ModelDropdown({
                   setModelSearch("");
                 }}
               >
-                <span>Use manual model</span>
+                <span>{tr("agentConfig.useManualModel", "Use manual model")}</span>
                 <span className="text-xs font-mono text-muted-foreground">{manualModel}</span>
               </button>
             )}
@@ -1719,8 +1759,8 @@ function ModelDropdown({
               <div className="px-2 py-2 space-y-2">
                 <p className="text-xs text-muted-foreground">
                   {onDetectModel
-                    ? (emptyDetectHint ?? "No model detected yet. Enter a provider/model manually.")
-                    : "No models found."}
+                    ? (emptyDetectHint ?? tr("agentConfig.noModelDetectedEnterManually", "No model detected yet. Enter a provider/model manually."))
+                    : tr("agentConfig.noModelsFound", "No models found.")}
                 </p>
               </div>
             )}
@@ -1752,16 +1792,26 @@ function CheapModelSection({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const { t } = useTranslation();
+  const tr = (key: string, defaultValue: string) => t(key, { defaultValue });
   const placeholderHint = adapterDefaultModel
-    ? `Adapter default · ${adapterDefaultModel}`
-    : "No adapter default — choose a cheaper model";
+    ? t("agentConfig.adapterDefaultModel", {
+        model: adapterDefaultModel,
+        defaultValue: "Adapter default · {{model}}",
+      })
+    : tr("agentConfig.noAdapterDefaultChooseCheapModel", "No adapter default — choose a cheaper model");
   return (
     <div className="rounded-md border border-border/70 bg-muted/20 p-3 space-y-3">
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Cheap model</div>
+          <div className="text-[11px] uppercase tracking-wide text-muted-foreground">
+            {tr("agentConfig.cheapModel", "Cheap model")}
+          </div>
           <p className="text-xs text-muted-foreground">
-            Used when a run requests the cheap profile (e.g. routine summaries). The primary model stays unchanged.
+            {tr(
+              "agentConfig.cheapModelHint",
+              "Used when a run requests the cheap profile (e.g. routine summaries). The primary model stays unchanged.",
+            )}
           </p>
         </div>
         <ToggleSwitch checked={enabled} onCheckedChange={onEnabledChange} />
@@ -1785,12 +1835,18 @@ function CheapModelSection({
       ) : null}
       {enabled && !model && adapterDefaultModel ? (
         <p className="text-[11px] text-muted-foreground">
-          No explicit cheap model selected — runtime falls back to <code>{adapterDefaultModel}</code>.
+          {t("agentConfig.noExplicitCheapModelFallback", {
+            model: adapterDefaultModel,
+            defaultValue: "No explicit cheap model selected — runtime falls back to {{model}}.",
+          })}
         </p>
       ) : null}
       {enabled && !model && !adapterDefaultModel ? (
         <p className="text-[11px] text-amber-500">
-          No cheap model selected and the adapter has no default. Cheap-lane runs will continue on the primary model with a fallback note.
+          {tr(
+            "agentConfig.noCheapModelSelectedNoAdapterDefault",
+            "No cheap model selected and the adapter has no default. Cheap-lane runs will continue on the primary model with a fallback note.",
+          )}
         </p>
       ) : null}
     </div>
@@ -1810,14 +1866,20 @@ function ThinkingEffortDropdown({
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
+  const { t } = useTranslation();
+  const tr = (key: string, defaultValue: string) => t(key, { defaultValue });
   const selected = options.find((option) => option.id === value) ?? options[0];
+  const optionLabel = (option: { id: string; label: string }) =>
+    tr(`agentConfig.${option.id || "auto"}`, option.label);
 
   return (
-    <Field label="Thinking effort" hint={help.thinkingEffort}>
+    <Field label={tr("agentConfig.thinkingEffort", "Thinking effort")} hint={help.thinkingEffort}>
       <Popover open={open} onOpenChange={onOpenChange}>
         <PopoverTrigger asChild>
           <button className="inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1.5 text-sm hover:bg-accent/50 transition-colors w-full justify-between">
-            <span className={cn(!value && "text-muted-foreground")}>{selected?.label ?? "Auto"}</span>
+            <span className={cn(!value && "text-muted-foreground")}>
+              {selected ? optionLabel(selected) : tr("agentConfig.auto", "Auto")}
+            </span>
             <ChevronDown className="h-3 w-3 text-muted-foreground" />
           </button>
         </PopoverTrigger>
@@ -1834,7 +1896,7 @@ function ThinkingEffortDropdown({
                 onOpenChange(false);
               }}
             >
-              <span>{option.label}</span>
+              <span>{optionLabel(option)}</span>
               {option.id ? <span className="text-xs text-muted-foreground font-mono">{option.id}</span> : null}
             </button>
           ))}

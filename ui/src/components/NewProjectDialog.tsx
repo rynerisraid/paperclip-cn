@@ -39,6 +39,7 @@ import {
 } from "@/components/ui/tooltip";
 import { PROJECT_COLORS } from "@penclipai/shared";
 import { cn } from "../lib/utils";
+import { isHttpGitRepoUrl } from "../lib/git-repo-url";
 import { MarkdownEditor, type MarkdownEditorRef, type MentionOption } from "./MarkdownEditor";
 import { StatusBadge } from "./StatusBadge";
 
@@ -180,17 +181,6 @@ export function NewProjectDialog() {
 
   const isAbsolutePath = (value: string) => value.startsWith("/") || /^[A-Za-z]:[\\/]/.test(value);
 
-  const looksLikeRepoUrl = (value: string) => {
-    try {
-      const parsed = new URL(value);
-      if (parsed.protocol !== "https:") return false;
-      const segments = parsed.pathname.split("/").filter(Boolean);
-      return segments.length >= 2;
-    } catch {
-      return false;
-    }
-  };
-
   const deriveWorkspaceNameFromPath = (value: string) => {
     const normalized = value.trim().replace(/[\\/]+$/, "");
     const segments = normalized.split(/[\\/]/).filter(Boolean);
@@ -217,7 +207,7 @@ export function NewProjectDialog() {
       setWorkspaceError(t("newProject.localFolderInvalid"));
       return;
     }
-    if (repoUrl && !looksLikeRepoUrl(repoUrl)) {
+    if (repoUrl && !isHttpGitRepoUrl(repoUrl)) {
       setWorkspaceError(t("newProject.repoUrlInvalid"));
       return;
     }

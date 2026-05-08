@@ -29,8 +29,13 @@ const mockSetSidebarOpen = vi.hoisted(() => vi.fn());
 vi.mock("react-i18next", () => ({
   initReactI18next: { type: "3rdParty", init: () => {} },
   useTranslation: () => ({
-    t: (key: string, options?: Record<string, unknown>) =>
-      typeof options?.defaultValue === "string" ? options.defaultValue : key,
+    t: (key: string, options?: Record<string, unknown>) => {
+      let value = typeof options?.defaultValue === "string" ? options.defaultValue : key;
+      for (const [optionKey, optionValue] of Object.entries(options ?? {})) {
+        value = value.replaceAll(`{{${optionKey}}}`, String(optionValue));
+      }
+      return value;
+    },
   }),
 }));
 

@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
+import { NavLink } from "@/lib/router";
 import { SidebarSection } from "./SidebarSection";
 import { SidebarNavItem } from "./SidebarNavItem";
 import { SidebarProjects } from "./SidebarProjects";
@@ -47,10 +48,6 @@ export function Sidebar() {
   const liveRunCount = liveRuns?.length ?? 0;
   const showWorkspacesLink = experimentalSettings?.enableIsolatedWorkspaces === true;
 
-  function openSearch() {
-    document.dispatchEvent(new KeyboardEvent("keydown", { key: "k", metaKey: true }));
-  }
-
   const pluginContext = {
     companyId: selectedCompanyId,
     companyPrefix: selectedCompany?.issuePrefix ?? null,
@@ -62,12 +59,16 @@ export function Sidebar() {
       <div className="flex items-center gap-1 px-3 h-12 shrink-0">
         <SidebarCompanyMenu />
         <Button
+          asChild
           variant="ghost"
           size="icon-sm"
           className="text-muted-foreground shrink-0"
-          onClick={openSearch}
+          aria-label={t("Search", { defaultValue: "Search" })}
+          title={t("Search", { defaultValue: "Search" })}
         >
-          <Search className="h-4 w-4" />
+          <NavLink to="/search">
+            <Search className="h-4 w-4" />
+          </NavLink>
         </Button>
       </div>
 
@@ -81,10 +82,10 @@ export function Sidebar() {
             <SquarePen className="h-4 w-4 shrink-0" />
             <span className="truncate">{t("New Issue", { defaultValue: "New Issue" })}</span>
           </button>
-          <SidebarNavItem to="/dashboard" label="Dashboard" icon={LayoutDashboard} liveCount={liveRunCount} />
+          <SidebarNavItem to="/dashboard" label={t("Dashboard", { defaultValue: "Dashboard" })} icon={LayoutDashboard} liveCount={liveRunCount} />
           <SidebarNavItem
             to="/inbox"
-            label="Inbox"
+            label={t("Inbox", { defaultValue: "Inbox" })}
             icon={Inbox}
             badge={inboxBadge.inbox}
             badgeTone={inboxBadge.failedRuns > 0 ? "danger" : "default"}
@@ -100,12 +101,11 @@ export function Sidebar() {
         </div>
 
         <SidebarSection label="Work">
-          <SidebarNavItem to="/issues" label="Issues" icon={CircleDot} />
-          <SidebarNavItem to="/search" label="Search" icon={Search} />
-          <SidebarNavItem to="/routines" label="Routines" icon={Repeat} />
-          <SidebarNavItem to="/goals" label="Goals" icon={Target} />
+          <SidebarNavItem to="/issues" label={t("Issues", { defaultValue: "Issues" })} icon={CircleDot} />
+          <SidebarNavItem to="/routines" label={t("Routines", { defaultValue: "Routines" })} icon={Repeat} />
+          <SidebarNavItem to="/goals" label={t("Goals", { defaultValue: "Goals" })} icon={Target} />
           {showWorkspacesLink ? (
-            <SidebarNavItem to="/workspaces" label="Workspaces" icon={GitBranch} />
+            <SidebarNavItem to="/workspaces" label={t("Workspaces", { defaultValue: "Workspaces" })} icon={GitBranch} />
           ) : null}
         </SidebarSection>
 
@@ -114,11 +114,11 @@ export function Sidebar() {
         <SidebarAgents />
 
         <SidebarSection label="Company">
-          <SidebarNavItem to="/org" label="Org" icon={Network} />
-          <SidebarNavItem to="/skills" label="Skills" icon={Boxes} />
+          <SidebarNavItem to="/org" label={t("Org", { defaultValue: "Org" })} icon={Network} />
+          <SidebarNavItem to="/skills" label={t("Skills", { defaultValue: "Skills" })} icon={Boxes} />
           <SidebarNavItem to="/costs" label={t("Costs", { defaultValue: "Costs" })} icon={DollarSign} />
-          <SidebarNavItem to="/activity" label="Activity" icon={History} />
-          <SidebarNavItem to="/company/settings" label="Settings" icon={Settings} />
+          <SidebarNavItem to="/activity" label={t("Activity", { defaultValue: "Activity" })} icon={History} />
+          <SidebarNavItem to="/company/settings" label={t("Settings", { defaultValue: "Settings" })} icon={Settings} />
         </SidebarSection>
 
         <PluginSlotOutlet

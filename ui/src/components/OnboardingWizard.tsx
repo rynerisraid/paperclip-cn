@@ -1469,7 +1469,7 @@ function AdapterEnvironmentResult({
             )}
             {check.hint && (
               <span className="block opacity-90 break-words">
-                {t("Hint:")} {check.hint}
+                {t("Hint:", { defaultValue: "Hint:" })} {check.hint}
               </span>
             )}
           </div>

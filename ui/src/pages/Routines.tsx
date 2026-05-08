@@ -995,6 +995,7 @@ export function Routines() {
                         runningRoutineId={runningRoutineId}
                         statusMutationRoutineId={statusMutationRoutineId}
                         href={`/routines/${routine.id}`}
+                        runNowButton
                         onRunNow={handleRunNow}
                         onToggleEnabled={handleToggleEnabled}
                         onToggleArchived={handleToggleArchived}

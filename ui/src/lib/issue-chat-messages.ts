@@ -616,9 +616,13 @@ function runDurationLabel(run: {
       return durationText ? translateInstant("Timed out after {{duration}}", { duration: durationText }) : translateInstant("Run timed out");
     case "cancelled":
       if (stopReason === "paused") {
-        return durationText ? `Paused by board after ${durationText}` : "Paused by board";
+        return durationText
+          ? translateInstant("Paused by board after {{duration}}", { duration: durationText })
+          : translateInstant("Paused by board");
       }
-      return durationText ? `Cancelled after ${durationText}` : "Run cancelled";
+      return durationText
+        ? translateInstant("Cancelled after {{duration}}", { duration: durationText })
+        : translateInstant("Run cancelled");
     case "queued":
       return translateInstant("Queued");
     case "running":
@@ -856,10 +860,10 @@ function createLiveRunMessage(args: {
   const { parts, notices, segments } = buildAssistantPartsFromTranscript(compactedTranscript);
   const waitingText =
     run.status === "queued"
-      ? "Queued..."
+      ? translateInstant("Queued...")
       : parts.length > 0
         ? ""
-        : "Working...";
+        : translateInstant("Working...");
 
   const content = parts;
 

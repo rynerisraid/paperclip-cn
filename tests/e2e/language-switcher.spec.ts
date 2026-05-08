@@ -45,9 +45,12 @@ async function openAccountLanguageMenu(page: Page): Promise<Locator> {
   await expect(accountMenu).toBeVisible();
   await accountMenu.click();
 
-  const languageSection = page.getByText(/切换语言|Switch language/).first();
-  await expect(languageSection).toBeVisible();
-  return languageSection;
+  const accountDialog = page.getByRole("dialog").first();
+  await expect(accountDialog).toBeVisible();
+  await expect(accountDialog.getByRole("button", { name: "中文" })).toBeVisible();
+  const englishOption = accountDialog.getByRole("button", { name: "English" });
+  await expect(englishOption).toBeVisible();
+  return englishOption;
 }
 
 test.describe("Language switcher", () => {

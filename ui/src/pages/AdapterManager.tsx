@@ -481,7 +481,9 @@ export function AdapterManager() {
                     <Input
                       id="adapterLocalPath"
                       className="flex-1 font-mono text-xs"
-                      placeholder={tr("/mnt/e/Projects/my-adapter  or  E:\\Projects\\my-adapter")}
+                      placeholder={tr("adapterManager.localPathPlaceholder", {
+                        defaultValue: "/mnt/e/Projects/my-adapter  or  E:\\Projects\\my-adapter",
+                      })}
                       value={installPackage}
                       onChange={(e) => setInstallPackage(e.target.value)}
                     />
