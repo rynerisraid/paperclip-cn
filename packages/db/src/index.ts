@@ -32,6 +32,7 @@ export {
 } from "./embedded-postgres-error.js";
 export {
   recoverEmbeddedPostgresStart,
+  resetIncompleteEmbeddedPostgresDataDir,
   shouldRetryEmbeddedPostgresStart,
 } from "./embedded-postgres-recovery.js";
 export { issueRelations } from "./schema/issue_relations.js";
