@@ -31,7 +31,9 @@ export {
   formatEmbeddedPostgresError,
 } from "./embedded-postgres-error.js";
 export {
+  cleanupOrphanedEmbeddedPostgresForkchildren,
   recoverEmbeddedPostgresStart,
+  resetIncompleteEmbeddedPostgresDataDir,
   shouldRetryEmbeddedPostgresStart,
 } from "./embedded-postgres-recovery.js";
 export { issueRelations } from "./schema/issue_relations.js";

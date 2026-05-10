@@ -22,6 +22,8 @@ import { EmptyState } from "../components/EmptyState";
 import { MarkdownBody } from "../components/MarkdownBody";
 import { MarkdownEditor } from "../components/MarkdownEditor";
 import { PageSkeleton } from "../components/PageSkeleton";
+import { CopyText } from "../components/CopyText";
+import { Identity } from "../components/Identity";
 import {
   Dialog,
   DialogContent,
@@ -51,6 +53,7 @@ import {
   Paperclip,
   Pencil,
   Plus,
+  Copy,
   RefreshCw,
   Save,
   Search,
@@ -237,6 +240,12 @@ function translateSkillEditableReason(reason: string | null) {
 function shortRef(ref: string | null | undefined) {
   if (!ref) return null;
   return ref.slice(0, 7);
+}
+
+function middleTruncate(value: string, maxLength = 72) {
+  if (value.length <= maxLength) return value;
+  const edgeLength = Math.floor((maxLength - 3) / 2);
+  return `${value.slice(0, edgeLength)}...${value.slice(value.length - edgeLength)}`;
 }
 
 function formatProjectScanSummary(result: CompanySkillProjectScanResult) {
@@ -639,7 +648,6 @@ function SkillPane({
   savePending: boolean;
 }) {
   const { t } = useTranslation();
-  const { pushToast } = useToastActions();
 
   if (!detail) {
     if (loading) {
@@ -659,6 +667,7 @@ function SkillPane({
   const body = file?.markdown ? stripFrontmatter(file.content) : file?.content ?? "";
   const currentPin = shortRef(detail.sourceRef);
   const latestPin = shortRef(updateStatus?.latestRef);
+  const displaySourcePath = detail.sourcePath ? middleTruncate(detail.sourcePath) : null;
   const removeBlocked = usedBy.length > 0;
   const removeDisabledReason = removeBlocked
     ? t("companySkills.removeDisabledReason", {
@@ -710,20 +719,28 @@ function SkillPane({
 
         <div className="mt-4 space-y-3 border-t border-border pt-4 text-sm">
           <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-            <div className="flex items-center gap-2">
+            <div className="flex min-w-0 items-center gap-2">
               <span className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">{t("Source", { defaultValue: "Source" })}</span>
-              <span className="flex items-center gap-2">
+              <span className="flex min-w-0 items-center gap-2">
                 <SourceIcon className="h-3.5 w-3.5 text-muted-foreground" />
-                {detail.sourcePath ? (
-                  <button
-                    className="truncate hover:text-foreground text-muted-foreground transition-colors cursor-pointer"
-                    onClick={() => {
-                      navigator.clipboard.writeText(detail.sourcePath!);
-                      pushToast({ title: t("Copied path to workspace", { defaultValue: "Copied path to workspace" }) });
-                    }}
-                  >
-                    {source.label}
-                  </button>
+                {detail.sourcePath && displaySourcePath ? (
+                  <>
+                    <span
+                      className="block min-w-0 max-w-[min(34rem,55vw)] truncate font-mono text-xs text-muted-foreground"
+                      title={detail.sourcePath}
+                    >
+                      {displaySourcePath}
+                    </span>
+                    <CopyText
+                      text={detail.sourcePath}
+                      copiedLabel={t("Copied path", { defaultValue: "Copied path" })}
+                      ariaLabel={t("Copy source path", { defaultValue: "Copy source path" })}
+                      title={t("Copy source path", { defaultValue: "Copy source path" })}
+                      className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-sm border border-border text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                    >
+                      <Copy className="h-3.5 w-3.5" />
+                    </CopyText>
+                  </>
                 ) : (
                   <span className="truncate">{source.label}</span>
                 )}
@@ -784,14 +801,14 @@ function SkillPane({
             {usedBy.length === 0 ? (
               <span className="text-muted-foreground">{t("No agents attached", { defaultValue: "No agents attached" })}</span>
             ) : (
-              <div className="flex flex-wrap gap-x-3 gap-y-1">
+              <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
                 {usedBy.map((agent) => (
                   <Link
                     key={agent.id}
                     to={`/agents/${agent.urlKey}/skills`}
-                    className="text-foreground no-underline hover:underline"
+                    className="group rounded-md border border-transparent p-2 no-underline hover:border-border hover:bg-accent/40"
                   >
-                    {agent.name}
+                    <Identity name={agent.name} size="sm" />
                   </Link>
                 ))}
               </div>
@@ -1217,44 +1234,58 @@ export function CompanySkills() {
       <Dialog open={deleteOpen} onOpenChange={closeDeleteDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Remove skill</DialogTitle>
+            <DialogTitle>{t("companySkills.removeSkillTitle", { defaultValue: "Remove skill" })}</DialogTitle>
             <DialogDescription>
-              Remove this skill from the company library. If any agents still use it, removal will be blocked until it is detached.
+              {t("companySkills.removeSkillDescription", {
+                defaultValue: "Remove this skill from the company library. If any agents still use it, removal will be blocked until it is detached.",
+              })}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 text-sm">
             <p>
               {deleteTargetDetail
-                ? `You are about to remove ${deleteTargetDetail.name}.`
-                : "You are about to remove this skill."}
+                ? t("companySkills.removeSkillTarget", {
+                  defaultValue: "You are about to remove {{name}}.",
+                  name: deleteTargetDetail.name,
+                })
+                : t("companySkills.removeThisSkillTarget", {
+                  defaultValue: "You are about to remove this skill.",
+                })}
             </p>
             {deleteTargetDetail?.usedByAgents?.length ? (
               <div className="rounded-md border border-border px-3 py-3 text-muted-foreground">
-                Currently used by {deleteTargetDetail.usedByAgents.map((agent) => agent.name).join(", ")}.
+                {t("companySkills.currentlyUsedBy", {
+                  defaultValue: "Currently used by {{agents}}.",
+                  agents: deleteTargetDetail.usedByAgents.map((agent) => agent.name).join(", "),
+                })}
               </div>
             ) : null}
             {(deleteTargetDetail?.usedByAgents.length ?? 0) > 0 ? (
               <p className="text-muted-foreground">
-                Detach this skill from all agents to enable removal.
+                {t("companySkills.detachToRemove", {
+                  defaultValue: "Detach this skill from all agents to enable removal.",
+                })}
               </p>
             ) : null}
           </div>
           <DialogFooter>
             {(deleteTargetDetail?.usedByAgents.length ?? 0) > 0 ? (
               <Button variant="ghost" onClick={() => closeDeleteDialog(false)}>
-                Close
+                {t("Close", { defaultValue: "Close" })}
               </Button>
             ) : (
               <>
                 <Button variant="ghost" onClick={() => closeDeleteDialog(false)} disabled={deleteSkill.isPending}>
-                  Cancel
+                  {t("Cancel", { defaultValue: "Cancel" })}
                 </Button>
                 <Button
                   variant="destructive"
                   onClick={() => deleteSkill.mutate()}
                   disabled={deleteSkill.isPending || !deleteTargetSkillId}
                 >
-                  {deleteSkill.isPending ? "Removing..." : "Remove skill"}
+                  {deleteSkill.isPending
+                    ? t("Removing...", { defaultValue: "Removing..." })
+                    : t("companySkills.removeSkillAction", { defaultValue: "Remove skill" })}
                 </Button>
               </>
             )}

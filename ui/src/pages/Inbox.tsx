@@ -19,6 +19,7 @@ import { useBreadcrumbs } from "../context/BreadcrumbContext";
 import { useGeneralSettings } from "../context/GeneralSettingsContext";
 import { useSidebar } from "../context/SidebarContext";
 import { queryKeys } from "../lib/queryKeys";
+import { useDialogActions } from "../context/DialogContext";
 import {
   applyIssueFilters,
   countActiveIssueFilters,
@@ -86,6 +87,7 @@ import {
   Check,
   ChevronRight,
   Layers,
+  Plus,
   XCircle,
   X,
   RotateCcw,
@@ -103,6 +105,7 @@ import {
   ACTIONABLE_APPROVAL_STATUSES,
   DEFAULT_INBOX_ISSUE_COLUMNS,
   buildGroupedInboxSections,
+  buildInboxIssueGroupCreateDefaults,
   buildInboxKeyboardNavEntries,
   getAvailableInboxIssueColumns,
   getInboxWorkItemKey,
@@ -170,7 +173,9 @@ function firstNonEmptyLine(value: string | null | undefined): string | null {
 }
 
 function runFailureMessage(run: HeartbeatRun): string {
-  return firstNonEmptyLine(run.error) ?? firstNonEmptyLine(run.stderrExcerpt) ?? "Run exited with an error.";
+  return firstNonEmptyLine(run.error) ??
+    firstNonEmptyLine(run.stderrExcerpt) ??
+    translateInstant("Run exited with an error.", { defaultValue: "Run exited with an error." });
 }
 
 function approvalStatusLabel(status: Approval["status"]): string {
@@ -223,7 +228,7 @@ export function formatJoinRequestInboxLabel(
   if (requesterEmail) return requesterEmail;
   if (requesterName) return requesterName;
   if (requesterId) return requesterId;
-  return "Human join request";
+  return translateInstant("Human join request", { defaultValue: "Human join request" });
 }
 
 
@@ -673,6 +678,7 @@ export function Inbox() {
   const { t } = useTranslation();
   const { selectedCompanyId } = useCompany();
   const { setBreadcrumbs } = useBreadcrumbs();
+  const { openNewIssue } = useDialogActions();
   const { isMobile } = useSidebar();
   const navigate = useNavigate();
   const location = useLocation();
@@ -967,10 +973,10 @@ export function Inbox() {
     return map;
   }, [projects]);
   const projectWorkspaceById = useMemo(() => {
-    const map = new Map<string, { name: string }>();
+    const map = new Map<string, { name: string; projectId: string }>();
     for (const project of projects ?? []) {
       for (const workspace of project.workspaces ?? []) {
-        map.set(workspace.id, { name: workspace.name });
+        map.set(workspace.id, { name: workspace.name, projectId: project.id });
       }
     }
     return map;
@@ -991,16 +997,21 @@ export function Inbox() {
       name: string;
       mode: "shared_workspace" | "isolated_workspace" | "operator_branch" | "adapter_managed" | "cloud_sandbox";
       projectWorkspaceId: string | null;
+      projectId: string | null;
     }>();
     for (const workspace of executionWorkspaces) {
+      const projectWorkspace = workspace.projectWorkspaceId
+        ? projectWorkspaceById.get(workspace.projectWorkspaceId) ?? null
+        : null;
       map.set(workspace.id, {
         name: workspace.name,
         mode: workspace.mode,
         projectWorkspaceId: workspace.projectWorkspaceId ?? null,
+        projectId: projectWorkspace?.projectId ?? null,
       });
     }
     return map;
-  }, [executionWorkspaces]);
+  }, [executionWorkspaces, projectWorkspaceById]);
   const inboxWorkspaceGrouping = useMemo<InboxWorkspaceGroupingOptions>(
     () => ({
       agentById,
@@ -1264,6 +1275,17 @@ export function Inbox() {
     issueSearchSupplementResults,
     nestingEnabled,
   ]);
+
+  const openCreateIssueForGroup = useCallback((group: InboxGroupedSection) => {
+    const defaults = buildInboxIssueGroupCreateDefaults(
+      group.key,
+      groupBy,
+      group.displayItems,
+      inboxWorkspaceGrouping,
+    );
+    if (!defaults) return;
+    openNewIssue(defaults);
+  }, [groupBy, inboxWorkspaceGrouping, openNewIssue]);
   const totalVisibleWorkItems = useMemo(
     () => groupedSections.reduce((count, group) => count + group.displayItems.length, 0),
     [groupedSections],
@@ -2063,19 +2085,24 @@ export function Inbox() {
                 onClick={() => setShowMarkAllReadConfirm(true)}
                 disabled={markAllReadMutation.isPending}
               >
-                {markAllReadMutation.isPending ? "Marking…" : "Mark all as read"}
+                {markAllReadMutation.isPending
+                  ? t("Marking…", { defaultValue: "Marking…" })
+                  : t("Mark all as read", { defaultValue: "Mark all as read" })}
               </Button>
               <Dialog open={showMarkAllReadConfirm} onOpenChange={setShowMarkAllReadConfirm}>
                 <DialogContent className="sm:max-w-md">
                   <DialogHeader>
-                    <DialogTitle>Mark all as read?</DialogTitle>
+                    <DialogTitle>{t("Mark all as read?", { defaultValue: "Mark all as read?" })}</DialogTitle>
                     <DialogDescription>
-                      This will mark {unreadIssueIds.length} unread {unreadIssueIds.length === 1 ? "item" : "items"} as read.
+                      {t("inbox.markAllReadDescription", {
+                        count: unreadIssueIds.length,
+                        defaultValue: "This will mark {{count}} unread item(s) as read.",
+                      })}
                     </DialogDescription>
                   </DialogHeader>
                   <DialogFooter>
                     <Button variant="outline" onClick={() => setShowMarkAllReadConfirm(false)}>
-                      Cancel
+                      {t("Cancel", { defaultValue: "Cancel" })}
                     </Button>
                     <Button
                       onClick={() => {
@@ -2083,7 +2110,7 @@ export function Inbox() {
                         markAllReadMutation.mutate(unreadIssueIds);
                       }}
                     >
-                      Mark all as read
+                      {t("Mark all as read", { defaultValue: "Mark all as read" })}
                     </Button>
                   </DialogFooter>
                 </DialogContent>
@@ -2101,15 +2128,15 @@ export function Inbox() {
             onValueChange={(value) => updateAllCategoryFilter(value as InboxCategoryFilter)}
           >
             <SelectTrigger className="h-8 w-[170px] text-xs">
-              <SelectValue placeholder="Category" />
+              <SelectValue placeholder={t("Category", { defaultValue: "Category" })} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="everything">All categories</SelectItem>
-              <SelectItem value="issues_i_touched">My recent issues</SelectItem>
-              <SelectItem value="join_requests">Join requests</SelectItem>
-              <SelectItem value="approvals">Approvals</SelectItem>
-              <SelectItem value="failed_runs">Failed runs</SelectItem>
-              <SelectItem value="alerts">Alerts</SelectItem>
+              <SelectItem value="everything">{t("All categories", { defaultValue: "All categories" })}</SelectItem>
+              <SelectItem value="issues_i_touched">{t("My recent issues", { defaultValue: "My recent issues" })}</SelectItem>
+              <SelectItem value="join_requests">{t("Join requests", { defaultValue: "Join requests" })}</SelectItem>
+              <SelectItem value="approvals">{t("Approvals", { defaultValue: "Approvals" })}</SelectItem>
+              <SelectItem value="failed_runs">{t("Failed runs", { defaultValue: "Failed runs" })}</SelectItem>
+              <SelectItem value="alerts">{t("Alerts", { defaultValue: "Alerts" })}</SelectItem>
             </SelectContent>
           </Select>
 
@@ -2119,7 +2146,7 @@ export function Inbox() {
               onValueChange={(value) => updateAllApprovalFilter(value as InboxApprovalFilter)}
             >
               <SelectTrigger className="h-8 w-[170px] text-xs">
-                <SelectValue placeholder="Approval status" />
+                <SelectValue placeholder={t("Approval status", { defaultValue: "Approval status" })} />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">{t("All approval statuses", { defaultValue: "All approval statuses" })}</SelectItem>
@@ -2308,6 +2335,7 @@ export function Inbox() {
                   if (group.label) {
                     const groupNavIdx = groupFlatIndex.get(group.key) ?? -1;
                     const isGroupSelected = groupNavIdx >= 0 && selectedIndex === groupNavIdx;
+                    const canCreateIssueInGroup = group.displayItems.some((item) => item.kind === "issue");
                     elements.push(
                       <div
                         key={`group-${group.key}`}
@@ -2326,6 +2354,27 @@ export function Inbox() {
                           collapsible
                           collapsed={isGroupCollapsed}
                           onToggle={() => toggleGroupCollapse(group.key)}
+                          trailing={canCreateIssueInGroup ? (
+                            <Button
+                              variant="ghost"
+                              size="icon-xs"
+                              className="-mr-2 text-muted-foreground"
+                              title={t("issuesList.newIssueInGroup", {
+                                group: group.label,
+                                defaultValue: "New issue in {{group}}",
+                              })}
+                              aria-label={t("issuesList.newIssueInGroup", {
+                                group: group.label,
+                                defaultValue: "New issue in {{group}}",
+                              })}
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                openCreateIssueForGroup(group);
+                              }}
+                            >
+                              <Plus className="h-3 w-3" />
+                            </Button>
+                          ) : null}
                         />
                       </div>,
                     );
@@ -2567,7 +2616,7 @@ export function Inbox() {
           {showSeparatorBefore("alerts") && <Separator />}
           <div>
             <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-              Alerts
+              {t("Alerts", { defaultValue: "Alerts" })}
             </h3>
             <div className="divide-y divide-border border border-border">
               {showAggregateAgentError && (

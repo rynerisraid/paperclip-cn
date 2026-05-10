@@ -1,4 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import os from "node:os";
+import path from "node:path";
 
 const ORIGINAL_PAPERCLIP_API_URL = process.env.PAPERCLIP_API_URL;
 const ORIGINAL_PAPERCLIP_RUNTIME_API_URL = process.env.PAPERCLIP_RUNTIME_API_URL;
@@ -12,16 +15,28 @@ const {
   createDbMock,
   detectPortMock,
   deriveAuthTrustedOriginsMock,
+  embeddedPostgresCtorMock,
+  embeddedPostgresInstanceMock,
+  ensurePostgresDatabaseMock,
   feedbackExportServiceMock,
   feedbackServiceFactoryMock,
   fakeServer,
+  cleanupOrphanedEmbeddedPostgresForkchildrenMock,
   loadConfigMock,
+  resetIncompleteEmbeddedPostgresDataDirMock,
 } = vi.hoisted(() => {
   const createAppMock = vi.fn(async () => ((_: unknown, __: unknown) => {}) as never);
   const createBetterAuthInstanceMock = vi.fn(() => ({}));
   const createDbMock = vi.fn(() => ({}) as never);
   const detectPortMock = vi.fn(async (port: number) => port);
   const deriveAuthTrustedOriginsMock = vi.fn(() => []);
+  const embeddedPostgresInstanceMock = {
+    initialise: vi.fn(async () => undefined),
+    start: vi.fn(async () => undefined),
+    stop: vi.fn(async () => undefined),
+  };
+  const embeddedPostgresCtorMock = vi.fn(() => embeddedPostgresInstanceMock);
+  const ensurePostgresDatabaseMock = vi.fn(async () => "existing");
   const feedbackExportServiceMock = {
     flushPendingFeedbackTraces: vi.fn(async () => ({ attempted: 0, sent: 0, failed: 0 })),
   };
@@ -36,6 +51,8 @@ const {
     close: vi.fn(),
   };
   const loadConfigMock = vi.fn();
+  const cleanupOrphanedEmbeddedPostgresForkchildrenMock = vi.fn(async () => []);
+  const resetIncompleteEmbeddedPostgresDataDirMock = vi.fn(() => false);
 
   return {
     createAppMock,
@@ -43,10 +60,15 @@ const {
     createDbMock,
     detectPortMock,
     deriveAuthTrustedOriginsMock,
+    embeddedPostgresCtorMock,
+    embeddedPostgresInstanceMock,
+    ensurePostgresDatabaseMock,
     feedbackExportServiceMock,
     feedbackServiceFactoryMock,
     fakeServer,
+    cleanupOrphanedEmbeddedPostgresForkchildrenMock,
     loadConfigMock,
+    resetIncompleteEmbeddedPostgresDataDirMock,
   };
 });
 
@@ -101,17 +123,37 @@ vi.mock("detect-port", () => ({
 
 vi.mock("@penclipai/db", () => ({
   createDb: createDbMock,
-  ensurePostgresDatabase: vi.fn(),
-  getPostgresDataDirectory: vi.fn(),
+  ensurePostgresDatabase: ensurePostgresDatabaseMock,
+  getPostgresDataDirectory: vi.fn(async () => null),
   inspectMigrations: vi.fn(async () => ({ status: "upToDate" })),
   applyPendingMigrations: vi.fn(),
   reconcilePendingMigrationHistory: vi.fn(async () => ({ repairedMigrations: [] })),
+  createEmbeddedPostgresLogBuffer: vi.fn(() => {
+    const recentLogs: string[] = [];
+    return {
+      append: vi.fn((message: unknown) => {
+        recentLogs.push(String(message ?? ""));
+      }),
+      getRecentLogs: vi.fn(() => [...recentLogs]),
+    };
+  }),
+  formatEmbeddedPostgresError: vi.fn((error: unknown, input: { fallbackMessage: string }) =>
+    error instanceof Error ? error : new Error(input.fallbackMessage),
+  ),
+  cleanupOrphanedEmbeddedPostgresForkchildren: cleanupOrphanedEmbeddedPostgresForkchildrenMock,
+  recoverEmbeddedPostgresStart: vi.fn(async () => []),
+  resetIncompleteEmbeddedPostgresDataDir: resetIncompleteEmbeddedPostgresDataDirMock,
+  shouldRetryEmbeddedPostgresStart: vi.fn(() => false),
   formatDatabaseBackupResult: vi.fn(() => "ok"),
   runDatabaseBackup: vi.fn(),
   authUsers: {},
   companies: {},
   companyMemberships: {},
   instanceUserRoles: {},
+}));
+
+vi.mock("@penclipai/db/embedded-postgres-runtime-installer", () => ({
+  loadEmbeddedPostgresCtor: vi.fn(async () => embeddedPostgresCtorMock),
 }));
 
 vi.mock("../app.js", () => ({
@@ -195,6 +237,15 @@ vi.mock("../auth/better-auth.js", () => ({
 
 import { startServer } from "../index.ts";
 
+beforeEach(() => {
+  cleanupOrphanedEmbeddedPostgresForkchildrenMock.mockResolvedValue([]);
+  resetIncompleteEmbeddedPostgresDataDirMock.mockReturnValue(false);
+  ensurePostgresDatabaseMock.mockResolvedValue("existing");
+  embeddedPostgresInstanceMock.initialise.mockResolvedValue(undefined);
+  embeddedPostgresInstanceMock.start.mockResolvedValue(undefined);
+  embeddedPostgresInstanceMock.stop.mockResolvedValue(undefined);
+});
+
 describe("startServer feedback export wiring", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -215,6 +266,43 @@ describe("startServer feedback export wiring", () => {
       storageService: { id: "storage-service" },
       serverPort: 3210,
     });
+  });
+});
+
+describe("startServer embedded PostgreSQL recovery", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    loadConfigMock.mockReturnValue(buildTestConfig());
+    process.env.BETTER_AUTH_SECRET = "test-secret";
+  });
+
+  it("resets a half-initialized embedded data directory before deciding whether initdb is needed", async () => {
+    const dataDir = mkdtempSync(path.join(os.tmpdir(), "paperclip-half-init-db-"));
+    writeFileSync(path.join(dataDir, "PG_VERSION"), "18\n");
+    resetIncompleteEmbeddedPostgresDataDirMock.mockImplementationOnce((dir: string) => {
+      rmSync(dir, { recursive: true, force: true });
+      return true;
+    });
+    loadConfigMock.mockReturnValue(buildTestConfig({
+      databaseMode: "embedded-postgres",
+      databaseUrl: undefined,
+      embeddedPostgresDataDir: dataDir,
+      embeddedPostgresPort: 55432,
+    }));
+
+    try {
+      await startServer();
+    } finally {
+      rmSync(dataDir, { recursive: true, force: true });
+    }
+
+    expect(resetIncompleteEmbeddedPostgresDataDirMock).toHaveBeenCalledWith(dataDir);
+    expect(embeddedPostgresCtorMock).toHaveBeenCalledWith(expect.objectContaining({
+      databaseDir: dataDir,
+      port: 55432,
+    }));
+    expect(embeddedPostgresInstanceMock.initialise).toHaveBeenCalledTimes(1);
+    expect(embeddedPostgresInstanceMock.start).toHaveBeenCalledTimes(1);
   });
 });
 

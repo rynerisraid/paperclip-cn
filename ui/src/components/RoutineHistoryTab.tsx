@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { History as HistoryIcon, RotateCcw, Search } from "lucide-react";
 import type {
@@ -681,53 +683,69 @@ function RestoreConfirmDialog({
   pending: boolean;
   recreatedWebhookLabels: string[];
 }) {
+  const { t } = useTranslation();
   const newRevisionNumber = currentRevisionNumber + 1;
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Restore revision {target.revisionNumber}?</DialogTitle>
+          <DialogTitle>
+            {t("routineHistory.restoreTitle", {
+              defaultValue: `Restore revision ${target.revisionNumber}?`,
+              revision: target.revisionNumber,
+            })}
+          </DialogTitle>
           <DialogDescription>
-            This creates a new revision {newRevisionNumber} with the same content as revision{" "}
-            {target.revisionNumber}. Revisions {target.revisionNumber}–{currentRevisionNumber} stay
-            in history and are not modified.
+            {t("routineHistory.restoreDescription", {
+              defaultValue: `This creates a new revision ${newRevisionNumber} with the same content as revision ${target.revisionNumber}. Revisions ${target.revisionNumber}–${currentRevisionNumber} stay in history and are not modified.`,
+              newRevision: newRevisionNumber,
+              targetRevision: target.revisionNumber,
+              currentRevision: currentRevisionNumber,
+            })}
           </DialogDescription>
         </DialogHeader>
         <ul className="space-y-2 text-sm">
           <li className="flex items-start gap-2">
             <span className="mt-1 inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" />
-            Routine field values, variables, and schedule cron will revert.
+            {t("routineHistory.restoreFieldsNote", { defaultValue: "Routine field values, variables, and schedule cron will revert." })}
           </li>
           <li className="flex items-start gap-2">
             <span className="mt-1 inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" />
-            Previous run history is preserved.
+            {t("routineHistory.restoreHistoryNote", { defaultValue: "Previous run history is preserved." })}
           </li>
           {recreatedWebhookLabels.map((label) => (
             <li key={label} className="flex items-start gap-2 text-amber-200">
               <span className="mt-1 inline-block h-1.5 w-1.5 rounded-full bg-amber-400" />
-              The webhook trigger {label} will be recreated with a new URL and secret. Paperclip will
-              show the secret once after restore — copy it before closing.
+              {t("routineHistory.restoreWebhookNote", {
+                defaultValue: `The webhook trigger ${label} will be recreated with a new URL and secret. Paperclip will show the secret once after restore — copy it before closing.`,
+                label,
+              })}
             </li>
           ))}
         </ul>
         <div className="space-y-1.5">
           <Label htmlFor="restore-change-summary" className="text-xs">
-            Change summary (optional)
+            {t("routineHistory.changeSummaryOptional", { defaultValue: "Change summary (optional)" })}
           </Label>
           <Input
             id="restore-change-summary"
             value={changeSummary}
-            placeholder="Why are you restoring? Visible in history."
+            placeholder={t("routineHistory.changeSummaryPlaceholder", { defaultValue: "Why are you restoring? Visible in history." })}
             onChange={(event) => onChangeSummaryChange(event.target.value)}
           />
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={pending}>
-            Cancel
+            {t("Cancel", { defaultValue: "Cancel" })}
           </Button>
           <Button onClick={onConfirm} disabled={pending}>
             <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
-            {pending ? "Restoring…" : `Restore as revision ${newRevisionNumber}`}
+            {pending
+              ? t("routineHistory.restoring", { defaultValue: "Restoring…" })
+              : t("routineHistory.restoreAsRevision", {
+                defaultValue: `Restore as revision ${newRevisionNumber}`,
+                revision: newRevisionNumber,
+              })}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -754,6 +772,7 @@ function RoutineRevisionDiffModal({
   projects: ProjectLookup;
   onRestore: (revision: RoutineRevision) => void;
 }) {
+  const { t } = useTranslation();
   const [leftId, setLeftId] = useState<string>(initialOldRevisionId);
   const [rightId, setRightId] = useState<string>(initialNewRevisionId);
 
@@ -767,8 +786,8 @@ function RoutineRevisionDiffModal({
   const left = revisions.find((r) => r.id === leftId) ?? null;
   const right = revisions.find((r) => r.id === rightId) ?? null;
   const fieldChanges = useMemo(
-    () => (left && right ? computeFieldChanges(left, right, agents, projects) : []),
-    [left, right, agents, projects],
+    () => (left && right ? computeFieldChanges(left, right, agents, projects, t) : []),
+    [left, right, agents, projects, t],
   );
   const descriptionDiff = useMemo<DiffRow[]>(
     () => (left && right
@@ -783,18 +802,18 @@ function RoutineRevisionDiffModal({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="!max-w-[90%] w-full max-h-[85vh] overflow-hidden flex flex-col">
         <DialogHeader>
-          <DialogTitle>Compare routine revisions</DialogTitle>
+          <DialogTitle>{t("routineHistory.compareTitle", { defaultValue: "Compare routine revisions" })}</DialogTitle>
         </DialogHeader>
         <div className="flex flex-wrap items-center gap-3">
           <RevisionPicker
-            label="Old"
+            label={t("routineHistory.old", { defaultValue: "Old" })}
             value={leftId}
             onChange={setLeftId}
             revisions={revisions}
             tone="red"
           />
           <RevisionPicker
-            label="New"
+            label={t("routineHistory.new", { defaultValue: "New" })}
             value={rightId}
             onChange={setRightId}
             revisions={revisions}
@@ -804,17 +823,17 @@ function RoutineRevisionDiffModal({
         <div className="overflow-auto flex-1 space-y-4">
           <section className="space-y-2">
             <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-              Field changes
+              {t("routineHistory.fieldChanges", { defaultValue: "Field changes" })}
             </p>
             {fieldChanges.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No structural field changes.</p>
+              <p className="text-sm text-muted-foreground">{t("routineHistory.noFieldChanges", { defaultValue: "No structural field changes." })}</p>
             ) : (
               <table className="w-full text-sm border border-border rounded-md overflow-hidden">
                 <thead>
                   <tr className="text-xs uppercase tracking-wide bg-muted/30 text-muted-foreground">
-                    <th className="px-3 py-2 text-left">Field</th>
-                    <th className="px-3 py-2 text-left">Old value</th>
-                    <th className="px-3 py-2 text-left">New value</th>
+                    <th className="px-3 py-2 text-left">{t("routineHistory.fieldColumn", { defaultValue: "Field" })}</th>
+                    <th className="px-3 py-2 text-left">{t("routineHistory.oldValueColumn", { defaultValue: "Old value" })}</th>
+                    <th className="px-3 py-2 text-left">{t("routineHistory.newValueColumn", { defaultValue: "New value" })}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -835,19 +854,22 @@ function RoutineRevisionDiffModal({
           </section>
           <section className="space-y-2">
             <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-              Description diff
+              {t("routineHistory.descriptionDiff", { defaultValue: "Description diff" })}
             </p>
             <DiffTable rows={descriptionDiff} />
           </section>
         </div>
         <DialogFooter className="justify-between sm:justify-between">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Close
+            {t("Close", { defaultValue: "Close" })}
           </Button>
           {leftIsHistorical && left && (
             <Button onClick={() => onRestore(left)}>
               <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
-              Restore rev {left.revisionNumber} as new revision
+              {t("routineHistory.restoreRevAsNew", {
+                defaultValue: `Restore rev ${left.revisionNumber} as new revision`,
+                revision: left.revisionNumber,
+              })}
             </Button>
           )}
         </DialogFooter>
@@ -896,11 +918,12 @@ function RevisionPicker({
 }
 
 function DiffTable({ rows }: { rows: DiffRow[] }) {
+  const { t } = useTranslation();
   if (rows.length === 0) {
-    return <p className="text-sm text-muted-foreground">No description on either revision.</p>;
+    return <p className="text-sm text-muted-foreground">{t("routineHistory.noDescriptionEitherRevision", { defaultValue: "No description on either revision." })}</p>;
   }
   if (rows.every((row) => row.kind === "context")) {
-    return <p className="text-sm text-muted-foreground">Descriptions are identical.</p>;
+    return <p className="text-sm text-muted-foreground">{t("routineHistory.descriptionsIdentical", { defaultValue: "Descriptions are identical." })}</p>;
   }
   const lineClassesByKind: Record<DiffRow["kind"], string> = {
     context: "bg-transparent",
@@ -915,10 +938,10 @@ function DiffTable({ rows }: { rows: DiffRow[] }) {
   return (
     <div className="rounded-md border border-border text-xs font-mono leading-6 overflow-hidden">
       <div className="grid grid-cols-[56px_56px_24px_minmax(0,1fr)] border-b border-border/60 bg-muted/30 px-3 py-2 text-[11px] uppercase tracking-wide text-muted-foreground">
-        <span>Old</span>
-        <span>New</span>
+        <span>{t("routineHistory.old", { defaultValue: "Old" })}</span>
+        <span>{t("routineHistory.new", { defaultValue: "New" })}</span>
         <span />
-        <span>Content</span>
+        <span>{t("routineHistory.contentColumn", { defaultValue: "Content" })}</span>
       </div>
       {rows.map((row, index) => (
         <div
@@ -1003,6 +1026,7 @@ function computeFieldChanges(
   right: RoutineRevision,
   agents: AgentLookup,
   projects: ProjectLookup,
+  t: TFunction,
 ): Array<{ field: string; oldValue: string | null; newValue: string | null }> {
   const oldRoutine = left.snapshot.routine;
   const newRoutine = right.snapshot.routine;
@@ -1018,36 +1042,36 @@ function computeFieldChanges(
       changes.push({ field: label, oldValue: transform(oldVal), newValue: transform(newVal) });
     }
   };
-  compareScalar("title", "Title", oldRoutine.title, newRoutine.title);
-  compareScalar("priority", "Priority", oldRoutine.priority, newRoutine.priority);
+  compareScalar("title", t("routineHistory.field.title", { defaultValue: "Title" }), oldRoutine.title, newRoutine.title);
+  compareScalar("priority", t("routineHistory.field.priority", { defaultValue: "Priority" }), oldRoutine.priority, newRoutine.priority);
   compareScalar(
     "assigneeAgentId",
-    "Default agent",
-    resolveAgentName(oldRoutine.assigneeAgentId, agents),
-    resolveAgentName(newRoutine.assigneeAgentId, agents),
+    t("routineHistory.field.defaultAgent", { defaultValue: "Default agent" }),
+    oldRoutine.assigneeAgentId ? resolveAgentName(oldRoutine.assigneeAgentId, agents) : t("routineHistory.unassigned", { defaultValue: "Unassigned" }),
+    newRoutine.assigneeAgentId ? resolveAgentName(newRoutine.assigneeAgentId, agents) : t("routineHistory.unassigned", { defaultValue: "Unassigned" }),
   );
   compareScalar(
     "projectId",
-    "Project",
-    resolveProjectName(oldRoutine.projectId, projects),
-    resolveProjectName(newRoutine.projectId, projects),
+    t("routineHistory.field.project", { defaultValue: "Project" }),
+    oldRoutine.projectId ? resolveProjectName(oldRoutine.projectId, projects) : t("No project", { defaultValue: "No project" }),
+    newRoutine.projectId ? resolveProjectName(newRoutine.projectId, projects) : t("No project", { defaultValue: "No project" }),
   );
-  compareScalar("concurrencyPolicy", "Concurrency", oldRoutine.concurrencyPolicy, newRoutine.concurrencyPolicy);
-  compareScalar("catchUpPolicy", "Catch-up", oldRoutine.catchUpPolicy, newRoutine.catchUpPolicy);
-  compareScalar("status", "Status", oldRoutine.status, newRoutine.status);
+  compareScalar("concurrencyPolicy", t("routineHistory.field.concurrency", { defaultValue: "Concurrency" }), oldRoutine.concurrencyPolicy, newRoutine.concurrencyPolicy);
+  compareScalar("catchUpPolicy", t("routineHistory.field.catchUp", { defaultValue: "Catch-up" }), oldRoutine.catchUpPolicy, newRoutine.catchUpPolicy);
+  compareScalar("status", t("routineHistory.field.status", { defaultValue: "Status" }), oldRoutine.status, newRoutine.status);
   if (JSON.stringify(oldRoutine.variables) !== JSON.stringify(newRoutine.variables)) {
     changes.push({
-      field: "Variables",
-      oldValue: summarizeVariables(oldRoutine.variables),
-      newValue: summarizeVariables(newRoutine.variables),
+      field: t("routineHistory.field.variables", { defaultValue: "Variables" }),
+      oldValue: summarizeVariables(oldRoutine.variables, t),
+      newValue: summarizeVariables(newRoutine.variables, t),
     });
   }
-  compareTriggers(left.snapshot.triggers, right.snapshot.triggers, changes);
+  compareTriggers(left.snapshot.triggers, right.snapshot.triggers, changes, t);
   return changes;
 }
 
-function summarizeVariables(variables: RoutineVariable[]): string {
-  if (variables.length === 0) return "(none)";
+function summarizeVariables(variables: RoutineVariable[], t: TFunction): string {
+  if (variables.length === 0) return t("routineHistory.none", { defaultValue: "(none)" });
   return variables
     .map((variable) => `${variable.name}=${formatVariableDefault(variable)}`)
     .join(", ");
@@ -1057,6 +1081,7 @@ function compareTriggers(
   oldTriggers: RoutineRevisionSnapshotTriggerV1[],
   newTriggers: RoutineRevisionSnapshotTriggerV1[],
   changes: Array<{ field: string; oldValue: string | null; newValue: string | null }>,
+  t: TFunction,
 ) {
   const byId = new Map<string, { old?: RoutineRevisionSnapshotTriggerV1; next?: RoutineRevisionSnapshotTriggerV1 }>();
   for (const trigger of oldTriggers) byId.set(trigger.id, { old: trigger });
@@ -1067,13 +1092,19 @@ function compareTriggers(
   for (const [, pair] of byId) {
     if (pair.old && !pair.next) {
       changes.push({
-        field: `Trigger removed (${pair.old.label ?? pair.old.kind})`,
+        field: t("routineHistory.triggerRemoved", {
+          defaultValue: "Trigger removed ({{label}})",
+          label: pair.old.label ?? pair.old.kind,
+        }),
         oldValue: summarizeTriggerSnapshot(pair.old),
         newValue: null,
       });
     } else if (!pair.old && pair.next) {
       changes.push({
-        field: `Trigger added (${pair.next.label ?? pair.next.kind})`,
+        field: t("routineHistory.triggerAdded", {
+          defaultValue: "Trigger added ({{label}})",
+          label: pair.next.label ?? pair.next.kind,
+        }),
         oldValue: null,
         newValue: summarizeTriggerSnapshot(pair.next),
       });
@@ -1082,9 +1113,12 @@ function compareTriggers(
       const newSummary = summarizeTriggerSnapshot(pair.next);
       if (oldSummary !== newSummary || pair.old.enabled !== pair.next.enabled) {
         changes.push({
-          field: `Trigger ${pair.next.label ?? pair.next.kind}`,
-          oldValue: `${oldSummary} (${pair.old.enabled ? "enabled" : "disabled"})`,
-          newValue: `${newSummary} (${pair.next.enabled ? "enabled" : "disabled"})`,
+          field: t("routineHistory.triggerField", {
+            defaultValue: "Trigger {{label}}",
+            label: pair.next.label ?? pair.next.kind,
+          }),
+          oldValue: `${oldSummary} (${pair.old.enabled ? t("routineHistory.enabled", { defaultValue: "enabled" }) : t("routineHistory.disabled", { defaultValue: "disabled" })})`,
+          newValue: `${newSummary} (${pair.next.enabled ? t("routineHistory.enabled", { defaultValue: "enabled" }) : t("routineHistory.disabled", { defaultValue: "disabled" })})`,
         });
       }
     }

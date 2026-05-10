@@ -6,6 +6,7 @@ import { useSidebar } from "../context/SidebarContext";
 export interface PageTabItem {
   value: string;
   label: ReactNode;
+  mobileLabel?: string;
 }
 
 interface PageTabBarProps {
@@ -28,7 +29,7 @@ export function PageTabBar({ items, value, onValueChange, align = "center" }: Pa
       >
         {items.map((item) => (
           <option key={item.value} value={item.value}>
-            {typeof item.label === "string" ? t(item.label, { defaultValue: item.label }) : item.value}
+            {item.mobileLabel ?? (typeof item.label === "string" ? t(item.label, { defaultValue: item.label }) : item.value)}
           </option>
         ))}
       </select>

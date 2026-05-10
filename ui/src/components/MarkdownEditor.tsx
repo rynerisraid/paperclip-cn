@@ -659,6 +659,13 @@ export const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>
   }, [autoSizeFallbackTextarea, richEditorError, value]);
 
   useEffect(() => {
+    if (richEditorError) return;
+    const editable = containerRef.current?.querySelector('[contenteditable="true"]');
+    if (!(editable instanceof HTMLElement)) return;
+    editable.setAttribute("aria-label", t("markdownEditor.editableMarkdown", { defaultValue: "Editable markdown" }));
+  }, [richEditorError, t]);
+
+  useEffect(() => {
     if (richEditorError || editorValue.trim().length === 0) return;
     const container = containerRef.current;
     if (!container) return;
@@ -1031,7 +1038,11 @@ export const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>
         )}
       >
         <div className="flex items-start justify-between gap-3 px-3 pt-2 text-xs text-muted-foreground">
-          <p>Rich editor unavailable for this markdown. Showing raw source instead.</p>
+          <p>
+            {t("markdownEditor.richEditorUnavailable", {
+              defaultValue: "Rich editor unavailable for this markdown. Showing raw source instead.",
+            })}
+          </p>
           <button
             type="button"
             className="shrink-0 underline underline-offset-2 hover:text-foreground"
@@ -1039,7 +1050,7 @@ export const MarkdownEditor = forwardRef<MarkdownEditorRef, MarkdownEditorProps>
               setRichEditorError(null);
             }}
           >
-            Retry rich editor
+            {t("markdownEditor.retryRichEditor", { defaultValue: "Retry rich editor" })}
           </button>
         </div>
         <textarea

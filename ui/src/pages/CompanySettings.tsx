@@ -304,12 +304,22 @@ export function CompanySettings() {
                 })}
               >
                 <div className="space-y-2">
-                  <input
-                    type="file"
-                    accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml"
-                    onChange={handleLogoFileChange}
-                    className="w-full rounded-md border border-border bg-transparent px-2.5 py-1.5 text-sm outline-none file:mr-4 file:rounded-md file:border-0 file:bg-muted file:px-2.5 file:py-1 file:text-xs"
-                  />
+                  <div>
+                    <input
+                      id="company-logo-upload"
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml"
+                      onChange={handleLogoFileChange}
+                      className="sr-only"
+                    />
+                    <label
+                      htmlFor="company-logo-upload"
+                      className="inline-flex h-8 cursor-pointer items-center gap-2 rounded-md border border-input bg-background px-3 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+                    >
+                      <Upload className="h-3.5 w-3.5" />
+                      {t("Choose logo file", { defaultValue: "Choose logo file" })}
+                    </label>
+                  </div>
                   {logoUrl && (
                     <div className="flex items-center gap-2">
                       <Button

@@ -1,5 +1,5 @@
 /// <reference path="./types/express.d.ts" />
-import { existsSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync } from "node:fs";
 import { createServer } from "node:http";
 import { resolve } from "node:path";
 import { createInterface } from "node:readline/promises";
@@ -15,7 +15,9 @@ import {
   inspectMigrations,
   applyPendingMigrations,
   createEmbeddedPostgresLogBuffer,
+  cleanupOrphanedEmbeddedPostgresForkchildren,
   recoverEmbeddedPostgresStart,
+  resetIncompleteEmbeddedPostgresDataDir,
   reconcilePendingMigrationHistory,
   shouldRetryEmbeddedPostgresStart,
   formatDatabaseBackupResult,
@@ -318,8 +320,21 @@ export async function startServer(): Promise<StartedServer> {
     if (config.databaseMode === "postgres") {
       logger.warn("Database mode is postgres but no connection string was set; falling back to embedded PostgreSQL");
     }
-  
+
+    const cleanedForkchildren = await cleanupOrphanedEmbeddedPostgresForkchildren();
+    if (cleanedForkchildren.length > 0) {
+      logger.warn(
+        `Cleaned up ${cleanedForkchildren.length} stale embedded PostgreSQL worker process(es) before startup.`,
+      );
+    }
+
     const clusterVersionFile = resolve(dataDir, "PG_VERSION");
+    if (resetIncompleteEmbeddedPostgresDataDir(dataDir)) {
+      logger.warn(
+        `Embedded PostgreSQL data dir ${dataDir} was left half-initialized; resetting it before retrying startup.`,
+      );
+      mkdirSync(dataDir, { recursive: true });
+    }
     const clusterAlreadyInitialized = existsSync(clusterVersionFile);
     const postmasterPidFile = resolve(dataDir, "postmaster.pid");
     const isPidRunning = (pid: number): boolean => {

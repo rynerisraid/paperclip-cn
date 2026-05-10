@@ -388,6 +388,7 @@ function IssueSearchInput({
   value: string;
   onDebouncedChange?: (search: string) => void;
 }) {
+  const { t } = useTranslation();
   const [draftValue, setDraftValue] = useState(value);
   const lastCommittedValueRef = useRef(value);
 
@@ -434,9 +435,9 @@ function IssueSearchInput({
             e.currentTarget.blur();
           }
         }}
-        placeholder="Search issues..."
+        placeholder={t("Search issues...", { defaultValue: "Search issues..." })}
         className="pl-7 text-xs sm:text-sm"
-        aria-label="Search issues"
+        aria-label={t("Search issues", { defaultValue: "Search issues" })}
         data-page-search-target="true"
       />
     </div>
@@ -452,6 +453,7 @@ function SubIssueProgressSummaryStrip({
   issueLinkState?: unknown;
   parentIssueIdForCostSummary?: string;
 }) {
+  const { t } = useTranslation();
   const target = summary.target;
   const targetIssue = target?.issue ?? null;
   const targetPathId = targetIssue?.identifier ?? targetIssue?.id ?? "";
@@ -481,35 +483,53 @@ function SubIssueProgressSummaryStrip({
         <div className="min-w-0 flex-1 space-y-2">
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
             <span className="font-medium text-foreground">
-              {summary.doneCount}/{summary.totalCount} done
+              {t("issuesList.subIssueDoneCount", {
+                done: summary.doneCount,
+                total: summary.totalCount,
+                defaultValue: "{{done}}/{{total}} done",
+              })}
             </span>
             <span className="text-muted-foreground">
-              {summary.inProgressCount} in progress
+              {t("issuesList.subIssueInProgressCount", {
+                count: summary.inProgressCount,
+                defaultValue: "{{count}} in progress",
+              })}
             </span>
             <span className="text-muted-foreground">
-              {summary.blockedCount} blocked
+              {t("issuesList.subIssueBlockedCount", {
+                count: summary.blockedCount,
+                defaultValue: "{{count}} blocked",
+              })}
             </span>
             {showCostSummary && (
               <>
                 <span
                   className="text-muted-foreground tabular-nums"
-                  title={`${costSummary.runCount.toLocaleString()} run${
-                    costSummary.runCount === 1 ? "" : "s"
-                  } across ${costSummary.issueCount} sub-issue${
-                    costSummary.issueCount === 1 ? "" : "s"
-                  }`}
+                  title={t("issuesList.subIssueRunSummary", {
+                    runCount: costSummary.runCount.toLocaleString(),
+                    issueCount: costSummary.issueCount,
+                    defaultValue: "{{runCount}} runs across {{issueCount}} sub-issues",
+                  })}
                 >
-                  {formatTokens(totalTokens)} tokens
+                  {t("issuesList.tokenCount", {
+                    tokens: formatTokens(totalTokens),
+                    defaultValue: "{{tokens}} tokens",
+                  })}
                 </span>
                 <span className="text-muted-foreground tabular-nums">
-                  {formatDurationMs(costSummary.runtimeMs)} runtime
+                  {t("issuesList.runtimeDuration", {
+                    duration: formatDurationMs(costSummary.runtimeMs),
+                    defaultValue: "{{duration}} runtime",
+                  })}
                 </span>
               </>
             )}
           </div>
           <div
             role="progressbar"
-            aria-label="Sub-issues completion progress"
+            aria-label={t("issuesList.subIssuesCompletionProgress", {
+              defaultValue: "Sub-issues completion progress",
+            })}
             aria-valuemin={0}
             aria-valuenow={summary.doneCount}
             aria-valuemax={summary.totalCount}
@@ -531,7 +551,9 @@ function SubIssueProgressSummaryStrip({
           {target && targetIssue ? (
             <>
               <div className="text-xs font-medium text-muted-foreground">
-                {target.kind === "next" ? "Next up" : "Waiting on blockers"}
+                {target.kind === "next"
+                  ? t("issuesList.nextUp", { defaultValue: "Next up" })
+                  : t("issuesList.waitingOnBlockers", { defaultValue: "Waiting on blockers" })}
               </div>
               <Link
                 to={createIssueDetailPath(targetPathId)}
@@ -546,11 +568,17 @@ function SubIssueProgressSummaryStrip({
               </Link>
             </>
           ) : summary.totalCount === 0 ? (
-            <div className="text-sm font-medium text-foreground">No active sub-issues</div>
+            <div className="text-sm font-medium text-foreground">
+              {t("issuesList.noActiveSubIssues", { defaultValue: "No active sub-issues" })}
+            </div>
           ) : summary.doneCount === summary.totalCount ? (
-            <div className="text-sm font-medium text-foreground">All sub-issues done</div>
+            <div className="text-sm font-medium text-foreground">
+              {t("issuesList.allSubIssuesDone", { defaultValue: "All sub-issues done" })}
+            </div>
           ) : (
-            <div className="text-sm font-medium text-foreground">No actionable sub-issues</div>
+            <div className="text-sm font-medium text-foreground">
+              {t("issuesList.noActionableSubIssues", { defaultValue: "No actionable sub-issues" })}
+            </div>
           )}
         </div>
       </div>
@@ -742,10 +770,10 @@ export function IssuesList({
   }, [projects]);
 
   const projectWorkspaceById = useMemo(() => {
-    const map = new Map<string, { name: string }>();
+    const map = new Map<string, { name: string; projectId: string }>();
     for (const project of projects ?? []) {
       for (const workspace of project.workspaces ?? []) {
-        map.set(workspace.id, { name: workspace.name || project.name });
+        map.set(workspace.id, { name: workspace.name || project.name, projectId: project.id });
       }
     }
     return map;
@@ -772,16 +800,21 @@ export function IssuesList({
       name: string;
       mode: "shared_workspace" | "isolated_workspace" | "operator_branch" | "adapter_managed" | "cloud_sandbox";
       projectWorkspaceId: string | null;
+      projectId: string | null;
     }>();
     for (const workspace of executionWorkspaces) {
+      const projectWorkspace = workspace.projectWorkspaceId
+        ? projectWorkspaceById.get(workspace.projectWorkspaceId) ?? null
+        : null;
       map.set(workspace.id, {
         name: workspace.name,
         mode: workspace.mode,
         projectWorkspaceId: workspace.projectWorkspaceId ?? null,
+        projectId: projectWorkspace?.projectId ?? null,
       });
     }
     return map;
-  }, [executionWorkspaces]);
+  }, [executionWorkspaces, projectWorkspaceById]);
   const issueFilterWorkspaceContext = useMemo(() => ({
     executionWorkspaceById,
     defaultProjectWorkspaceIdByProjectId,
@@ -1181,7 +1214,8 @@ export function IssuesList({
     };
   }, [canLoadMoreIssues, hasMoreIssues, hasMoreRenderedRows, loadMoreIssueRows]);
 
-  const newIssueDefaults = useCallback((groupKey?: string) => {
+  const newIssueDefaults = useCallback((group?: { key: string; items: Issue[] }) => {
+    const groupKey = group?.key;
     const defaults: Record<string, unknown> = { ...(baseCreateIssueDefaults ?? {}) };
     if (projectId && defaults.projectId === undefined) defaults.projectId = projectId;
     if (groupKey) {
@@ -1192,6 +1226,27 @@ export function IssuesList({
         else defaults.assigneeAgentId = groupKey;
       }
       else if (viewState.groupBy === "project" && groupKey !== "__no_project") defaults.projectId = groupKey;
+      else if (viewState.groupBy === "workspace" && groupKey !== "__no_workspace") {
+        const representativeIssue = group?.items.find((issue) => issue.executionWorkspaceId === groupKey) ?? null;
+        const executionWorkspace = executionWorkspaceById.get(groupKey);
+        if (executionWorkspace) {
+          defaults.executionWorkspaceId = groupKey;
+          defaults.executionWorkspaceMode = "reuse_existing";
+          if (executionWorkspace.projectWorkspaceId) defaults.projectWorkspaceId = executionWorkspace.projectWorkspaceId;
+          const groupedProjectId = executionWorkspace.projectId
+            ?? (executionWorkspace.projectWorkspaceId
+              ? projectWorkspaceById.get(executionWorkspace.projectWorkspaceId)?.projectId
+              : null)
+            ?? (representativeIssue?.executionWorkspaceId === groupKey ? representativeIssue.projectId : null);
+          if (groupedProjectId) defaults.projectId = groupedProjectId;
+        } else {
+          const projectWorkspace = projectWorkspaceById.get(groupKey);
+          if (projectWorkspace) {
+            defaults.projectWorkspaceId = groupKey;
+            defaults.projectId = projectWorkspace.projectId;
+          }
+        }
+      }
       else if (viewState.groupBy === "parent" && groupKey !== "__no_parent") {
         const parentIssue = issueById.get(groupKey);
         if (parentIssue) Object.assign(defaults, buildSubIssueDefaultsForViewer(parentIssue, currentUserId));
@@ -1199,7 +1254,15 @@ export function IssuesList({
       }
     }
     return defaults;
-  }, [baseCreateIssueDefaults, currentUserId, issueById, projectId, viewState.groupBy]);
+  }, [
+    baseCreateIssueDefaults,
+    currentUserId,
+    executionWorkspaceById,
+    issueById,
+    projectId,
+    projectWorkspaceById,
+    viewState.groupBy,
+  ]);
 
   const createActionLabel = createIssueLabel
     ? t("Create {{label}}", { label: createIssueLabel, defaultValue: `Create ${createIssueLabel}` })
@@ -1207,8 +1270,8 @@ export function IssuesList({
   const createButtonLabel = createIssueLabel
     ? t("New {{label}}", { label: createIssueLabel, defaultValue: `New ${createIssueLabel}` })
     : t("New Issue", { defaultValue: "New Issue" });
-  const openCreateIssueDialog = useCallback((groupKey?: string) => {
-    openNewIssue(newIssueDefaults(groupKey));
+  const openCreateIssueDialog = useCallback((group?: { key: string; items: Issue[] }) => {
+    openNewIssue(newIssueDefaults(group));
   }, [newIssueDefaults, openNewIssue]);
 
   const filterToWorkspace = useCallback((workspaceId: string) => {
@@ -1269,14 +1332,14 @@ export function IssuesList({
             <button
               className={`p-1.5 transition-colors ${viewState.viewMode === "list" ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground"}`}
               onClick={() => updateView({ viewMode: "list" })}
-              title="List view"
+              title={t("List view", { defaultValue: "List view" })}
             >
               <List className="h-3.5 w-3.5" />
             </button>
             <button
               className={`p-1.5 transition-colors ${viewState.viewMode === "board" ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground"}`}
               onClick={() => updateView({ viewMode: "board" })}
-              title="Board view"
+              title={t("Board view", { defaultValue: "Board view" })}
             >
               <Columns3 className="h-3.5 w-3.5" />
             </button>
@@ -1289,7 +1352,9 @@ export function IssuesList({
               size="icon"
               className={cn("hidden h-8 w-8 shrink-0 sm:inline-flex", viewState.nestingEnabled && "bg-accent")}
               onClick={() => updateView({ nestingEnabled: !viewState.nestingEnabled })}
-              title={viewState.nestingEnabled ? "Disable parent-child nesting" : "Enable parent-child nesting"}
+              title={viewState.nestingEnabled
+                ? t("Disable parent-child nesting", { defaultValue: "Disable parent-child nesting" })
+                : t("Enable parent-child nesting", { defaultValue: "Enable parent-child nesting" })}
             >
               <ListTree className="h-3.5 w-3.5" />
             </Button>
@@ -1300,7 +1365,7 @@ export function IssuesList({
             visibleColumnSet={visibleIssueColumnSet}
             onToggleColumn={toggleIssueColumn}
             onResetColumns={() => setIssueColumns(DEFAULT_INBOX_ISSUE_COLUMNS)}
-            title="Choose which issue columns stay visible"
+            title={t("Choose which issue columns stay visible", { defaultValue: "Choose which issue columns stay visible" })}
             iconOnly
           />
 
@@ -1322,19 +1387,19 @@ export function IssuesList({
           {viewState.viewMode === "list" && (
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" size="icon" className="h-8 w-8 shrink-0" title="Sort">
+                <Button variant="outline" size="icon" className="h-8 w-8 shrink-0" title={t("Sort", { defaultValue: "Sort" })}>
                   <ArrowUpDown className="h-3.5 w-3.5" />
                 </Button>
               </PopoverTrigger>
               <PopoverContent align="end" className="w-48 p-0">
                 <div className="p-2 space-y-0.5">
                   {([
-                    ["workflow", "Workflow"],
-                    ["status", "Status"],
-                    ["priority", "Priority"],
-                    ["title", "Title"],
-                    ["created", "Created"],
-                    ["updated", "Updated"],
+                    ["workflow", t("Workflow", { defaultValue: "Workflow" })],
+                    ["status", t("Status", { defaultValue: "Status" })],
+                    ["priority", t("Priority", { defaultValue: "Priority" })],
+                    ["title", t("Title", { defaultValue: "Title" })],
+                    ["created", t("Created", { defaultValue: "Created" })],
+                    ["updated", t("Updated", { defaultValue: "Updated" })],
                   ] as const).map(([field, label]) => (
                     <button
                       key={field}
@@ -1366,20 +1431,20 @@ export function IssuesList({
           {viewState.viewMode === "list" && (
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" size="icon" className="h-8 w-8 shrink-0" title="Group">
+                <Button variant="outline" size="icon" className="h-8 w-8 shrink-0" title={t("Group", { defaultValue: "Group" })}>
                   <Layers className="h-3.5 w-3.5" />
                 </Button>
               </PopoverTrigger>
               <PopoverContent align="end" className="w-44 p-0">
                 <div className="p-2 space-y-0.5">
                   {([
-                    ["status", "Status"],
-                    ["priority", "Priority"],
-                    ["assignee", "Assignee"],
-                    ["project", "Project"],
-                    ["workspace", "Workspace"],
-                    ["parent", "Parent Issue"],
-                    ["none", "None"],
+                    ["status", t("Status", { defaultValue: "Status" })],
+                    ["priority", t("Priority", { defaultValue: "Priority" })],
+                    ["assignee", t("Assignee", { defaultValue: "Assignee" })],
+                    ["project", t("Project", { defaultValue: "Project" })],
+                    ["workspace", t("Workspace", { defaultValue: "Workspace" })],
+                    ["parent", t("Parent Issue", { defaultValue: "Parent Issue" })],
+                    ["none", t("None", { defaultValue: "None" })],
                   ] as const).map(([value, label]) => (
                     <button
                       key={value}
@@ -1465,8 +1530,16 @@ export function IssuesList({
                   <Button
                     variant="ghost"
                     size="icon-xs"
-                    className="text-muted-foreground"
-                    onClick={() => openCreateIssueDialog(group.key)}
+                    className="-mr-2 text-muted-foreground"
+                    title={t("issuesList.newIssueInGroup", {
+                      group: group.label,
+                      defaultValue: "New issue in {{group}}",
+                    })}
+                    aria-label={t("issuesList.newIssueInGroup", {
+                      group: group.label,
+                      defaultValue: "New issue in {{group}}",
+                    })}
+                    onClick={() => openCreateIssueDialog(group)}
                   >
                     <Plus className="h-3 w-3" />
                   </Button>
@@ -1586,18 +1659,26 @@ export function IssuesList({
                           <>
                             {hasChildren && !isExpanded ? (
                               <span className="ml-1.5 text-xs text-muted-foreground">
-                                ({totalDescendants} sub-task{totalDescendants !== 1 ? "s" : ""})
+                                {totalDescendants === 1
+                                  ? t("({{count}} sub-task)", {
+                                    defaultValue: "({{count}} sub-task)",
+                                    count: totalDescendants,
+                                  })
+                                  : t("({{count}} sub-tasks)", {
+                                    defaultValue: "({{count}} sub-tasks)",
+                                    count: totalDescendants,
+                                  })}
                               </span>
                             ) : null}
                             {issueBadge ? (
                               issueBadge === "Paused" ? (
                                 <span
                                   className={cn("ml-1.5 inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium", statusBadge.paused)}
-                                  aria-label="Paused"
-                                  title="Paused"
+                                  aria-label={t("Paused", { defaultValue: "Paused" })}
+                                  title={t("Paused", { defaultValue: "Paused" })}
                                 >
                                   <CircleSlash2 className="h-3 w-3" />
-                                  Paused
+                                  {t("Paused", { defaultValue: "Paused" })}
                                 </span>
                               ) : (
                                 <span className="ml-1.5 inline-flex items-center rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:text-amber-300">
@@ -1608,11 +1689,11 @@ export function IssuesList({
                             {isSuccessfulRunHandoffRequired(issue) ? (
                               <span
                                 className="ml-1.5 inline-flex items-center gap-1 rounded-full border border-amber-400/45 bg-amber-50/60 px-1.5 py-0.5 text-[10px] font-medium text-amber-700 dark:border-amber-300/35 dark:bg-amber-400/10 dark:text-amber-300"
-                                aria-label="Needs next step"
-                                title="This issue needs a next step"
+                                aria-label={t("Needs next step", { defaultValue: "Needs next step" })}
+                                title={t("This issue needs a next step", { defaultValue: "This issue needs a next step" })}
                               >
                                 <CircleDot className="h-3 w-3" />
-                                Needs next step
+                                {t("Needs next step", { defaultValue: "Needs next step" })}
                               </span>
                             ) : null}
                           </>

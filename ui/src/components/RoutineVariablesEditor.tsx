@@ -259,19 +259,24 @@ const BUILTIN_VARIABLE_DOCS: BuiltinVariableDoc[] = [
 ];
 
 export function RoutineVariablesHint() {
+  const { t } = useTranslation();
   const [helpOpen, setHelpOpen] = useState(false);
 
   return (
     <>
       <div className="flex items-center justify-between gap-2 rounded-lg border border-dashed border-border/70 px-3 py-2 text-xs text-muted-foreground">
         <span>
-          Use `{"{{variable_name}}"}` placeholders in the instructions to prompt for inputs when the routine runs.
+          {t("routineVariables.helpSummaryPrefix", { defaultValue: "Use" })}{" "}
+          <code className="font-mono">{"{{variable_name}}"}</code>{" "}
+          {t("routineVariables.helpSummarySuffix", {
+            defaultValue: "placeholders in the instructions to prompt for inputs when the routine runs.",
+          })}
         </span>
         <button
           type="button"
           onClick={() => setHelpOpen(true)}
           className="shrink-0 rounded-full p-0.5 text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          aria-label="Show variable help"
+          aria-label={t("routineVariables.showHelp", { defaultValue: "Show variable help" })}
         >
           <HelpCircle className="h-3.5 w-3.5" />
         </button>
@@ -280,48 +285,55 @@ export function RoutineVariablesHint() {
       <Dialog open={helpOpen} onOpenChange={setHelpOpen}>
         <DialogContent className="sm:max-w-xl">
           <DialogHeader>
-            <DialogTitle>Routine variables</DialogTitle>
+            <DialogTitle>{t("routineVariables.helpTitle", { defaultValue: "Routine variables" })}</DialogTitle>
             <DialogDescription>
-              How to prompt for inputs and which variables Paperclip fills in automatically.
+              {t("routineVariables.helpDescription", {
+                defaultValue: "How to prompt for inputs and which variables Paperclip fills in automatically.",
+              })}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-5 text-sm">
             <section className="space-y-2">
               <h3 className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                Custom variables
+                {t("routineVariables.customVariables", { defaultValue: "Custom variables" })}
               </h3>
               <p className="text-muted-foreground">
-                Type{" "}
+                {t("routineVariables.typePlaceholderPrefix", { defaultValue: "Type" })}{" "}
                 <code className="rounded bg-muted px-1 py-0.5 font-mono text-xs text-foreground">
                   {"{{variable_name}}"}
                 </code>{" "}
-                anywhere in the title or instructions. Paperclip detects each placeholder, lists it
-                under <span className="font-medium text-foreground">Variables</span>, and prompts
-                for a value before each run.
+                {t("routineVariables.customVariablesBodyPrefix", {
+                  defaultValue: "anywhere in the title or instructions. Paperclip detects each placeholder, lists it under",
+                })}{" "}
+                <span className="font-medium text-foreground">{t("routineVariables.variablesList", { defaultValue: "Variables" })}</span>,{" "}
+                {t("routineVariables.customVariablesBodySuffix", {
+                  defaultValue: "and prompts for a value before each run.",
+                })}
               </p>
               <ul className="list-disc space-y-1 pl-5 text-muted-foreground">
-                <li>Names must start with a letter and may use letters, numbers, and underscores.</li>
-                <li>Pick a type (text, textarea, number, boolean, select), default value, and whether it is required.</li>
-                <li>The same name reused across the title and instructions is treated as one variable.</li>
+                <li>{t("routineVariables.nameRule", { defaultValue: "Names must start with a letter and may use letters, numbers, and underscores." })}</li>
+                <li>{t("routineVariables.typeRule", { defaultValue: "Pick a type (text, textarea, number, boolean, select), default value, and whether it is required." })}</li>
+                <li>{t("routineVariables.reuseRule", { defaultValue: "The same name reused across the title and instructions is treated as one variable." })}</li>
               </ul>
             </section>
 
             <section className="space-y-2">
               <h3 className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                Built-in variables
+                {t("routineVariables.builtinVariables", { defaultValue: "Built-in variables" })}
               </h3>
               <p className="text-muted-foreground">
-                These are filled in automatically — no setup needed and they will not appear in the
-                Variables list.
+                {t("routineVariables.builtinVariablesBody", {
+                  defaultValue: "These are filled in automatically — no setup needed and they will not appear in the Variables list.",
+                })}
               </p>
               <div className="overflow-hidden rounded-lg border border-border/70">
                 <table className="w-full text-left text-xs">
                   <thead className="bg-muted/40 text-muted-foreground">
                     <tr>
-                      <th className="px-3 py-2 font-medium">Placeholder</th>
-                      <th className="px-3 py-2 font-medium">Example</th>
-                      <th className="px-3 py-2 font-medium">Description</th>
+                      <th className="px-3 py-2 font-medium">{t("routineVariables.placeholderColumn", { defaultValue: "Placeholder" })}</th>
+                      <th className="px-3 py-2 font-medium">{t("routineVariables.exampleColumn", { defaultValue: "Example" })}</th>
+                      <th className="px-3 py-2 font-medium">{t("routineVariables.descriptionColumn", { defaultValue: "Description" })}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border/70">
@@ -331,7 +343,9 @@ export function RoutineVariablesHint() {
                           <Badge variant="outline" className="font-mono text-xs">{`{{${entry.name}}}`}</Badge>
                         </td>
                         <td className="px-3 py-2 font-mono text-muted-foreground">{entry.example}</td>
-                        <td className="px-3 py-2 text-muted-foreground">{entry.description}</td>
+                        <td className="px-3 py-2 text-muted-foreground">
+                          {t(`routineVariables.builtin.${entry.name}.description`, { defaultValue: entry.description })}
+                        </td>
                       </tr>
                     ))}
                   </tbody>

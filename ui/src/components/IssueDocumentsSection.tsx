@@ -832,7 +832,17 @@ export function IssueDocumentsSection({
                       type="button"
                       className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground"
                       onClick={() => toggleFoldedDocument(doc.key)}
-                      aria-label={isFolded ? `Expand ${doc.key} document` : `Collapse ${doc.key} document`}
+                      aria-label={
+                        isFolded
+                          ? t("issueDocuments.expandDocumentAria", {
+                            defaultValue: "Expand {{key}} document",
+                            key: doc.key,
+                          })
+                          : t("issueDocuments.collapseDocumentAria", {
+                            defaultValue: "Collapse {{key}} document",
+                            key: doc.key,
+                          })
+                      }
                       aria-expanded={!isFolded}
                     >
                       {isFolded ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
@@ -853,14 +863,17 @@ export function IssueDocumentsSection({
                             isHistoricalPreview && "text-amber-300 hover:text-amber-200",
                           )}
                         >
-                          rev {displayedRevisionNumber}
+                          {t("issueDocuments.revisionNumber", {
+                            defaultValue: "rev {{number}}",
+                            number: displayedRevisionNumber,
+                          })}
                           <ChevronDown className="h-3 w-3" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="start" className="w-72">
-                        <DropdownMenuLabel>Revision history</DropdownMenuLabel>
+                        <DropdownMenuLabel>{t("Revision history", { defaultValue: "Revision history" })}</DropdownMenuLabel>
                         {revisionMenuOpenKey === doc.key && isFetchingDocumentRevisions && rawRevisionHistory.length === 0 ? (
-                          <DropdownMenuItem disabled>Loading revisions...</DropdownMenuItem>
+                          <DropdownMenuItem disabled>{t("Loading revisions...", { defaultValue: "Loading revisions..." })}</DropdownMenuItem>
                         ) : revisionHistory.length > 0 ? (
                           <DropdownMenuRadioGroup value={selectedRevisionId ?? currentRevision.id ?? ""}>
                             {revisionHistory.map((revision) => {
@@ -874,10 +887,15 @@ export function IssueDocumentsSection({
                                 >
                                   <div className="flex min-w-0 flex-col">
                                     <div className="flex items-center gap-2">
-                                      <span className="font-medium">rev {revision.revisionNumber}</span>
+                                      <span className="font-medium">
+                                        {t("issueDocuments.revisionNumber", {
+                                          defaultValue: "rev {{number}}",
+                                          number: revision.revisionNumber,
+                                        })}
+                                      </span>
                                       {isCurrentRevision ? (
                                         <span className="rounded-full border border-border px-1.5 py-0.5 text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
-                                          Current
+                                          {t("Current", { defaultValue: "Current" })}
                                         </span>
                                       ) : null}
                                     </div>
@@ -1030,7 +1048,9 @@ export function IssueDocumentsSection({
                     <div className="rounded-md border border-amber-500/30 bg-amber-500/5 px-3 py-3">
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                         <div className="space-y-1">
-                          <p className="text-sm font-medium text-amber-200">Out of date</p>
+                          <p className="text-sm font-medium text-amber-200">
+                            {t("Out of date", { defaultValue: "Out of date" })}
+                          </p>
                           <p className="text-xs text-muted-foreground">
                             {t("issueDocuments.remoteChangedNotice", {
                               defaultValue: "This document changed while you were editing. Your local draft is preserved and autosave is paused.",
